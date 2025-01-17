@@ -1,0 +1,27 @@
+{
+  "output": {
+    "filePath": "repo-output.txt",
+    "style": "plain",
+    "removeComments": false,
+    "removeEmptyLines": true,
+    "showLineNumbers": false,
+    "topFilesLength": 0
+  },
+  "include": [
+    "**/*"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".github",
+      "**/*.log",
+      "package-lock.json",
+      "bun.lockb",
+      "README.md",
+      "LICENSE",
+      "repomix.config.json",
+      "chat.code-workspace"
+    ]
+  }
+}
