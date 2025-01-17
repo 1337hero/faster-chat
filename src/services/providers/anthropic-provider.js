@@ -13,16 +13,23 @@ export class AnthropicProvider extends BaseChatProvider {
 
   async sendMessage(messages, options = {}) {
     try {
-      const response = await this.client.messages.create({
+      // Optimize the request payload
+      const optimizedOptions = {
         model: options.model || this.defaultModel,
         max_tokens: options.maxTokens || 4096,
-        system: options.systemPrompt,
+        stream: true,
         messages: messages.map(msg => ({
           role: msg.role,
           content: msg.content
-        })),
-        stream: true // Enable streaming
-      });
+        }))
+      };
+
+      // Only add system prompt if provided
+      if (options.systemPrompt) {
+        optimizedOptions.system = options.systemPrompt;
+      }
+
+      const response = await this.client.messages.create(optimizedOptions);
 
       return {
         success: true,
@@ -34,15 +41,8 @@ export class AnthropicProvider extends BaseChatProvider {
       return {
         success: false,
         stream: null,
-        error: error.message || 'An error occurred while communicating with Claude'
+        error: error.message || 'An error occurred'
       };
     }
-  }
-
-  formatMessage(role, content) {
-    return {
-      role,
-      content
-    };
   }
 }

@@ -8,6 +8,8 @@ export const MessageRoles = {
   SYSTEM: 'system'
 };
 
+export const CONTEXT_WINDOW_SIZE = 4;
+
 export const useChatState = (conversationId = null) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +18,7 @@ export const useChatState = (conversationId = null) => {
   const [activeProvider, setActiveProvider] = useState(ProviderType.ANTHROPIC);
   const [activeModel, setActiveModel] = useState('claude-3-sonnet-20240229');
   const streamingMessageRef = useRef('');
+  const startTime = performance.now();
 
     // Handle streaming updates
     const handleStreamingUpdate = useCallback((chunk) => {
@@ -34,14 +37,13 @@ export const useChatState = (conversationId = null) => {
       });
     }, []);
 
-  // Initialize provider and load conversation if ID provided
+  // Initialize provider and load conversation
   useEffect(() => {
     const initChat = async () => {
       // Create provider instance
       const providerInstance = createProvider(activeProvider);
       setProvider(providerInstance);
 
-      // Load conversation if ID provided
       if (conversationId) {
         try {
           const conversation = await chatStorage.getConversation(conversationId);
@@ -65,6 +67,19 @@ export const useChatState = (conversationId = null) => {
     }
   }, [activeProvider]);
 
+  const getOptimizedMessages = useCallback((messages) => {
+    const relevantMessages = messages.slice(-CONTEXT_WINDOW_SIZE);
+    
+    const uniqueMessages = relevantMessages.filter((msg, index, self) =>
+      index === self.findIndex((m) => m.content === msg.content)
+    );
+
+    return uniqueMessages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+  }, []);
+
   const sendMessage = useCallback(async (content) => {
     if (!provider) return;
     setIsLoading(true);
@@ -72,13 +87,18 @@ export const useChatState = (conversationId = null) => {
     streamingMessageRef.current = ''; // Reset streaming message
 
     // Create user message
-    const userMessage = provider.formatMessage(MessageRoles.USER, content);
+    const userMessage = {
+      role: MessageRoles.USER,
+      content: content.trim()
+    };
+
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
     try {
-      // Send to API with streaming
-      const response = await provider.sendMessage(updatedMessages, {
+      const optimizedMessages = getOptimizedMessages(updatedMessages);
+      
+      const response = await provider.sendMessage(optimizedMessages, {
         model: activeModel
       });
     
@@ -90,9 +110,6 @@ export const useChatState = (conversationId = null) => {
       for await (const chunk of response.stream) {
         // Debug log to see chunk structure
         console.log('Received chunk:', chunk);
-        
-        // Correctly access the delta text from the chunk
-        // The structure is typically chunk.delta?.text or chunk.text
         const text = chunk.delta?.text || chunk.text || '';
         handleStreamingUpdate(text);
       }
@@ -117,9 +134,11 @@ export const useChatState = (conversationId = null) => {
       setError(err.message);
       return null;
     } finally {
+      const duration = performance.now() - startTime;
+      console.debug(`Request completed in ${duration}ms`);
       setIsLoading(false);
     }
-  }, [messages, provider, conversationId, activeModel, handleStreamingUpdate]);
+  }, [messages, provider, conversationId, activeModel, handleStreamingUpdate, getOptimizedMessages]);
 
   const clearChat = useCallback(async () => {
     setMessages([]);
