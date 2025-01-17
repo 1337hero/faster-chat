@@ -7,7 +7,6 @@ export class AnthropicProvider extends BaseChatProvider {
     this.client = new Anthropic({
       apiKey: config.apiKey || import.meta.env.VITE_ANTHROPIC_API_KEY,
       dangerouslyAllowBrowser: true
-      // TODO: Will need backend API service in future if deploying remotely
     });
     this.defaultModel = config.defaultModel || 'claude-3-sonnet-20240229';
   }
@@ -22,19 +21,19 @@ export class AnthropicProvider extends BaseChatProvider {
           role: msg.role,
           content: msg.content
         })),
-        ...options
+        stream: true // Enable streaming
       });
 
       return {
         success: true,
-        data: response,
+        stream: response,
         error: null
       };
     } catch (error) {
       console.error('Error in Anthropic API call:', error);
       return {
         success: false,
-        data: null,
+        stream: null,
         error: error.message || 'An error occurred while communicating with Claude'
       };
     }
@@ -42,8 +41,8 @@ export class AnthropicProvider extends BaseChatProvider {
 
   formatMessage(role, content) {
     return {
-      role: role,
-      content: content
+      role,
+      content
     };
   }
 }

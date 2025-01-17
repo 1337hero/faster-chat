@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createProvider, ModelRegistry, ProviderType } from '../services/providers/provider-registry';
 import { chatStorage } from '../services/storage/chat-storage';
 
@@ -8,7 +8,6 @@ export const MessageRoles = {
   SYSTEM: 'system'
 };
 
-// We'll use React's useState for global state instead of signals
 export const useChatState = (conversationId = null) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +15,24 @@ export const useChatState = (conversationId = null) => {
   const [provider, setProvider] = useState(null);
   const [activeProvider, setActiveProvider] = useState(ProviderType.ANTHROPIC);
   const [activeModel, setActiveModel] = useState('claude-3-sonnet-20240229');
+  const streamingMessageRef = useRef('');
+
+    // Handle streaming updates
+    const handleStreamingUpdate = useCallback((chunk) => {
+      streamingMessageRef.current += chunk;
+      setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages[newMessages.length - 1]?.role === MessageRoles.ASSISTANT) {
+          newMessages[newMessages.length - 1].content = streamingMessageRef.current;
+        } else {
+          newMessages.push({
+            role: MessageRoles.ASSISTANT,
+            content: streamingMessageRef.current
+          });
+        }
+        return newMessages;
+      });
+    }, []);
 
   // Initialize provider and load conversation if ID provided
   useEffect(() => {
@@ -50,9 +67,9 @@ export const useChatState = (conversationId = null) => {
 
   const sendMessage = useCallback(async (content) => {
     if (!provider) return;
-
     setIsLoading(true);
     setError(null);
+    streamingMessageRef.current = ''; // Reset streaming message
 
     // Create user message
     const userMessage = provider.formatMessage(MessageRoles.USER, content);
@@ -60,46 +77,49 @@ export const useChatState = (conversationId = null) => {
     setMessages(updatedMessages);
 
     try {
-      // Send to API
+      // Send to API with streaming
       const response = await provider.sendMessage(updatedMessages, {
         model: activeModel
       });
-
+    
       if (!response.success) {
         throw new Error(response.error);
       }
-
-      // Add assistant's response
-      const assistantMessage = provider.formatMessage(
-        MessageRoles.ASSISTANT,
-        response.data.content[0].text
-      );
-      
-      const newMessages = [...updatedMessages, assistantMessage];
-      setMessages(newMessages);
-
-      // Save to storage
+    
+      // Handle streaming response
+      for await (const chunk of response.stream) {
+        // Debug log to see chunk structure
+        console.log('Received chunk:', chunk);
+        
+        // Correctly access the delta text from the chunk
+        // The structure is typically chunk.delta?.text or chunk.text
+        const text = chunk.delta?.text || chunk.text || '';
+        handleStreamingUpdate(text);
+      }
+    
+      // Save to storage after stream completes
       if (conversationId) {
         await chatStorage.updateConversation(conversationId, {
-          messages: newMessages,
+          messages: [...updatedMessages, {
+            role: MessageRoles.ASSISTANT,
+            content: streamingMessageRef.current
+          }],
           lastUpdated: new Date().getTime()
         });
-      } else {
-        await chatStorage.saveConversation({
-          messages: newMessages,
-          provider: activeProvider,
-          model: activeModel
-        });
       }
-
-      return assistantMessage;
+    
+      return {
+        role: MessageRoles.ASSISTANT,
+        content: streamingMessageRef.current
+      };
     } catch (err) {
+      console.error('Streaming error:', err);
       setError(err.message);
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [messages, provider, conversationId, activeModel]);
+  }, [messages, provider, conversationId, activeModel, handleStreamingUpdate]);
 
   const clearChat = useCallback(async () => {
     setMessages([]);
