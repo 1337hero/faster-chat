@@ -1,0 +1,37 @@
+{
+  "name": "mk3y-chat",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.1.0",
+    "@ai-sdk/openai": "^1.1.0",
+    "@headlessui/react": "^2.2.0",
+    "ai": "^4.1.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.18.1",
+    "next": "15.1.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^9.0.3",
+    "react-syntax-highlighter": "^15.6.1",
+    "remark-gfm": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.5",
+    "idb": "^8.0.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
