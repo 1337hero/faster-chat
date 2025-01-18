@@ -55,7 +55,7 @@ export function SidebarLayout({
   navbar: React.ReactNode;
   sidebar: React.ReactNode;
 }>) {
-  let [showSidebar, setShowSidebar] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   return (
     <div className="relative isolate flex min-h-svh w-full bg-macchiato-mantle max-lg:flex-col lg:bg-macchiato-crust">
       {/* Sidebar on desktop */}

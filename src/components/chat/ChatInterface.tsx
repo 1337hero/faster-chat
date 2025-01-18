@@ -18,7 +18,7 @@ function ChatInterface() {
     handleInputChange,
     handleSubmit,
     isLoading,
-    error,
+    //error,
     clearChat,
   } = useChatState({ model });
 
