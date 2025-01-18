@@ -10,23 +10,30 @@ interface MessageItemProps {
   message: Message;
 }
 
+// Add this interface for the code component props
+interface CodeProps {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
 const customStyle = {
   ...a11yDark,
   'code[class*="language-"]': {
     ...a11yDark['code[class*="language-"]'],
-    fontFamily: 'Menlo, monospace', // Change the font family
+    fontFamily: 'Menlo, monospace',
   },
   'pre[class*="language-"]': {
     ...a11yDark['pre[class*="language-"]'],
-    backgroundColor: '#2e3440', // Change the background color
+    backgroundColor: '#2e3440',
   },
   keyword: {
     ...a11yDark.keyword,
-    color: '#8fbcbb', // Change the color for keywords
+    color: '#8fbcbb',
   },
   string: {
     ...a11yDark.string,
-    color: '#ebcb8b', // Change the color for strings
+    color: '#ebcb8b',
   },
 };
 
@@ -42,7 +49,7 @@ function MessageItem({ message }: MessageItemProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ inline, className, children, ...props }) {
+          code({ inline, className, children, ...props }: CodeProps) {
             const match = /language-(\w+)/.exec(className || "");
             return !inline && match ? (
               <SyntaxHighlighter
