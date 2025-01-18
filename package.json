@@ -6,22 +6,32 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier -w ./src",
+    "test:format": "prettier --check ./src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1337hero/faster-next-chat.git"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.1.0",
+    "@ai-sdk/groq": "^1.1.0",
     "@ai-sdk/openai": "^1.1.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "ai": "latest",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.1",
+    "nanoid": "^5.0.9",
     "next": "15.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.1",
     "react-markdown": "^9.0.3",
     "react-syntax-highlighter": "^15.6.1",
-    "remark-gfm": "^4.0.0"
+    "remark-gfm": "^4.0.0",
+    "use-stick-to-bottom": "^1.0.44"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -29,11 +39,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
     "eslint": "^9",
     "eslint-config-next": "15.1.5",
     "idb": "^8.0.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

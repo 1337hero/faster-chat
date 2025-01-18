@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Message } from "ai";
 import React from "react";
@@ -16,9 +16,10 @@ function MessageList({ messages, isLoading }: MessageListProps) {
         <MessageItem key={index} message={message} />
       ))}
       {isLoading && (
-        <div className="animate-pulse bg-gray-100 rounded-lg p-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        </div>
+        <span className="relative flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-macchiato-peach opacity-75"></span>
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-macchiato-peach"></span>
+        </span>
       )}
     </div>
   );

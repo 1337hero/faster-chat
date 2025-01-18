@@ -1,0 +1,11 @@
+node_modules
+public
+dist
+egress-map
+/*.log
+yarn.lock
+yarn.error.log
+.github
+repo-output.txt
+detailed_changelog.txt
+srwp.code-workspace
