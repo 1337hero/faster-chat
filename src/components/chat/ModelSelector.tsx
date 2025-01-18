@@ -1,4 +1,4 @@
-import { ModelRegistry } from '@/lib/hooks/useChat';
+import { ModelRegistry } from '@/lib/constants/models';
 import React from 'react';
 
 interface ModelSelectorProps {

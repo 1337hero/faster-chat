@@ -1,5 +1,5 @@
+import { Message } from "ai";
 import React from "react";
-import { Message } from "./ChatInterface";
 import MessageItem from "./MessageItem";
 
 interface MessageListProps {
