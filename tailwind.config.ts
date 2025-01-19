@@ -52,7 +52,19 @@ export default {
         muted: colors.macchiato.overlay0,
         border: colors.macchiato.surface2,
       },
+      scrollbar: {
+        width: '2px',
+        track: 'transparent',
+        thumb: {
+          backgroundColor: 'rgb(55, 65, 81)',
+          hover: {
+            backgroundColor: 'rgb(75, 85, 99)',
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('tailwind-scrollbar'),
+  ],
 } satisfies Config;

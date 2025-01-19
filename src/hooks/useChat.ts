@@ -1,9 +1,8 @@
-'use client';
-
-import { ModelId } from '@/lib/constants/models';
-import type { Message } from 'ai';
-import { useChat } from 'ai/react';
-import React, { useEffect, useState } from 'react';
+"use client";
+import { ModelId } from "@/types/models";
+import type { Message } from "ai";
+import { useChat } from "ai/react";
+import React, { useEffect, useState } from "react";
 
 export interface UseChatOptions {
   initialMessages?: Message[];
@@ -12,12 +11,7 @@ export interface UseChatOptions {
   onMessagesChange?: (messages: Message[]) => void;
 }
 
-export function useChatState({ 
-  initialMessages, 
-  id, 
-  model,
-  onMessagesChange 
-}: UseChatOptions) {
+export function useChatState({ initialMessages, id, model, onMessagesChange }: UseChatOptions) {
   const [requestStartTime, setRequestStartTime] = useState<number | null>(null);
 
   const {
@@ -29,7 +23,7 @@ export function useChatState({
     error,
     setMessages,
   } = useChat({
-    api: '/api/chat',
+    api: "/api/chat",
     id,
     initialMessages: initialMessages || [],
     body: { model },
@@ -37,23 +31,23 @@ export function useChatState({
 
   const wrappedHandleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setRequestStartTime(performance.now());
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.log(`[Client] Starting stream for model: ${model}`);
     }
 
     try {
       await originalHandleSubmit(e);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Client] Stream completed successfully');
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Client] Stream completed successfully");
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Client] Stream error:', error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Client] Stream error:", error);
       }
     } finally {
       const endTime = performance.now();
       if (requestStartTime) {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log(`[Client] Total streaming time: ${endTime - requestStartTime}ms`);
         }
       }

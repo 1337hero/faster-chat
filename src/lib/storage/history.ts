@@ -1,13 +1,5 @@
-import { Message } from "ai";
+import type { ChatSession } from '@/types/chatSession';
 import { openDB } from "idb";
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  createdAt: number;
-  model: string;
-  messages: Message[];
-}
 
 // Only initialize IndexedDB in browser environment
 const getDB = () => {

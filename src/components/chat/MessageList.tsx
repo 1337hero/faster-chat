@@ -1,5 +1,4 @@
 "use client";
-
 import { Message } from "ai";
 import React from "react";
 import MessageItem from "./MessageItem";

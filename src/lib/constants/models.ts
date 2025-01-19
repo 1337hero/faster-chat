@@ -1,9 +1,4 @@
-interface ModelConfig {
-  name: string;
-  contextWindow: number;
-  provider?: "anthropic" | "groq" | "openai";
-  modelId?: string;
-}
+import { ModelConfig } from "@/types/models";
 
 export const ModelRegistry: Record<string, ModelConfig> = {
   "claude-3-opus-20240229": {
@@ -11,24 +6,19 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     contextWindow: 200000,
     provider: "anthropic",
   },
-  "claude-3-sonnet-20240229": {
-    name: "Claude 3 Sonnet",
-    contextWindow: 200000,
-    provider: "anthropic",
-  },
-  "claude-3-haiku-20240307": {
-    name: "Claude 3 Haiku",
+  "claude-3-5-sonnet-20241022": {
+    name: "Claude 3.5 Sonnet",
     contextWindow: 200000,
     provider: "anthropic",
   },
   "gpt-4o": {
-    name: "GPT-4o",
+    name: "ChatGPT 4o",
     contextWindow: 128000,
     provider: "openai",
   },
-  "o1": {
-    name: "o1",
-    contextWindow: 200000,
+  "gpt-4o-mini": {
+    name: "ChatGPT 4o mini",
+    contextWindow: 128000,
     provider: "openai",
   },
   "llama-3.3-70b-versatile": {
@@ -38,5 +28,3 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     modelId: "llama-3.3-70b-versatile",
   },
 } as const;
-
-export type ModelId = keyof typeof ModelRegistry;

@@ -1,7 +1,5 @@
 "use client";
-
-import { Dialog } from "@/components/ui/dialog";
-import { useState } from "react";
+//import { useState } from "react";
 
 type SidebarLayoutProps = {
   sidebar: React.ReactNode;
@@ -10,27 +8,21 @@ type SidebarLayoutProps = {
 };
 
 export function SidebarLayout({ sidebar, navbar, children }: SidebarLayoutProps) {
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  //const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   return (
-    <div className="relative flex min-h-screen w-full bg-macchiato-base max-lg:flex-col">
+    <div className="relative flex h-[100dvh] bg-macchiato-base max-lg:flex-col">
       {/* Desktop Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden">{sidebar}</div>
+      <nav className="flex w-64 max-lg:hidden">{sidebar}</nav>
 
-      {/* Mobile Sidebar */}
-      <Dialog open={showMobileSidebar} onClose={() => setShowMobileSidebar(false)}>
-        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-        <div className="fixed inset-y-0 left-0 w-full max-w-xs p-4">
-          <div className="flex h-full flex-col rounded-lg bg-white shadow-xl">{sidebar}</div>
-        </div>
-      </Dialog>
+      {/* Mobile Sidebar - this needs worked out */}
 
       {/* Main Content */}
-      <main className="flex flex-1 flex-col lg:pl-64">
+      <main className="flex flex-1 flex-col">
         {/* Mobile Navbar */}
         <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-white px-4 py-2 lg:hidden">
           <button
-            onClick={() => setShowMobileSidebar(true)}
+            //onClick={() => setShowMobileSidebar(true)}
             className="rounded-md p-2 hover:bg-gray-100">
             <MenuIcon className="h-6 w-6" />
           </button>
@@ -38,9 +30,7 @@ export function SidebarLayout({ sidebar, navbar, children }: SidebarLayoutProps)
         </div>
 
         {/* Content */}
-        <div className="flex-1 px-4 py-8 lg:px-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
-        </div>
+        <div className="relative flex h-[100dvh] flex-col">{children}</div>
       </main>
     </div>
   );
