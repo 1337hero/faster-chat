@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Faster Next Chat
+
+A modern, responsive chat interface built with Next.js 15 that supports multiple AI models including Claude, GPT-4, and Llama through various providers (Anthropic, OpenAI, Groq).
+
+## Features
+
+- 🚀 Built with Next.js 15 and React 19
+- 💬 Support for multiple AI providers:
+  - Anthropic
+  - OpenAI
+  - Groq
+  - More
+- 🎨 Beautiful UI with Catppuccin Macchiato theme
+- ⌨️ Markdown and code syntax highlighting
+- 📱 Responsive design with mobile support
+- 🔒 Built-in security headers and middleware protection
+- ⚡ Edge runtime for optimal performance
+
+## Prerequisites
+
+- Node.js (version specified in package.json)
+- Yarn package manager
+- API keys for the services you want to use:
+  - `ANTHROPIC_API_KEY`
+  - `OPENAI_API_KEY`
+  - `GROQ_API_KEY`
 
 ## Getting Started
 
-First, run the development server:
-
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/1337hero/faster-next-chat.git
+cd faster-next-chat
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+bun install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create a `.env` file in the root directory and add your API keys:
+```env
+ANTHROPIC_API_KEY=your_anthropic_key
+OPENAI_API_KEY=your_openai_key
+GROQ_API_KEY=your_groq_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
+```bash
+bun run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+## Development Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `bun run dev` - Start development server with Turbopack
+- `bun run build` - Create production build
+- `bun run start` - Start production server
+- `bun run lint` - Run ESLint
+- `bun run format` - Format code with Prettier
+- `bun run test:format` - Check code formatting
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+The project follows a modern Next.js application structure:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `/src/app` - Next.js app router pages and API routes
+- `/src/components` - React components organized by feature
+- `/src/hooks` - Custom React hooks
+- `/src/lib` - Utility functions and constants
+- `/src/types` - TypeScript type definitions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is private and not open for public use unless explicitly permitted.
