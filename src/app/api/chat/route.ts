@@ -1,4 +1,5 @@
-import { ModelId, ModelRegistry } from "@/lib/constants/models";
+import { ModelRegistry } from "@/lib/constants/models";
+import { ModelId } from "@/types/models";
 import { anthropic } from "@ai-sdk/anthropic";
 import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";

@@ -1,20 +1,16 @@
 # Faster Next Chat
 
-A modern, responsive chat interface built with Next.js 15 that supports multiple AI models including Claude, GPT-4, and Llama through various providers (Anthropic, OpenAI, Groq).
+I was inspired by T3 Chat built by @t3dotgg to attempt to create my own AI Chat interface to see if I could stream data quickly. Also I pay for about 3 different models and just have never considered working with the API's. So this is my first attempt.
 
-## Features
+I know there are some other open source variants out there, but I wanted to build my own interface from scratch with NExt JS and see if I could achieve the same performance at T3.
 
-- 🚀 Built with Next.js 15 and React 19
-- 💬 Support for multiple AI providers:
-  - Anthropic
-  - OpenAI
-  - Groq
-  - More
-- 🎨 Beautiful UI with Catppuccin Macchiato theme
-- ⌨️ Markdown and code syntax highlighting
-- 📱 Responsive design with mobile support
-- 🔒 Built-in security headers and middleware protection
-- ⚡ Edge runtime for optimal performance
+So far I have only spent a little over a day and a half on this project. There is a lot more to do. I got API connections in place and a simple interface.
+
+## To Do
+- Implement Saved Chats
+- Implement File Save
+- Implement Auth
+
 
 ## Prerequisites
 
