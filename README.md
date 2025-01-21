@@ -81,4 +81,4 @@ The project follows a modern Next.js application structure:
 
 ## License
 
-This project is private and not open for public use unless explicitly permitted.
+MIT License - Have fun
