@@ -20,7 +20,7 @@ function ChatInterface({ chatId }: ChatInterfaceProps) {
     handleInputChange,
     handleSubmit,
     isLoading,
-    currentChat
+    //currentChat
   } = usePersistentChat({
     id: chatId,
     model,

@@ -49,7 +49,7 @@ export function usePersistentChat({ id: chatId, model }: UsePersistentChatOption
         const chat = await db.chats.get(chatId);
         if (chat) {
           setCurrentChat(chat);
-          const storedMessages = await db.getChatMessages(chatId);
+          const storedMessages: StoredMessage[] = await db.getChatMessages(chatId);
           setMessages(storedMessages.map(msg => ({
             id: msg.id,
             content: msg.content,
@@ -68,7 +68,11 @@ export function usePersistentChat({ id: chatId, model }: UsePersistentChatOption
   }, [chatId, setMessages]);
 
   // Handle message persistence
-  const persistMessage = useCallback(async (content: string, role: 'user' | 'assistant', chatId: string) => {
+  const persistMessage = useCallback(async (
+    content: string, 
+    role: 'user' | 'assistant', 
+    chatId: string
+  ): Promise<StoredMessage> => {
     try {
       const message = await db.addMessage({
         chatId,

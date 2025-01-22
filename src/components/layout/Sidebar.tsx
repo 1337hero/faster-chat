@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Chat, db } from '@/lib/db';
+import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
