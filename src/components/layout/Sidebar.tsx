@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useCallback } from 'react';
 
 export function Sidebar() {
   const chats = useLiveQuery(() => db.getChats(), []);
@@ -19,6 +20,20 @@ export function Sidebar() {
       minute: 'numeric',
     }).format(date);
   };
+
+  const handleDeleteChat = useCallback(async (e: React.MouseEvent, chatId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      await db.deleteChat(chatId);
+      if (pathname === `/chat/${chatId}`) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  }, [pathname, router]);
 
   const handleNewChat = async () => {
     const newChat = await db.createChat();
@@ -40,19 +55,49 @@ export function Sidebar() {
             <Link 
               key={chat.id} 
               href={`/chat/${chat.id}`}
-              className={`flex flex-col rounded-lg px-3 py-2 text-sm transition-colors hover:bg-macchiato-surface0
+              className={`group flex items-center rounded-lg px-3 py-2 text-sm transition-colors hover:bg-macchiato-surface0
                 ${pathname === `/chat/${chat.id}` ? 'bg-macchiato-surface0' : ''}`}>
-              <span className="font-medium text-macchiato-text line-clamp-1">
-                {chat.title || 'New Chat'}
-              </span>
-              <span className="text-xs text-macchiato-subtext0">
-                {formatDate(chat.updated_at)}
-              </span>
+              <div className="flex-1">
+                <span className="block font-medium text-macchiato-text line-clamp-1">
+                  {chat.title || 'New Chat'}
+                </span>
+                <span className="block text-xs text-macchiato-subtext0">
+                  {formatDate(chat.updated_at)}
+                </span>
+              </div>
+              <button
+                onClick={(e) => handleDeleteChat(e, chat.id)}
+                className="invisible ml-2 rounded p-1 text-macchiato-subtext0 hover:bg-macchiato-surface1 hover:text-macchiato-red group-hover:visible"
+                aria-label="Delete chat"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
             </Link>
           ))}
         </nav>
       </div>
     </div>
+  );
+}
+
+function TrashIcon(props: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </svg>
   );
 }
 
