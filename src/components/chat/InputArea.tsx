@@ -1,7 +1,9 @@
 "use client";
 
 import { Textarea } from "@/components/ui/textarea";
-import React, { KeyboardEvent, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import React, { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useDebouncedCallback } from 'use-debounce';
 
 interface InputAreaProps {
   input: string;
@@ -12,6 +14,25 @@ interface InputAreaProps {
 
 function InputArea({ input, handleInputChange, handleSubmit, disabled }: InputAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const pathname = usePathname();
+  const [localInput, setLocalInput] = useState(input);
+
+  const debouncedHandleChange = useDebouncedCallback(
+    (value: string) => {
+      handleInputChange({ target: { value } } as React.ChangeEvent<HTMLTextAreaElement>);
+    },
+    300
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setLocalInput(value);
+    debouncedHandleChange(value);
+  };
+
+  useEffect(() => {
+    setLocalInput(input);
+  }, [input]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -20,12 +41,18 @@ function InputArea({ input, handleInputChange, handleSubmit, disabled }: InputAr
       const newHeight = Math.min(textarea.scrollHeight, 240); // max height
       textarea.style.height = `${newHeight}px`;
     }
-  }, [input]);
+  }, [localInput]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [pathname]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && input.trim()) {
+      if (!disabled && localInput.trim()) {
         handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
       }
     }
@@ -39,8 +66,8 @@ function InputArea({ input, handleInputChange, handleSubmit, disabled }: InputAr
         <div className="flex flex-grow flex-col">
           <Textarea
             ref={textareaRef}
-            value={input}
-            onChange={handleInputChange}
+            value={localInput}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
             disabled={disabled}
