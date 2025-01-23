@@ -1,71 +1,54 @@
-import { Chat, db, StoredMessage } from '@/lib/db';
-import { ModelId } from '@/types/models';
+import { db } from '@/lib/db';
+import { PersistentChatOptions } from '@/types/chat';
+import { StoredMessage } from '@/types/database';
 import { useChat } from 'ai/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 
-export interface UsePersistentChatOptions {
-  id?: string;
-  model: ModelId;
-}
-
-export function usePersistentChat({ id: chatId, model }: UsePersistentChatOptions) {
-  const [currentChat, setCurrentChat] = useState<Chat | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) {
   const [error, setError] = useState<Error | null>(null);
+  const router = useRouter();
+
+  // Use reactive queries for chat and messages
+  const currentChat = useLiveQuery(
+    async () => {
+      if (!chatId) return undefined;
+      return await db.chats.get(chatId);
+    },
+    [chatId]
+  );
+
+  // Initialize chat with stored messages
+  const storedMessages = useLiveQuery(
+    async () => {
+      if (!chatId) return [];
+      return await db.getChatMessages(chatId);
+    },
+    [chatId]
+  );
 
   const {
     messages,
     input,
     handleInputChange,
     handleSubmit: originalHandleSubmit,
-    setMessages,
+    //setMessages,
   } = useChat({
     api: '/api/chat',
     id: chatId,
     body: { model },
+    initialMessages: storedMessages?.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      role: msg.role,
+    })) || [],
     onFinish: async (message) => {
-      if (currentChat && message.role === 'assistant') {
-        await db.addMessage({
-          chatId: currentChat.id,
-          content: message.content,
-          role: message.role,
-        });
+      if (currentChat) {
+        await persistMessage(message.content, 'assistant', currentChat.id);
       }
     }
   });
-
-  // Load initial messages for chat
-  useEffect(() => {
-    async function loadChat() {
-      if (!chatId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const chat = await db.chats.get(chatId);
-        if (chat) {
-          setCurrentChat(chat);
-          const storedMessages: StoredMessage[] = await db.getChatMessages(chatId);
-          setMessages(storedMessages.map(msg => ({
-            id: msg.id,
-            content: msg.content,
-            role: msg.role,
-          })));
-        }
-      } catch (error) {
-        console.error('Error loading chat:', error);
-        setError(error instanceof Error ? error : new Error('Failed to load chat'));
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadChat();
-  }, [chatId, setMessages]);
 
   // Handle message persistence
   const persistMessage = useCallback(async (
@@ -86,7 +69,7 @@ export function usePersistentChat({ id: chatId, model }: UsePersistentChatOption
     }
   }, []);
 
-  // Enhanced submit handler with persistence
+  // Submit handler
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -95,45 +78,32 @@ export function usePersistentChat({ id: chatId, model }: UsePersistentChatOption
 
       try {
         setError(null);
-        let chatToUse = currentChat;
 
-        // Create new chat if needed
-        if (!chatToUse) {
-          chatToUse = await db.createChat();
-          setCurrentChat(chatToUse);
+        if (!chatId) {
+          const newChat = await db.createChat();
+          router.push(`/chat/${newChat.id}`);
+          return;
         }
 
-        // Store user message
-        const userMessage = await persistMessage(input, 'user', chatToUse.id);
-        
-        // Update UI with user message immediately
-        setMessages(prev => [...prev, {
-          id: userMessage.id,
-          content: userMessage.content,
-          role: userMessage.role,
-        }]);
-
-        // Get AI response
         await originalHandleSubmit(e);
 
-        // Store AI message after response
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.role === 'assistant') {
-          await persistMessage(lastMessage.content, 'assistant', chatToUse.id);
-        }
-
-        // Update chat title if it's the first message
-        if (!chatToUse.title) {
-          const title = input.slice(0, 50) + (input.length > 50 ? '...' : '');
-          await db.updateChatTitle(chatToUse.id, title);
+        if (currentChat) {
+          await persistMessage(input, 'user', currentChat.id);
+          
+          if (!currentChat.title) {
+            const title = input.slice(0, 50) + (input.length > 50 ? '...' : '');
+            await db.updateChatTitle(currentChat.id, title);
+          }
         }
       } catch (error) {
         console.error('Error in handleSubmit:', error);
         setError(error instanceof Error ? error : new Error('Failed to process message'));
       }
     },
-    [currentChat, input, messages, originalHandleSubmit, persistMessage, setMessages]
+    [currentChat, chatId, input, originalHandleSubmit, persistMessage, router]
   );
+
+  const isLoading = currentChat === undefined && !!chatId;
 
   return {
     messages,

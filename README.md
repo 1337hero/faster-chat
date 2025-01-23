@@ -1,15 +1,52 @@
 # Faster Next Chat
 
-I was inspired by T3 Chat built by @t3dotgg to attempt to create my own AI Chat interface to see if I could stream data quickly. Also I pay for about 3 different models and just have never considered working with the API's. So this is my first attempt.
+## About:
+This project was inspired by T3 Chat built by [@t3dotgg](https://github.com/t3dotgg). I wanted to take on a fun challenge: Implement AI streaming within a NextJS app. I noticed T3 used IndexedDB, which was perfect timing since I needed to implement a "Offline First" approach in a client project I was working on. 
 
-I know there are some other open source variants out there, but I wanted to build my own interface from scratch with NExt JS and see if I could achieve the same performance at T3.
+And while their are some great open source AI Chat interfaces out there, I wanted to test my ability to build my own. Thus, here we are. 
 
-So far I have only spent a little over a day and a half on this project. There is a lot more to do. I got API connections in place and a simple interface.
+Also, hat tip to this video [How I Built T3 Chat in 5 Days](https://youtu.be/QLvIoi2s1zY?si=tseIII4RsH2ZX-1o) for the clue on Dexie. It's old but easy to work with.
 
-## To Do
-- Implement Saved Chats
-- Implement File Save
-- Implement Auth
+And yes, for those wondering I am using the [Catppuccin Macchiato](https://github.com/catppuccin/catppuccin) color scheme.
+
+## Structure
+I am using a local-first streaming approach with IndexedDB via [Dexie.js](https://dexie.org/) and making use of the [Vercel AI SDK](https://sdk.vercel.ai/).
+
+**Here's how it's implemented:**
+
+1. **Database Layer (db.ts):**
+   - Using Dexie to manage IndexedDB
+   - Two tables: chats and messages
+   - Full CRUD operations for chats and messages
+   - Proper indexing for efficient queries
+
+2. **Reactive Data Layer (usePersistentChat.ts)**
+   - Using useLiveQuery from dexie-react-hooks for reactive queries
+   - Automatic UI updates when data changes in IndexedDB
+   - Real-time chat and message loading
+   - Proper message persistence
+
+3. **Message Flow:**
+   - Messages are stored locally in IndexedDB
+   - UI renders directly from IndexedDB data
+   - New messages are immediately persisted
+   - Changes trigger automatic UI updates
+
+4. **Local-First Benefits:**
+  - Instant data availability
+  - Real-time UI updates 
+  - Smooth user experience
+
+The local first approach is what makes the interface feel fast, especially switching between chats.
+
+## To Do 
+- [ ] Implement method of DELETING chats.
+- [ ] Implement System Prompts
+- [ ] Implement File Upload
+- [ ] Implement Auth for UserLogin
+- [ ] Implement a self hosted deployment script (kinda want this on my local network)
+
+I want to solve for code blocks, they are kinda janky at the moment. Could use improvement.
 
 
 ## Prerequisites
