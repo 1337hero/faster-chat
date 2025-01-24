@@ -40,8 +40,8 @@ I am using a local-first streaming approach with IndexedDB via [Dexie.js](https:
 The local first approach is what makes the interface feel fast, especially switching between chats.
 
 ## To Do 
-- [ ] Implement method of DELETING chats.
-- [ ] Implement System Prompts
+- [x] Implement method of DELETING chats.
+- [x] Implement System Prompts
 - [ ] Implement File Upload
 - [ ] Implement Auth for UserLogin
 - [ ] Implement a self hosted deployment script (kinda want this on my local network)
