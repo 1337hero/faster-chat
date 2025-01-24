@@ -31,9 +31,9 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
   } = useChat({
     api: "/api/chat",
     id: chatId,
-    body: { 
+    body: {
       model,
-      systemPromptId: 'default' // We start with the default system prompt
+      systemPromptId: "default", // We start with the default system prompt
     },
     initialMessages:
       storedMessages?.map((msg) => ({
@@ -70,25 +70,29 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
   // Determine appropriate system prompt based on message content
   const determineSystemPrompt = (content: string): string => {
     const lowerContent = content.toLowerCase();
-    
+
     // Check for programming-related keywords
-    if (lowerContent.includes('code') || 
-        lowerContent.includes('programming') || 
-        lowerContent.includes('function') ||
-        lowerContent.includes('bug') ||
-        lowerContent.includes('error')) {
-      return 'programmer';
+    if (
+      lowerContent.includes("code") ||
+      lowerContent.includes("programming") ||
+      lowerContent.includes("function") ||
+      lowerContent.includes("bug") ||
+      lowerContent.includes("error")
+    ) {
+      return "programmer";
     }
-    
+
     // Check for math-related keywords
-    if (lowerContent.includes('math') || 
-        lowerContent.includes('calculate') || 
-        lowerContent.includes('equation') ||
-        lowerContent.includes('solve')) {
-      return 'math';
+    if (
+      lowerContent.includes("math") ||
+      lowerContent.includes("calculate") ||
+      lowerContent.includes("equation") ||
+      lowerContent.includes("solve")
+    ) {
+      return "math";
     }
-    
-    return 'default';
+
+    return "default";
   };
 
   const handleSubmit = useCallback(
@@ -108,13 +112,13 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
 
         // Determine system prompt based on input content
         const systemPromptId = determineSystemPrompt(input);
-        
+
         // Update the body with the determined system prompt
         const updatedBody = {
           model,
-          systemPromptId
+          systemPromptId,
         };
-        
+
         // Call original submit with updated body
         await originalHandleSubmit(e, { body: updatedBody });
 

@@ -22,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
-      <body className="antialiased font-sans">
+      <body className="font-sans antialiased">
         <SidebarLayout sidebar={<Sidebar />} navbar={<Navbar />}>
           {children}
         </SidebarLayout>

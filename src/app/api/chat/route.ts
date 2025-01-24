@@ -66,11 +66,8 @@ export async function POST(req: Request) {
     const modelId = modelConfig.modelId || model;
 
     // Get system prompt and add it as the first message
-    const systemPrompt = getSystemPrompt(systemPromptId || 'default');
-    const messagesWithSystem = [
-      { role: 'system', content: systemPrompt.content },
-      ...messages
-    ];
+    const systemPrompt = getSystemPrompt(systemPromptId || "default");
+    const messagesWithSystem = [{ role: "system", content: systemPrompt.content }, ...messages];
 
     const result = streamText({
       model: provider(modelId),

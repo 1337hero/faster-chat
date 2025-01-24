@@ -31,6 +31,6 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     name: "DeepSeek Chat",
     contextWindow: 128000,
     provider: "deepseek",
-    modelId: "deepseek-chat"
-  }
+    modelId: "deepseek-chat",
+  },
 } as const;

@@ -38,7 +38,7 @@ function ChatInterface({ chatId }: ChatInterfaceProps) {
   return (
     <div className="relative flex w-full flex-1 flex-col" role="main" aria-label="Chat Interface">
       <div className="relative flex-1 overflow-hidden">
-        <div 
+        <div
           ref={scrollContainerRef}
           className="scrollbar-w-2 h-[100dvh] overflow-y-auto pb-[180px] pt-16 scrollbar scrollbar-track-transparent scrollbar-thumb-gray-700 hover:scrollbar-thumb-gray-600">
           <div className="mx-auto flex w-full max-w-3xl flex-col space-y-12 p-4">
