@@ -11,8 +11,8 @@ interface MessageListProps {
 function MessageList({ messages, isLoading }: MessageListProps) {
   return (
     <div className="space-y-4">
-      {messages.map((message, index) => (
-        <MessageItem key={index} message={message} />
+      {messages.map((message) => (
+        <MessageItem key={message.id} message={message} />
       ))}
       {isLoading && (
         <span className="relative flex h-3 w-3">

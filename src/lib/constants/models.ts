@@ -27,4 +27,10 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     provider: "groq",
     modelId: "llama-3.3-70b-versatile",
   },
+  "deepseek-chat": {
+    name: "DeepSeek Chat",
+    contextWindow: 128000,
+    provider: "deepseek",
+    modelId: "deepseek-chat"
+  }
 } as const;

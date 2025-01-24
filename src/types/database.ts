@@ -9,7 +9,7 @@ export interface StoredMessage {
   id: string;
   chatId: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   created_at: Date;
   isPartial?: boolean;
 }

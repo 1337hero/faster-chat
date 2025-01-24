@@ -5,7 +5,6 @@ export type ModelId = keyof typeof ModelRegistry;
 export interface ModelConfig {
   name: string;
   contextWindow: number;
-  provider?: "anthropic" | "groq" | "openai";
+  provider?: "anthropic" | "groq" | "openai" | "deepseek";
   modelId?: string;
 }
-

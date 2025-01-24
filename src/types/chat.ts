@@ -1,11 +1,18 @@
-import { Message } from 'ai';
-import { ModelId } from './models';
+import { ModelId } from "./models";
 
-export interface ChatOptions {
+export interface PersistentChatOptions {
   id?: string;
   model: ModelId;
-  initialMessages?: Message[];
-  onMessagesChange?: (messages: Message[]) => void;
 }
 
-export type PersistentChatOptions = Pick<ChatOptions, 'id' | 'model'>;
+export interface ChatBody {
+  model: ModelId;
+  systemPromptId: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id: string;
+  content: string;
+  role: "user" | "assistant" | "system";
+}

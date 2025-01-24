@@ -1,6 +1,8 @@
 import { ModelRegistry } from "@/lib/constants/models";
+import { getSystemPrompt } from "@/lib/constants/prompts";
 import { ModelId } from "@/types/models";
 import { anthropic } from "@ai-sdk/anthropic";
+import { deepseek } from "@ai-sdk/deepseek";
 import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
@@ -21,11 +23,15 @@ if (!process.env.GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY is not defined");
 }
 
+if (!process.env.DEEPSEEK_API_KEY) {
+  throw new Error("DEEPSEEK_API_KEY is not defined");
+}
+
 export async function POST(req: Request) {
   const startTime = performance.now();
 
   try {
-    const { messages, model } = await req.json();
+    const { messages, model, systemPromptId } = await req.json();
     console.log(`[API] Starting request for model: ${model}`);
 
     const modelConfig = ModelRegistry[model as ModelId];
@@ -50,15 +56,25 @@ export async function POST(req: Request) {
       case "openai":
         provider = openai;
         break;
+      case "deepseek":
+        provider = deepseek;
+        break;
       default:
         throw new Error(`Unknown provider for model ${model}`);
     }
 
     const modelId = modelConfig.modelId || model;
 
+    // Get system prompt and add it as the first message
+    const systemPrompt = getSystemPrompt(systemPromptId || 'default');
+    const messagesWithSystem = [
+      { role: 'system', content: systemPrompt.content },
+      ...messages
+    ];
+
     const result = streamText({
       model: provider(modelId),
-      messages,
+      messages: messagesWithSystem,
     });
 
     const response = result.toDataStreamResponse();

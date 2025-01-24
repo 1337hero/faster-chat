@@ -3,7 +3,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { usePathname } from "next/navigation";
 import React, { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { useDebouncedCallback } from 'use-debounce';
+import { useDebouncedCallback } from "use-debounce";
 
 interface InputAreaProps {
   input: string;
@@ -17,12 +17,9 @@ function InputArea({ input, handleInputChange, handleSubmit, disabled }: InputAr
   const pathname = usePathname();
   const [localInput, setLocalInput] = useState(input);
 
-  const debouncedHandleChange = useDebouncedCallback(
-    (value: string) => {
-      handleInputChange({ target: { value } } as React.ChangeEvent<HTMLTextAreaElement>);
-    },
-    300
-  );
+  const debouncedHandleChange = useDebouncedCallback((value: string) => {
+    handleInputChange({ target: { value } } as React.ChangeEvent<HTMLTextAreaElement>);
+  }, 300);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
