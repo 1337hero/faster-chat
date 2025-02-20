@@ -11,22 +11,6 @@ export const runtime = "edge";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  throw new Error("ANTHROPIC_API_KEY is not defined");
-}
-
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not defined");
-}
-
-if (!process.env.GROQ_API_KEY) {
-  throw new Error("GROQ_API_KEY is not defined");
-}
-
-if (!process.env.DEEPSEEK_API_KEY) {
-  throw new Error("DEEPSEEK_API_KEY is not defined");
-}
-
 export async function POST(req: Request) {
   const startTime = performance.now();
 
@@ -35,14 +19,32 @@ export async function POST(req: Request) {
     console.log(`[API] Starting request for model: ${model}`);
 
     const modelConfig = ModelRegistry[model as ModelId];
-    if (!modelConfig) {
-      return new Response(JSON.stringify({ error: "Invalid model provided." }), {
+    if (!modelConfig || !modelConfig.provider) {
+      return new Response(JSON.stringify({ error: "Invalid model or provider configuration." }), {
         status: 400,
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store, must-revalidate",
         },
       });
+    }
+
+    // Check for required API key based on provider
+    const requiredKey = `${modelConfig.provider.toUpperCase()}_API_KEY`;
+    if (!process.env[requiredKey]) {
+      return new Response(
+        JSON.stringify({
+          error: "Configuration error",
+          details: `${requiredKey} is not defined`,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+          },
+        }
+      );
     }
 
     let provider;

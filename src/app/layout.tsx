@@ -1,6 +1,4 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { SidebarLayout } from "@/components/layout/SidebarLayout";
+import ClientLayout from "@/components/layout/ClientLayout";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -21,11 +19,15 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
-      <body className="font-sans antialiased">
-        <SidebarLayout sidebar={<Sidebar />} navbar={<Navbar />}>
-          {children}
-        </SidebarLayout>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
+      <head suppressHydrationWarning>
+        <meta
+          name="format-detection"
+          content="telephone=no, date=no, email=no, address=no"
+        />
+      </head>
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
