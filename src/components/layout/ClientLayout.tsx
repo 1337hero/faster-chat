@@ -1,8 +1,8 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/layout/Sidebar";
-import SidebarLayout from "@/components/layout/SidebarLayout";
+import { Navbar } from "@/components/layout/Navbar";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { useEffect, useState } from "react";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
