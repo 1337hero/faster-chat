@@ -1,6 +1,6 @@
-import { ModelConfig } from "@/types/models";
+import { ModelId, ModelConfig } from "@/types/models";
 
-export const ModelRegistry: Record<string, ModelConfig> = {
+export const ModelRegistry: Record<ModelId, ModelConfig> = {
   "claude-3-opus-20240229": {
     name: "Claude 3 Opus",
     contextWindow: 200000,
@@ -63,4 +63,4 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     provider: "groq",
     modelId: "mixtral-8x7b-32768",
   },
-} as const;
+};

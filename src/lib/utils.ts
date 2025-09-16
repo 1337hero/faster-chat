@@ -13,7 +13,7 @@ export function safeHydration<T extends object>(props: T): T {
   ];
   
   browserExtensionAttrs.forEach(attr => {
-    delete (cleanProps as any)[attr];
+    delete (cleanProps as Record<string, unknown>)[attr];
   });
   
   return cleanProps;

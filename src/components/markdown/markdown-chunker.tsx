@@ -4,7 +4,6 @@ import React, { memo } from "react";
 import ReactMarkdown, { Components } from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { toast } from "sonner";
 
 function CopyIcon() {
   return (
@@ -36,12 +35,7 @@ export function CodeBlock({ inline, className, children, ...props }: CodeBlockPr
 
   const copyToClipboard = async () => {
     if (typeof children === "string") {
-      try {
-        await navigator.clipboard.writeText(children);
-        toast.success("Copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to copy");
-      }
+      await navigator.clipboard.writeText(children);
     }
   };
 
@@ -103,8 +97,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content }: { cont
           <blockquote suppressHydrationWarning>{children}</blockquote>
         ),
       }}
-      unwrapDisallowed={true}
-      className="prose prose-invert max-w-none">
+      unwrapDisallowed={true}>
       {content}
     </ReactMarkdown>
   );

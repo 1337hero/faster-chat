@@ -1,11 +1,12 @@
 "use client";
 import { Dropdown, DropdownButton, DropdownItem, DropdownMenu } from "@/components/ui/dropdown";
 import { ModelRegistry } from "@/lib/constants/models";
+import { ModelId } from "@/types/models";
 import React from "react";
 
 interface ModelSelectorProps {
-  currentModel: keyof typeof ModelRegistry;
-  onModelChange: (model: keyof typeof ModelRegistry) => void;
+  currentModel: ModelId;
+  onModelChange: (model: ModelId) => void;
 }
 
 function ModelSelector({ currentModel, onModelChange }: ModelSelectorProps) {
@@ -27,10 +28,10 @@ function ModelSelector({ currentModel, onModelChange }: ModelSelectorProps) {
             </svg>
           </DropdownButton>
           <DropdownMenu>
-            {Object.entries(ModelRegistry).map(([modelId, model]) => (
+            {(Object.entries(ModelRegistry) as [ModelId, typeof ModelRegistry[ModelId]][]).map(([modelId, model]) => (
               <DropdownItem
                 key={modelId}
-                onClick={() => onModelChange(modelId as keyof typeof ModelRegistry)}>
+                onClick={() => onModelChange(modelId)}>
                 {model.name}
               </DropdownItem>
             ))}

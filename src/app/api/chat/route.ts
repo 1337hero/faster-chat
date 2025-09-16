@@ -15,10 +15,10 @@ export async function POST(req: Request) {
   const startTime = performance.now();
 
   try {
-    const { messages, model, systemPromptId } = await req.json();
+    const { messages, model, systemPromptId }: { messages: any[]; model: ModelId; systemPromptId?: string } = await req.json();
     console.log(`[API] Starting request for model: ${model}`);
 
-    const modelConfig = ModelRegistry[model as ModelId];
+    const modelConfig = ModelRegistry[model];
     if (!modelConfig || !modelConfig.provider) {
       return new Response(JSON.stringify({ error: "Invalid model or provider configuration." }), {
         status: 400,

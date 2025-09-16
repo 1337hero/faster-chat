@@ -15,10 +15,18 @@ export function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    // Only access window after component mounts (client-side only)
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
   }, []);
 
   const formatDate = (date: Date) => {
@@ -115,7 +123,7 @@ export function Sidebar() {
           !isSidebarOpen && 'md:hidden'
         }`}>
           <nav className="space-y-2" aria-label="Chat History">
-            {chats?.map((chat) => (
+            {chats && chats.length > 0 ? chats.map((chat) => (
               <Link
                 key={chat.id}
                 href={`/chat/${chat.id}`}
@@ -139,7 +147,11 @@ export function Sidebar() {
                   <TrashIcon className="h-4 w-4" />
                 </button>
               </Link>
-            ))}
+            )) : (
+              <div className="px-3 py-2 text-sm text-macchiato-subtext0">
+                No chats yet. Click "New Chat" to start.
+              </div>
+            )}
           </nav>
         </div>
         

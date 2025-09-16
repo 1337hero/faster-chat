@@ -1,6 +1,5 @@
 import { Chat, StoredMessage } from "@/types/database";
 import Dexie, { Table } from "dexie";
-import { nanoid } from "nanoid";
 
 class ChatDatabase extends Dexie {
   chats!: Table<Chat>;
@@ -16,7 +15,7 @@ class ChatDatabase extends Dexie {
 
   async createChat(title?: string): Promise<Chat> {
     const chat: Chat = {
-      id: nanoid(),
+      id: crypto.randomUUID(),
       title,
       created_at: new Date(),
       updated_at: new Date(),
@@ -36,7 +35,7 @@ class ChatDatabase extends Dexie {
   async addMessage(message: Omit<StoredMessage, "id" | "created_at">): Promise<StoredMessage> {
     const storedMessage: StoredMessage = {
       ...message,
-      id: nanoid(),
+      id: crypto.randomUUID(),
       created_at: new Date(),
     };
 

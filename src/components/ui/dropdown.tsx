@@ -1,5 +1,5 @@
 import * as Headless from "@headlessui/react";
-import clsx from "clsx";
+import { clsx } from "@/lib/clsx";
 import type React from "react";
 import { Link } from "./link";
 

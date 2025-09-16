@@ -1,7 +1,8 @@
 "use client";
 
-import { usePersistentChat } from "@/hooks/usePersistentChat";
+import { useChat } from "@/hooks/useChat";
 import { ModelRegistry } from "@/lib/constants/models";
+import { ModelId } from "@/types/models";
 import React, { useLayoutEffect, useRef, useState } from "react";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
@@ -12,7 +13,7 @@ interface ChatInterfaceProps {
 }
 
 function ChatInterface({ chatId }: ChatInterfaceProps) {
-  const [model, setModel] = useState<keyof typeof ModelRegistry>("claude-3-5-sonnet-20241022");
+  const [model, setModel] = useState<ModelId>("claude-3-5-sonnet-20241022");
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +23,7 @@ function ChatInterface({ chatId }: ChatInterfaceProps) {
     handleInputChange,
     handleSubmit,
     isLoading,
-  } = usePersistentChat({
+  } = useChat({
     id: chatId,
     model,
   });

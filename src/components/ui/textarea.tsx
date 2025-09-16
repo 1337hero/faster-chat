@@ -1,5 +1,5 @@
 import * as Headless from "@headlessui/react";
-import clsx from "clsx";
+import { clsx } from "@/lib/clsx";
 import React, { forwardRef } from "react";
 
 export const Textarea = forwardRef(function Textarea(

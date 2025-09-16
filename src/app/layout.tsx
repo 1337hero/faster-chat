@@ -19,14 +19,14 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
-      <head suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
+      <head>
         <meta
           name="format-detection"
           content="telephone=no, date=no, email=no, address=no"
         />
       </head>
-      <body className="font-sans antialiased" suppressHydrationWarning>
+      <body className="font-sans antialiased">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

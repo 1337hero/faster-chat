@@ -25,6 +25,8 @@
 repo-output.txt
 repomix.config.json
 *.pem
+.claude
+CLAUDE.md
 
 # debug
 npm-debug.log*
