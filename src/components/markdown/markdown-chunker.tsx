@@ -1,3 +1,5 @@
+"use client";
+
 import React, { memo } from "react";
 import ReactMarkdown, { Components } from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -15,16 +17,15 @@ function CopyIcon() {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      strokeLinejoin="round">
+      strokeLinejoin="round"
+      suppressHydrationWarning>
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
     </svg>
   );
 }
 
-import type { ComponentPropsWithoutRef } from "react";
-
-interface CodeBlockProps extends ComponentPropsWithoutRef<"code"> {
+interface CodeBlockProps extends React.ComponentPropsWithoutRef<"code"> {
   inline?: boolean;
   children?: React.ReactNode;
 }
@@ -45,12 +46,13 @@ export function CodeBlock({ inline, className, children, ...props }: CodeBlockPr
   };
 
   return !inline ? (
-    <div className="group relative">
+    <div className="group relative" suppressHydrationWarning>
       <div className="flex items-center justify-between rounded-t bg-[#2e3440] px-4 py-2 text-sm text-neutral-300">
         <span className="font-mono">{lang || "text"}</span>
         <button
           onClick={copyToClipboard}
-          className="opacity-0 transition-colors group-hover:opacity-100 hover:text-white">
+          className="opacity-0 transition-colors group-hover:opacity-100 hover:text-white"
+          suppressHydrationWarning>
           <CopyIcon />
         </button>
       </div>
@@ -59,7 +61,8 @@ export function CodeBlock({ inline, className, children, ...props }: CodeBlockPr
         style={vscDarkPlus}
         language={lang}
         PreTag="div"
-        className="!mt-0 !rounded-t-none">
+        className="!mt-0 !rounded-t-none"
+        suppressHydrationWarning>
         {String(children).trim()}
       </SyntaxHighlighter>
     </div>
@@ -73,25 +76,33 @@ export function CodeBlock({ inline, className, children, ...props }: CodeBlockPr
 export const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
-      components={
-        {
-          code: CodeBlock,
-          // Convert block elements to divs to prevent nesting issues
-          pre: ({ children }) => <div className="markdown-block">{children}</div>,
-          p: ({ children }) => <div className="markdown-block">{children}</div>,
-          // Pass through other block elements normally
-          h1: ({ children }) => <h1>{children}</h1>,
-          h2: ({ children }) => <h2>{children}</h2>,
-          h3: ({ children }) => <h3>{children}</h3>,
-          h4: ({ children }) => <h4>{children}</h4>,
-          h5: ({ children }) => <h5>{children}</h5>,
-          h6: ({ children }) => <h6>{children}</h6>,
-          ul: ({ children }) => <ul>{children}</ul>,
-          ol: ({ children }) => <ol>{children}</ol>,
-          li: ({ children }) => <li>{children}</li>,
-          blockquote: ({ children }) => <blockquote>{children}</blockquote>,
-        } as Components
-      }
+      components={{
+        code: CodeBlock,
+        // Convert block elements to divs to prevent nesting issues
+        pre: ({ children }) => (
+          <div className="markdown-block" suppressHydrationWarning>
+            {children}
+          </div>
+        ),
+        p: ({ children }) => (
+          <div className="markdown-block" suppressHydrationWarning>
+            {children}
+          </div>
+        ),
+        // Pass through other block elements normally
+        h1: ({ children }) => <h1 suppressHydrationWarning>{children}</h1>,
+        h2: ({ children }) => <h2 suppressHydrationWarning>{children}</h2>,
+        h3: ({ children }) => <h3 suppressHydrationWarning>{children}</h3>,
+        h4: ({ children }) => <h4 suppressHydrationWarning>{children}</h4>,
+        h5: ({ children }) => <h5 suppressHydrationWarning>{children}</h5>,
+        h6: ({ children }) => <h6 suppressHydrationWarning>{children}</h6>,
+        ul: ({ children }) => <ul suppressHydrationWarning>{children}</ul>,
+        ol: ({ children }) => <ol suppressHydrationWarning>{children}</ol>,
+        li: ({ children }) => <li suppressHydrationWarning>{children}</li>,
+        blockquote: ({ children }) => (
+          <blockquote suppressHydrationWarning>{children}</blockquote>
+        ),
+      }}
       unwrapDisallowed={true}
       className="prose prose-invert max-w-none">
       {content}

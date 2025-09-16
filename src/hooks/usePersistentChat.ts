@@ -27,20 +27,18 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
     input,
     handleInputChange,
     handleSubmit: originalHandleSubmit,
-    //setMessages,
   } = useChat({
     api: "/api/chat",
     id: chatId,
     body: {
       model,
-      systemPromptId: "default", // We start with the default system prompt
+      systemPromptId: "default",
     },
-    initialMessages:
-      storedMessages?.map((msg) => ({
-        id: msg.id,
-        content: msg.content,
-        role: msg.role,
-      })) || [],
+    initialMessages: storedMessages?.map((msg) => ({
+      id: msg.id,
+      content: msg.content,
+      role: msg.role,
+    })) || [],
     onFinish: async (message) => {
       if (currentChat) {
         await persistMessage(message.content, "assistant", currentChat.id);
@@ -66,12 +64,9 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
     []
   );
 
-  // Submit handler
-  // Determine appropriate system prompt based on message content
   const determineSystemPrompt = (content: string): string => {
     const lowerContent = content.toLowerCase();
 
-    // Check for programming-related keywords
     if (
       lowerContent.includes("code") ||
       lowerContent.includes("programming") ||
@@ -82,7 +77,6 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
       return "programmer";
     }
 
-    // Check for math-related keywords
     if (
       lowerContent.includes("math") ||
       lowerContent.includes("calculate") ||
@@ -110,16 +104,12 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
           return;
         }
 
-        // Determine system prompt based on input content
         const systemPromptId = determineSystemPrompt(input);
-
-        // Update the body with the determined system prompt
         const updatedBody = {
           model,
           systemPromptId,
         };
 
-        // Call original submit with updated body
         await originalHandleSubmit(e, { body: updatedBody });
 
         if (currentChat) {
@@ -135,7 +125,7 @@ export function usePersistentChat({ id: chatId, model }: PersistentChatOptions) 
         setError(error instanceof Error ? error : new Error("Failed to process message"));
       }
     },
-    [currentChat, chatId, input, originalHandleSubmit, persistMessage, router]
+    [currentChat, chatId, input, originalHandleSubmit, persistMessage, router, model]
   );
 
   const isLoading = currentChat === undefined && !!chatId;

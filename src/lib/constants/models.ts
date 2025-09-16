@@ -33,4 +33,34 @@ export const ModelRegistry: Record<string, ModelConfig> = {
     provider: "deepseek",
     modelId: "deepseek-chat",
   },
+  "deepseek-r1-distill-qwen-32b": {
+    name: "DeepSeek R1 Distill Qwen 32B",
+    contextWindow: 128000,
+    provider: "groq",
+    modelId: "deepseek-r1-distill-qwen-32b",
+  },
+  "deepseek-r1-distill-llama-70b-specdec": {
+    name: "DeepSeek R1 Distill Llama 70B Specdec",
+    contextWindow: 128000,
+    provider: "groq",
+    modelId: "deepseek-r1-distill-llama-70b-specdec",
+  },
+  "deepseek-r1-distill-llama-70b": {
+    name: "DeepSeek R1 Distill Llama 70B",
+    contextWindow: 128000,
+    provider: "groq",
+    modelId: "deepseek-r1-distill-llama-70b",
+  },
+  "qwen-2.5-32b": {
+    name: "Qwen 2.5 32B",
+    contextWindow: 128000,
+    provider: "groq",
+    modelId: "qwen-2.5-32b",
+  },
+  "mixtral-8x7b-32768": {
+    name: "Mixtral 8x7B 32K",
+    contextWindow: 32768,
+    provider: "groq",
+    modelId: "mixtral-8x7b-32768",
+  },
 } as const;
