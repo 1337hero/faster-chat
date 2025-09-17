@@ -1,11 +1,30 @@
+# Dependency directories
 node_modules
-public
+**/node_modules
+
+# Build output & caches
 dist
+**/dist
+build
+**/build
+.next
+.turbo
+.vercel
+coverage
+
+# Static/public assets and backups
+public
 egress-map
-/*.log
+_backup
+
+# Package manager + log files
+*.log
 yarn.lock
 yarn.error.log
+pnpm-lock.yaml
+package-lock.json
+bun.lock
+bun.lockb
+
+# Repo metadata
 .github
-repo-output.txt
-detailed_changelog.txt
-srwp.code-workspace

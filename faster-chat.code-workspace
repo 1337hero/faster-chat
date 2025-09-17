@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      ".claude": true,
+      ".cluade": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      ".claude": true,
+      ".cluade": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules": true
+    }
+  }
+}

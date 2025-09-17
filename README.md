@@ -1,229 +1,312 @@
-# MK3Y Chat
+# ⚡ Faster Chat — Open, Offline-First LLM Interface
 
-## About
-A blazing-fast, local-first AI chat application inspired by T3 Chat's performance philosophy. Built with Next.js 15, TypeScript, and IndexedDB for instant responses and seamless offline functionality.
+<p align="left">
+  <a href="https://preactjs.com/">
+    <img src="https://img.shields.io/badge/Preact-10.25-673AB7?logo=preact" alt="Preact" />
+  </a>
+  <a href="https://hono.dev/">
+    <img src="https://img.shields.io/badge/Hono-4.7-FF6B00" alt="Hono" />
+  </a>
+  <a href="https://tailwindcss.com/">
+    <img src="https://img.shields.io/badge/Tailwind-4.0-38BDF8?logo=tailwindcss" alt="Tailwind CSS" />
+  </a>
+  <a href="https://tanstack.com/router">
+    <img src="https://img.shields.io/badge/TanStack%20Router-1.98-FF4154" alt="TanStack Router" />
+  </a>
+  <a href="https://dexie.org/">
+    <img src="https://img.shields.io/badge/Dexie-IndexedDB-orange?logo=javascript" alt="Dexie" />
+  </a>
+  <a href="https://sdk.vercel.ai/">
+    <img src="https://img.shields.io/badge/Vercel%20AI%20SDK-Streaming-black?logo=vercel" alt="Vercel AI SDK" />
+  </a>
+  <a href="https://bun.sh/">
+    <img src="https://img.shields.io/badge/Bun-Fast%20Builds-yellow?logo=bun" alt="Bun" />
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License" />
+  </a>
+</p>
 
-This project takes T3 Chat's core insights - that local-first architecture can deliver 2x ChatGPT speed - and implements them with modern tooling. Special thanks to [@t3dotgg](https://github.com/t3dotgg) for the inspiration and the excellent breakdown in [How I Built T3 Chat in 5 Days](https://youtu.be/QLvIoi2s1zY?si=tseIII4RsH2ZX-1o).
+> **A blazingly fast, privacy-first chat interface for AI that works with any LLM provider—cloud or completely offline.**
 
-## Features
-- ⚡ **Instant Navigation** - Local-first architecture with IndexedDB via Dexie
-- 🤖 **Multi-Provider Support** - Anthropic, OpenAI, Groq, DeepSeek with easy model switching
-- 🎨 **Beautiful UI** - Tailwind CSS with Catppuccin Macchiato theme
-- 📝 **System Prompts** - Customizable prompts for different use cases
-- 🔄 **Real-time Streaming** - Vercel AI SDK with edge runtime support
-- 💾 **Persistent Storage** - All chats and messages stored locally
-- 🚀 **Optimized Performance** - React optimizations for 60+ FPS rendering
+**Faster Chat** is built for developers who want **full control** over their AI conversations. Run it with local models via [Ollama](https://ollama.ai/), connect to any OpenAI-compatible API, or use commercial providers like Claude, GPT, Groq, or Mistral. Your data stays yours—everything works offline-first with local IndexedDB storage.
 
-## Structure
-I am using a local-first streaming approach with IndexedDB via [Dexie.js](https://dexie.org/) and making use of the [Vercel AI SDK](https://sdk.vercel.ai/).
+## 🎯 Why Faster Chat?
 
-**Here's how it's implemented:**
+- **🔒 Privacy-First**: All conversations stored locally in your browser. No cloud required.
+- **🌐 Offline-Ready**: Use completely offline with local LLMs via Ollama, LM Studio, or any local inference server.
+- **🔌 Universal Compatibility**: Works with OpenAI, Anthropic, Groq, Mistral, OpenRouter, or any OpenAI-compatible API.
+- **⚡ Insanely Fast**: 3KB Preact runtime, zero SSR overhead, streaming responses, instant local saves.
+- **🛠️ Self-Hostable**: One-command Docker deployment coming soon. No vendor lock-in.
+- **🎨 Modern Stack**: Preact + Hono + TanStack + Tailwind 4.0 + AI SDK.
 
-1. **Database Layer (db.ts):**
-   - Using Dexie to manage IndexedDB
-   - Two tables: chats and messages
-   - Full CRUD operations for chats and messages
-   - Proper indexing for efficient queries
+## ✨ Current Features
 
-2. **Reactive Data Layer (usePersistentChat.ts)**
-   - Using useLiveQuery from dexie-react-hooks for reactive queries
-   - Automatic UI updates when data changes in IndexedDB
-   - Real-time chat and message loading
-   - Proper message persistence
+- 💬 **Streaming Chat Interface** — Real-time token streaming with Vercel AI SDK
+- 🗄️ **Local-First Persistence** — All chats saved to IndexedDB (Dexie) with offline support
+- 🤖 **Multi-Provider Support** — Switch between Anthropic, OpenAI, Ollama, and custom endpoints
+- 🎨 **Beautiful UI** — Tailwind 4.0 with Catppuccin color scheme and shadcn-style primitives
+- 📱 **Responsive Design** — Works seamlessly on desktop, tablet, and mobile
+- ⚙️ **Model Selector** — Easy switching between models and providers
+- 🔄 **Resume Streams** — Continue interrupted conversations seamlessly
 
-3. **Message Flow:**
-   - Messages are stored locally in IndexedDB
-   - UI renders directly from IndexedDB data
-   - New messages are immediately persisted
-   - Changes trigger automatic UI updates
+## 🚀 Planned Features
 
-4. **Local-First Benefits:**
-  - Instant data availability
-  - Real-time UI updates 
-  - Smooth user experience
+We're building Faster Chat into the most flexible, privacy-respecting AI interface available:
 
-The local first approach is what makes the interface feel fast, especially switching between chats.
+### 🎛️ Settings & Configuration (Coming Soon)
+- **API Management UI** — Add/remove/configure API keys and endpoints through a settings page
+- **Custom Provider URLs** — Point to LMStudio, GroqCloud, Mistral API, OpenRouter, or your own inference server
+- **Model Discovery** — Auto-detect available models from connected providers
+- **Offline Model Management** — Browse and pull Ollama models directly from the UI
 
-## Roadmap
+### 📝 Content & Capabilities
+- **Full Markdown & LaTeX Support** — Render beautiful formatted responses with math equations
+- **Code Syntax Highlighting** — Automatic language detection and formatting
+- **File Attachments** — Upload documents, images, and context for your conversations
+- **Image Generation** — Integrated support for DALL-E, Stable Diffusion, and local image models
+- **Web Search Integration** — Give your AI real-time internet access (optional)
+- **Local RAG** — Vector search over your documents with complete privacy
 
-### ✅ Completed
-- Delete chats functionality
-- System prompts with customization
-- Multi-model support (Anthropic, OpenAI, Groq, DeepSeek)
-- Local persistence with IndexedDB
+### 🔐 Privacy & Control
+- **Fully Offline Mode** — Work completely disconnected with local models
+- **Data Export** — Download all your conversations in standard formats
+- **Multi-User Auth** — Role-based access with session management
+- **Server Persistence** — Optional SQLite/Postgres sync while keeping offline-first Dexie
 
-### 🚧 In Progress / Planned Features
+### 🎨 Enhanced UX
+- **Voice Input/Output** — Speak to your AI and hear responses
+- **PWA Support** — Install as a native app with offline capabilities
+- **Sharing & Collaboration** — Share conversations with teams
+- **Conversation Branching** — Explore alternative responses
+- **Dark/Light Themes** — Full theme customization
 
-#### Phase 1: File Uploads & Enhanced UX
-- [ ] **File Upload Support** - Drag-and-drop with multimodal AI integration
-  - Image, PDF, and document support
-  - In-chat previews with react-pdf
-  - Thumbnail generation for images
-- [ ] **Tab Management** - Multiple concurrent chats with easy switching
-- [ ] **Search Functionality** - Full-text search across all chats and messages
-- [ ] **Improved Code Blocks** - Syntax highlighting with better performance
-
-#### Phase 2: Sync & Collaboration
-- [ ] **Cross-Device Sync** - Optional P2P sync using WebRTC
-  - Export/import for manual backup
-  - Room-based sync with QR codes
-  - Privacy-first, no central server
-- [ ] **Enhanced Model Selector** - Favorites, comparison mode, quick switching
-
-#### Phase 3: Performance & Deployment
-- [ ] **Markdown Optimization** - Chunked rendering for 60+ FPS
-- [ ] **Virtual Scrolling** - Handle thousands of messages smoothly
-- [ ] **Easy Deployment** - One-click deploy to Vercel, Docker, or self-hosted
-- [ ] **Environment Management** - Guided setup with validation
-
-#### Phase 4: Enterprise Features
-- [ ] **Authentication** - Optional user accounts with data isolation
-- [ ] **Team Collaboration** - Shared workspaces with permissions
-- [ ] **Analytics Dashboard** - Usage metrics and model performance
-- [ ] **Plugin System** - Extensible architecture for custom features
-
-See [Implementation Plan](docs/plans/250116-01a-multifeature-enhancement.md) for detailed technical specifications.
-
-
-## Tech Stack
-
-- **Framework**: Next.js 15 with App Router and Turbopack
-- **Language**: TypeScript with strict mode
-- **Styling**: Tailwind CSS with Catppuccin Macchiato theme
-- **Database**: IndexedDB via Dexie.js for local-first persistence
-- **AI Integration**: Vercel AI SDK with multiple provider support
-- **State Management**: React hooks with reactive Dexie queries
-- **Package Manager**: Bun for fast installs and builds
-
-## Prerequisites
-
-- Node.js 20+ (LTS recommended)
-- Bun package manager (`npm install -g bun`)
-- API keys for the AI providers you want to use:
-  - `ANTHROPIC_API_KEY` - [Get from Anthropic Console](https://console.anthropic.com/)
-  - `OPENAI_API_KEY` - [Get from OpenAI Platform](https://platform.openai.com/)
-  - `GROQ_API_KEY` - [Get from Groq Cloud](https://console.groq.com/)
-  - `DEEPSEEK_API_KEY` - [Get from DeepSeek Platform](https://platform.deepseek.com/)
-
-## Getting Started
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/mk3y-chat.git
-cd mk3y-chat
-```
-
-2. Install dependencies:
-```bash
-bun install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
-
-4. Add your API keys to `.env`:
-```env
-# Required: At least one AI provider key
-ANTHROPIC_API_KEY=your_anthropic_key
-OPENAI_API_KEY=your_openai_key
-GROQ_API_KEY=your_groq_key
-DEEPSEEK_API_KEY=your_deepseek_key
-
-# Optional: Analytics (if you want metrics)
-# POSTHOG_API_KEY=your_posthog_key
-# AXIOM_API_KEY=your_axiom_key
-```
-
-5. Start the development server:
-```bash
-bun run dev
-```
-
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-> **Note**: The app works with just one API key. Add multiple providers for model variety and fallback options.
-
-## Development Commands
-
-- `bun run dev` - Start development server with Turbopack
-- `bun run build` - Create production build
-- `bun run start` - Start production server
-- `bun run lint` - Run ESLint
-- `bun run format` - Format code with Prettier
-- `bun run test:format` - Check code formatting
-
-## Project Structure
+## 🏗️ Architecture
 
 ```
 faster-chat/
-├── src/
-│   ├── app/              # Next.js app router pages and API routes
-│   │   ├── api/chat/     # Streaming AI endpoint with edge runtime
-│   │   └── page.tsx      # Main chat interface
-│   ├── components/       # React components
-│   │   ├── chat/         # Chat-related components
-│   │   ├── ui/           # Reusable UI components
-│   │   └── settings/     # Settings and configuration
-│   ├── hooks/            # Custom React hooks
-│   │   └── usePersistentChat.ts  # Main chat data hook
-│   ├── lib/              # Core utilities
-│   │   ├── db.ts         # Dexie database configuration
-│   │   └── constants/    # Models and prompts configuration
-│   └── types/            # TypeScript definitions
+├── frontend/          # Preact SPA (Vite + TanStack Router/Query)
+│   ├── src/
+│   │   ├── components/    # Feature-based components
+│   │   ├── hooks/         # React hooks for state & side effects
+│   │   ├── lib/           # Utilities, constants, Dexie setup
+│   │   └── styles/        # Tailwind 4.0 CSS with @theme configs
+│   └── vite.config.js     # Vite + Tailwind plugin
+│
+├── server/            # Hono API server
+│   └── src/
+│       └── routes/        # AI SDK transport endpoints
+│
+├── packages/
+│   └── shared/           # Shared types and constants
+│
+└── docs/                 # Documentation and guides
 ```
 
-## Performance Features
+**Frontend**: Preact SPA with TanStack Router for routing, TanStack Query for server state, Zustand for UI preferences, and Dexie for local-first persistence. Everything streams through the Vercel AI SDK with chat transport.
 
-Based on T3 Chat's architecture, this project implements several performance optimizations:
+**Backend**: Lightweight Hono server that proxies requests to your chosen AI provider. Supports OpenAI, Anthropic, Ollama, and any OpenAI-compatible endpoint.
 
-- **Local-First Architecture**: All data operations happen locally first via IndexedDB
-- **Reactive Queries**: UI renders directly from local data using Dexie's reactive hooks
-- **Optimistic Updates**: Changes appear immediately without waiting for network
-- **Smart Prefetching**: Preload data for instant navigation
-- **Markdown Chunking**: Stream and render markdown in blocks for smooth updates
-- **Edge Runtime**: API routes use edge runtime for faster streaming
+**Styling**: Tailwind CSS 4.0 with CSS-native configuration, Catppuccin color palettes, and shadcn-inspired component primitives.
 
-## Deployment
+## Changelog
 
-### Quick Deploy to Vercel
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/mk3y-chat)
+See `CHANGELOG.md` for version history (current: 0.2.0 Preact/Hono refactor and TypeScript removal).
 
-### Docker
+## 🔧 Getting Started
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) (recommended) or Node.js 20+
+- At least one AI provider:
+  - **Offline**: [Ollama](https://ollama.ai/) running locally
+  - **Cloud**: API key from OpenAI, Anthropic, Groq, Mistral, or OpenRouter
+  - **Self-Hosted**: LM Studio, vLLM, or any OpenAI-compatible inference server
+
+### Quick Start
+
 ```bash
-docker build -t mk3y-chat .
-docker run -p 3000:3000 --env-file .env mk3y-chat
+# Clone the repository
+git clone https://github.com/1337hero/faster-next-chat.git
+cd faster-next-chat
+
+# Install dependencies
+bun install
+
+# Configure your AI providers
+cp server/.env.example server/.env
+
+# Edit server/.env with your API keys or local endpoints:
+# ANTHROPIC_API_KEY=sk-ant-...
+# OPENAI_API_KEY=sk-...
+# OLLAMA_BASE_URL=http://localhost:11434
+
+# Start development servers
+bun run dev
 ```
 
-### Self-Hosted
-See the [deployment guide](docs/plans/250116-01a-multifeature-enhancement.md#feature-4-easy-deployment-method) for detailed instructions.
+The app will be available at:
+- **Frontend**: http://localhost:3000
+- **API Server**: http://localhost:3001
 
-## Contributing
+### Using Offline with Ollama
 
-I welcome contributions!
+```bash
+# Install Ollama (macOS/Linux)
+curl -fsSL https://ollama.ai/install.sh | sh
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+# Pull a model
+ollama pull llama3.2
 
-## Acknowledgments
+# Set in server/.env
+OLLAMA_BASE_URL=http://localhost:11434
 
-- [T3 Chat](https://t3.chat) by [@t3dotgg](https://github.com/t3dotgg) - Performance inspiration and architecture patterns
-- [Dexie.js](https://dexie.org/) - Making IndexedDB actually usable
-- [Vercel AI SDK](https://sdk.vercel.ai/) - Streaming AI responses
-- [Catppuccin](https://github.com/catppuccin/catppuccin) - Beautiful color scheme
+# Start Faster Chat
+bun run dev
+```
 
-## License
+### Custom Provider Setup
 
-MIT License - Build something awesome!
+Faster Chat works with **any OpenAI-compatible API**. Examples:
+
+```bash
+# LM Studio
+OPENAI_BASE_URL=http://localhost:1234/v1
+
+# Groq Cloud
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_API_KEY=gsk_...
+
+# OpenRouter (access 100+ models)
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=sk-or-...
+
+# Mistral AI
+OPENAI_BASE_URL=https://api.mistral.ai/v1
+OPENAI_API_KEY=...
+
+# Self-hosted vLLM/TGI
+OPENAI_BASE_URL=http://your-inference-server:8000/v1
+```
+
+## 📦 Development Commands
+
+**Root (monorepo)**:
+```bash
+bun run dev         # Start frontend + API concurrently
+bun run build       # Build all packages for production
+bun run start       # Run production builds
+bun run clean       # Remove all build artifacts
+```
+
+**Frontend**:
+```bash
+cd frontend
+bun run dev         # Vite dev server on :3000
+bun run build       # Production build to dist/
+bun run preview     # Preview production build
+```
+
+**Server**:
+```bash
+cd server
+bun run dev         # Hono dev server with hot reload on :3001
+bun run build       # Build for production
+bun run start       # Run production server
+```
+
+## 🧭 Roadmap
+
+### Phase 1: Core Refactor ✅
+- [x] Migrate from Next.js to Preact + Hono
+- [x] Streaming chat with AI SDK
+- [x] Local-first persistence (Dexie/IndexedDB)
+- [x] Multi-provider support (Anthropic, OpenAI, Ollama)
+- [x] Tailwind 4.0 migration
+
+### Phase 2: Settings & Flexibility 🚧
+- [ ] Settings page for API/model management
+- [ ] Custom provider URL configuration UI
+- [ ] Model discovery and auto-detection
+- [ ] Ollama model browser and downloader
+- [ ] Keyboard shortcuts and accessibility
+
+### Phase 3: Enhanced Capabilities 📋
+- [ ] Full Markdown & LaTeX rendering
+- [ ] Code syntax highlighting improvements
+- [ ] File attachments (documents, images)
+- [ ] Image generation integration
+- [ ] Web search capabilities
+- [ ] Local RAG with vector search
+
+### Phase 4: Multi-User & Deployment 🔜
+- [ ] User authentication and sessions
+- [ ] Role-based access control
+- [ ] Server-side persistence (SQLite/Postgres)
+- [ ] Docker image + docker-compose
+- [ ] One-command self-hosting
+- [ ] Conversation sharing and collaboration
+
+### Phase 5: Advanced Features 🌟
+- [ ] Voice input/output
+- [ ] PWA with offline install
+- [ ] Conversation branching
+- [ ] Multi-modal requests (vision, audio)
+- [ ] Plugin system for extensions
+- [ ] Mobile app (Capacitor)
+
+## 🎨 Design Philosophy
+
+**Faster Chat** follows opinionated architectural principles:
+
+- **Offline-First**: Your data lives in your browser. Server is optional.
+- **Provider-Agnostic**: Never lock you into a single AI vendor.
+- **Minimal Runtime**: 3KB Preact instead of React. No SSR bloat.
+- **Local Control**: Run completely offline with local models.
+- **Fast Iteration**: Bun for speed, no TypeScript ceremony, clear patterns.
+- **Composable UI**: Small focused components, derive state in render.
+- **Delete Aggressively**: Best code is no code. Remove what you don't need.
+
+See `AGENTS.md` for detailed coding principles and architectural decisions.
+
+## 🤝 Contributing
+
+We welcome contributions! Whether it's:
+- 🐛 Bug fixes and error handling
+- ✨ New provider integrations
+- 📝 Documentation improvements
+- 🎨 UI/UX enhancements
+- 🧪 Tests and quality improvements
+
+Please read `AGENTS.md` for our coding philosophy and architectural guidelines. PRs should align with our lightweight, streaming-first, offline-capable approach.
+
+## 💡 Philosophy: Why We Dropped TypeScript
+
+We value **speed over ceremony**. TypeScript's compile step, constant type churn across fast-moving AI SDKs, and mismatched third-party definitions slowed us down more than they helped.
+
+Our guardrails:
+- ✅ Runtime schema validation where it matters
+- ✅ Shared constants and clear contracts
+- ✅ Tests for critical paths
+- ✅ JSDoc for complex functions
+
+The trade-off is deliberate: **less friction, faster iteration, easier contribution**.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## ⭐ Star History
+
+If Faster Chat helps you take control of your AI conversations, consider giving us a star!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=open-webui/open-webui,1337hero/faster-next-chat&type=date&legend=top-left)](https://www.star-history.com/#open-webui/open-webui&1337hero/faster-next-chat&type=date&legend=top-left)
 
 ---
 
 <p align="center">
-  Made with ❤️ by 1337Hero
-  <br>
-  <a href="https://github.com/yourusername/mk3y-chat/stargazers">⭐ Star us on GitHub</a>
+  <strong>Built with ❤️ for developers who value privacy, speed, and control.</strong><br>
+  <sub>No tracking. No analytics. Just fast, local-first AI conversations.</sub>
 </p>

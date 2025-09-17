@@ -1,0 +1,35 @@
+{
+  "name": "@faster-chat/frontend",
+  "version": "0.2.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@faster-chat/shared": "workspace:*",
+    "@ai-sdk/react": "^2.0.97",
+    "@tanstack/react-router": "^1.98.0",
+    "@tanstack/react-query": "^5.64.2",
+    "preact": "^10.25.5",
+    "@preact/compat": "^18.3.1",
+    "@preact/preset-vite": "^2.10.1",
+    "dexie": "^4.2.1",
+    "dexie-react-hooks": "^1.1.7",
+    "clsx": "^2.1.1",
+    "nanoid": "^5.0.0",
+    "react-markdown": "^9.0.1",
+    "react-syntax-highlighter": "^15.6.1",
+    "@headlessui/react": "^2.2.0",
+    "ai": "^5.0.97",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tanstack/router-devtools": "^1.98.0",
+    "@tailwindcss/vite": "^4.1.17",
+    "tailwindcss": "^4.1.17",
+    "vite": "^5.4.16"
+  }
+}

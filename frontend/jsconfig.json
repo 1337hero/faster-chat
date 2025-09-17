@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "paths": {
+      "@/*": ["./src/*"],
+      "src/*": ["./src/*"],
+      "react": ["./node_modules/@preact/compat"],
+      "react/jsx-runtime": ["./node_modules/@preact/compat/jsx-runtime"],
+      "react-dom": ["./node_modules/@preact/compat"],
+      "react-dom/*": ["./node_modules/@preact/compat/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/node_modules/*", "dist"]
+}

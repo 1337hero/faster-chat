@@ -1,0 +1,25 @@
+{
+  "name": "@faster-chat/server",
+  "version": "0.2.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js",
+    "build": "echo 'Build complete'",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@faster-chat/shared": "workspace:*",
+    "hono": "^4.7.12",
+    "@hono/node-server": "^1.14.3",
+    "ai": "^5.0.97",
+    "@ai-sdk/anthropic": "^2.0.45",
+    "@ai-sdk/openai": "^2.0.69",
+    "ollama-ai-provider": "^1.2.0",
+    "zod": "^4.1.12",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25"
+  }
+}
