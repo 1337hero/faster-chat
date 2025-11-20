@@ -1,12 +1,19 @@
-import { Button } from '@/components/ui/button';
-import { MenuIcon, PlusIcon } from '@/components/icons/index';
-import { useSidebarState } from '@/hooks/useSidebarState';
-import { formatDate } from '@/lib/utils';
-import { SidebarHeader } from './SidebarHeader';
-import { SidebarFooter } from './SidebarFooter';
-import { SidebarChatList } from './SidebarChatList';
+import { useSidebarState } from "@/hooks/useSidebarState";
+import { formatDate } from "@/lib/utils";
+import { useUiState } from "@/state/useUiState";
+import {
+  FileText,
+  LayoutGrid,
+  MessageSquare,
+  PanelLeftClose,
+  Search,
+  SquarePen,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-react";
 
-export function Sidebar() {
+const Sidebar = () => {
   const {
     chats,
     isSidebarOpen,
@@ -15,62 +22,186 @@ export function Sidebar() {
     handleDeleteChat,
     handleNewChat,
     handleLinkClick,
-    toggleSidebar,
     setIsSidebarOpen,
   } = useSidebarState();
 
+  const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
+  const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
+  const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-72";
+  const shouldLogoStartNewChat =
+    pathname.startsWith("/admin") || pathname.startsWith("/settings");
+
+  const handleSelectSession = (chatId) => {
+    handleLinkClick();
+    // Navigation is handled by the Link component in the chat list
+  };
+
+  const handleLogoClick = async () => {
+    if (shouldLogoStartNewChat) {
+      await handleNewChat();
+      return;
+    }
+
+    if (sidebarCollapsed) {
+      toggleSidebarCollapse();
+    }
+  };
+
+  const logoTitle = shouldLogoStartNewChat
+    ? "Start a new chat"
+    : sidebarCollapsed
+      ? "Expand Sidebar"
+      : undefined;
+
   return (
     <>
-      {/* Mobile Menu Button */}
-      {isMobile && !isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-4 top-4 z-40 rounded-md bg-latte-surface0 dark:bg-macchiato-surface0 p-2 text-latte-text dark:text-macchiato-text"
-          aria-label="Open sidebar">
-          <MenuIcon className="h-6 w-6" />
-        </button>
-      )}
-
-      {/* Mobile Overlay */}
-      {isMobile && isSidebarOpen && (
+      {/* Overlay for mobile */}
+      {isSidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 z-30 bg-black/50"
+          className="bg-latte-crust/80 dark:bg-macchiato-crust/80 fixed inset-0 z-40 backdrop-blur-sm md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`${
-          isMobile
-            ? `fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ${
-                isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-              }`
-            : "relative h-full"
-        } ${
-          isSidebarOpen ? "w-[90%] md:w-80" : "md:w-20"
-        } flex flex-col bg-latte-mantle dark:bg-macchiato-mantle border-r border-latte-surface1 dark:border-macchiato-surface1 shadow-lg dark:shadow-black/50`}
-      >
-        <SidebarHeader isSidebarOpen={isSidebarOpen} onToggle={toggleSidebar} />
+      {/* Sidebar Panel */}
+      <div
+        className={`bg-latte-mantle dark:bg-macchiato-mantle border-latte-surface1 dark:border-macchiato-surface1 fixed inset-y-0 left-0 z-50 flex transform flex-col border-r transition-all duration-300 ease-in-out md:static ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} ${sidebarWidthClass} `}>
+        {/* Header */}
+        <div
+          className={`flex items-center ${sidebarCollapsed ? "justify-center p-4" : "justify-between p-6"}`}>
+          <div
+            className="flex cursor-pointer items-center gap-2"
+            onClick={handleLogoClick}
+            title={logoTitle}>
+            <div className="from-latte-blue to-latte-mauve dark:from-macchiato-blue dark:to-macchiato-mauve flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br shadow-lg">
+              <Zap className="h-5 w-5 text-white" />
+            </div>
+            {!sidebarCollapsed && (
+              <h1 className="text-latte-text dark:text-macchiato-text overflow-hidden whitespace-nowrap text-xl font-extrabold tracking-tight">
+                Faster Chat
+              </h1>
+            )}
+          </div>
 
-        <div className={`p-4 ${!isSidebarOpen && "md:hidden"}`}>
-          <Button onClick={handleNewChat} className="w-full justify-start gap-2">
-            <PlusIcon className="h-5 w-5" />
-            New Chat
-          </Button>
+          {/* Mobile Close */}
+          {isMobile && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text md:hidden">
+              <X size={20} />
+            </button>
+          )}
+
+          {/* Desktop Collapse Toggle */}
+          {!sidebarCollapsed && !isMobile && (
+            <button
+              onClick={toggleSidebarCollapse}
+              className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 hidden rounded-md p-1 transition-colors md:block">
+              <PanelLeftClose size={18} />
+            </button>
+          )}
         </div>
 
-        <SidebarChatList
-          chats={chats}
-          currentPath={pathname}
-          isSidebarOpen={isSidebarOpen}
-          onDeleteChat={handleDeleteChat}
-          onLinkClick={handleLinkClick}
-          formatDate={formatDate}
-        />
+        {/* Primary Actions */}
+        <div className={`flex flex-col gap-4 ${sidebarCollapsed ? "px-2" : "px-6"}`}>
+          {/* New Chat */}
+          <button
+            onClick={handleNewChat}
+            className={`flex transform items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${
+              sidebarCollapsed
+                ? "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text hover:text-latte-mauve dark:hover:text-macchiato-mauve mx-auto h-10 w-10 rounded-xl"
+                : "bg-latte-mauve dark:bg-macchiato-mauve hover:bg-latte-mauve/90 dark:hover:bg-macchiato-mauve/90 w-full rounded-xl px-4 py-2.5 font-medium text-white"
+            } `}
+            title="New Chat">
+            <SquarePen size={sidebarCollapsed ? 20 : 18} />
+            {!sidebarCollapsed && <span>New Chat</span>}
+          </button>
 
-        <SidebarFooter isSidebarOpen={isSidebarOpen} />
-      </aside>
+          {/* Search */}
+          <div className="group relative">
+            {sidebarCollapsed ? (
+              <button className="text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-surface0 dark:hover:bg-macchiato-surface0 hover:text-latte-text dark:hover:text-macchiato-text mx-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all">
+                <Search size={20} />
+              </button>
+            ) : (
+              <div className="relative">
+                <Search
+                  className="text-latte-overlay0 dark:text-macchiato-overlay0 group-focus-within:text-latte-blue dark:group-focus-within:text-macchiato-blue absolute left-3 top-1/2 -translate-y-1/2 transform transition-colors"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="bg-latte-crust dark:bg-macchiato-crust border-latte-surface0 dark:border-macchiato-surface0 text-latte-text dark:text-macchiato-text focus:border-latte-blue/50 dark:focus:border-macchiato-blue/50 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 placeholder-latte-overlay0/70 dark:placeholder-macchiato-overlay0/70 w-full rounded-xl border py-2 pl-9 pr-3 text-sm transition-all focus:outline-none focus:ring-1"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        {!sidebarCollapsed && (
+          <div className="bg-latte-surface0 dark:bg-macchiato-surface0 mx-6 my-4 h-px" />
+        )}
+
+        {/* History List (Hidden when collapsed) */}
+        {!sidebarCollapsed && (
+          <div className="flex-1 space-y-1 overflow-y-auto px-4 opacity-100 transition-opacity duration-300">
+            <div className="text-latte-overlay0 dark:text-macchiato-overlay0 px-2 py-2 text-xs font-bold uppercase tracking-widest opacity-70">
+              Recent Activity
+            </div>
+
+            {chats?.length === 0 && (
+              <div className="text-latte-overlay0 dark:text-macchiato-overlay0 bg-latte-surface0/20 dark:bg-macchiato-surface0/20 border-latte-surface0/30 dark:border-macchiato-surface0/30 mx-2 rounded-lg border border-dashed py-8 text-center text-sm italic">
+                No history found.
+              </div>
+            )}
+
+            {chats?.map((chat) => {
+              const isActive = pathname === `/chat/${chat.id}`;
+              return (
+                <a
+                  key={chat.id}
+                  href={`/chat/${chat.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSelectSession(chat.id);
+                    window.history.pushState({}, "", `/chat/${chat.id}`);
+                    window.dispatchEvent(new PopStateEvent("popstate"));
+                  }}
+                  className={`group relative flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all duration-200 ${
+                    isActive
+                      ? "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text font-medium shadow-md"
+                      : "text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 hover:text-latte-text dark:hover:text-macchiato-text"
+                  } `}>
+                  <MessageSquare
+                    className={`flex-shrink-0 ${isActive ? "text-latte-mauve dark:text-macchiato-mauve" : "text-latte-overlay0 dark:text-macchiato-overlay0"}`}
+                    size={18}
+                  />
+                  <span className="flex-1 truncate pr-6 text-sm">{chat.title || "New Chat"}</span>
+
+                  <button
+                    onClick={(e) => handleDeleteChat(e, chat.id)}
+                    className="hover:bg-latte-red/10 dark:hover:bg-macchiato-red/10 hover:text-latte-red dark:hover:text-macchiato-red absolute right-2 rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100"
+                    title="Delete Chat">
+                    <Trash2 size={14} />
+                  </button>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Spacer if collapsed to push settings down */}
+        {sidebarCollapsed && <div className="flex-1" />}
+
+        {/* Footer */}
+        <div className={`mt-auto p-4 ${sidebarCollapsed ? "flex justify-center" : ""}`}>
+
+        </div>
+      </div>
     </>
   );
-}
+};
+
+export default Sidebar;

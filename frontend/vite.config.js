@@ -1,13 +1,23 @@
-import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { defineConfig } from 'vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [preact(), tailwindcss()],
+  plugins: [
+    preact(), 
+    tailwindcss()
+  ],
+
+  // Custom CSS Configuration
+  css: {
+    devSourcemap: true,
+  },
+
+  // Custom Alias and Extensions
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -18,6 +28,8 @@ export default defineConfig({
     },
     extensions: ['.js', '.jsx'],
   },
+
+  // Server Configuration
   server: {
     port: 3000,
     proxy: {

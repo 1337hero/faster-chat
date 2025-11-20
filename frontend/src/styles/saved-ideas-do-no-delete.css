@@ -1,0 +1,49 @@
+.something {
+  z-index: 1;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  background-color: #ffffff1a;
+  border-radius: 16px;
+  flex: 1;
+  padding: 8px;
+  display: flex;
+  position: relative;
+  box-shadow: inset 0.1px 0.1px 2px #ffffff80;
+}
+
+.btn-green {
+  background-color: var(--green);
+  background-image: linear-gradient(120deg, var(--teal), var(--green));
+  background-size: 150% 100%;
+  background-position: top left;
+  font-weight: 600;
+  color: var(--inverted-text);
+}
+
+.glass-effect.ai-fiesta-pricing-div {
+  grid-column-gap: 32px;
+  grid-row-gap: 32px;
+  background-color: #0000;
+  background-image: url(https://cdn.prod.website-files.com/689597c…/6895e61…_Container%20(12\).avif);
+  background-position: 50%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  flex-flow: column;
+  padding: 32px 48px;
+  display: flex;
+  position: relative;
+}
+
+.nav-menu {
+  grid-column-gap: 16px;
+  grid-row-gap: 16px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  background-color: #ffffff1a;
+  border-radius: 99px;
+  margin-left: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+  display: flex;
+  box-shadow: inset 0.1px 0.1px 2px #ffffff80;
+}

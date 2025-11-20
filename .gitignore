@@ -34,6 +34,11 @@ lerna-debug.log*
 .env
 !.env.sample
 
+# Database
+/server/data/*.db
+/server/data/*.db-shm
+/server/data/*.db-wal
+
 #cache
 .eslintcache
 

@@ -1,10 +1,10 @@
-import { useUiState } from '@/state/useUiState';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useUiState } from "@/state/useUiState";
+import { useEffect, useRef, useState } from "preact/hooks";
 
-const CLICK_SOUND_PATH = '/sounds/light-on.mp3';
+const CLICK_SOUND_PATH = "/sounds/light-on.mp3";
 const CLICK_SOUND_VOLUME = 0.25;
 
-export function ThemeToggle() {
+export const ThemeToggle = () => {
   const theme = useUiState((state) => state.theme);
   const toggleTheme = useUiState((state) => state.toggleTheme);
   const initializeTheme = useUiState((state) => state.initializeTheme);
@@ -14,7 +14,7 @@ export function ThemeToggle() {
   useEffect(() => {
     setMounted(true);
     initializeTheme();
-    if (typeof window !== 'undefined' && !clickSoundRef.current) {
+    if (typeof window !== "undefined" && !clickSoundRef.current) {
       const audio = new Audio(CLICK_SOUND_PATH);
       audio.volume = CLICK_SOUND_VOLUME;
       clickSoundRef.current = audio;
@@ -42,14 +42,14 @@ export function ThemeToggle() {
   return (
     <button
       onClick={handleToggle}
-      className="rounded-md p-2 transition-colors hover:bg-latte-surface0 dark:hover:bg-macchiato-surface0 hover:shadow-sm"
+      className="bg-latte-surface0 text-latte-text hover:bg-latte-surface1 dark:bg-macchiato-surface0 dark:text-macchiato-text dark:hover:bg-macchiato-surface1 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 rounded-xl p-2 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 active:scale-95"
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
       {theme === "light" ? <MoonIcon /> : <SunIcon />}
     </button>
   );
-}
+};
 
-function SunIcon() {
+const SunIcon = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -73,9 +73,9 @@ function SunIcon() {
       <path d="m19.07 4.93-1.41 1.41" />
     </svg>
   );
-}
+};
 
-function MoonIcon() {
+const MoonIcon = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -91,4 +91,4 @@ function MoonIcon() {
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
     </svg>
   );
-}
+};

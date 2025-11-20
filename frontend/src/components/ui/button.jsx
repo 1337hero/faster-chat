@@ -1,7 +1,7 @@
 import * as Headless from "@headlessui/react";
-import { clsx } from '@/lib/clsx';
-import { forwardRef } from '@preact/compat';
-import { Link } from './link';
+import { clsx } from "@/lib/clsx";
+import { forwardRef } from "@preact/compat";
+import { Link } from "./link";
 
 const styles = {
   base: [
@@ -186,7 +186,7 @@ export const Button = forwardRef(function Button(
 /**
  * Expand the hit area to at least 44×44px on touch devices
  */
-export function TouchTarget({ children }) {
+export const TouchTarget = ({ children }) => {
   return (
     <>
       <span
@@ -196,4 +196,4 @@ export function TouchTarget({ children }) {
       {children}
     </>
   );
-}
+};

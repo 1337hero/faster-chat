@@ -1,8 +1,8 @@
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "preact/hooks";
-import { useChatPersistence } from './useChatPersistence';
-import { useChatStream } from './useChatStream';
+import { useChatPersistence } from "./useChatPersistence";
+import { useChatStream } from "./useChatStream";
 
 export function useChat({ id: initialChatId, model }) {
   const [chatId, setChatId] = useState(initialChatId);
@@ -10,8 +10,12 @@ export function useChat({ id: initialChatId, model }) {
   const [pendingMessage, setPendingMessage] = useState(null);
   const navigate = useNavigate();
 
-  const { chat, messages: persistedMessages, saveUserMessage, saveAssistantMessage } =
-    useChatPersistence(chatId);
+  const {
+    chat,
+    messages: persistedMessages,
+    saveUserMessage,
+    saveAssistantMessage,
+  } = useChatPersistence(chatId);
 
   const stream = useChatStream({
     chatId,

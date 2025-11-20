@@ -21,9 +21,7 @@ function formatMessagesForTransport(messages) {
   return pruned.map((message) => ({
     id: message.id ?? crypto.randomUUID(),
     role: message.role,
-    content: (message.parts ?? [])
-      .map((part) => (part.type === "text" ? part.text : ""))
-      .join(""),
+    content: (message.parts ?? []).map((part) => (part.type === "text" ? part.text : "")).join(""),
   }));
 }
 
@@ -62,15 +60,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     []
   );
 
-  const {
-    messages,
-    sendMessage,
-    status,
-    error,
-    setMessages,
-    stop,
-    resumeStream,
-  } = useAIChat({
+  const { messages, sendMessage, status, error, setMessages, stop, resumeStream } = useAIChat({
     id: chatId,
     messages: formattedMessages,
     transport,
@@ -81,7 +71,8 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
         .map((part) => part.text)
         .join("");
 
-      if (onMessageComplete) {
+      // Don't save empty assistant messages
+      if (onMessageComplete && content.trim()) {
         await onMessageComplete(content);
       }
     },

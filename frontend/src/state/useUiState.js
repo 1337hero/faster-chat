@@ -1,44 +1,49 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export const useUiState = create(
   persist(
     (set) => ({
       sidebarOpen: true,
-      preferredModel: 'claude-sonnet-4-5',
-      theme: 'dark',
+      sidebarCollapsed: false,
+      preferredModel: "claude-sonnet-4-5",
+      theme: "dark",
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setSidebarCollapsed: (isCollapsed) => set({ sidebarCollapsed: isCollapsed }),
+      toggleSidebarCollapse: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setPreferredModel: (modelId) => set({ preferredModel: modelId }),
 
-      toggleTheme: () => set((state) => {
-        const newTheme = state.theme === 'light' ? 'dark' : 'light';
+      toggleTheme: () =>
+        set((state) => {
+          const newTheme = state.theme === "light" ? "dark" : "light";
 
-        if (typeof window !== 'undefined') {
-          if (newTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
+          if (typeof window !== "undefined") {
+            if (newTheme === "dark") {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
           }
-        }
 
-        return { theme: newTheme };
-      }),
+          return { theme: newTheme };
+        }),
 
-      initializeTheme: () => set((state) => {
-        if (typeof window !== 'undefined') {
-          if (state.theme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
+      initializeTheme: () =>
+        set((state) => {
+          if (typeof window !== "undefined") {
+            if (state.theme === "dark") {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
           }
-        }
-        return {};
-      }),
+          return {};
+        }),
     }),
     {
-      name: 'ui-state',
+      name: "ui-state",
     }
   )
 );

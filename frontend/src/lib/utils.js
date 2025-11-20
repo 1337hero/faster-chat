@@ -4,13 +4,9 @@ export function safeHydration(props) {
   }
 
   const cleanProps = { ...props };
-  const browserExtensionAttrs = [
-    "data-lt-installed",
-    "inmaintabuse",
-    "cz-shortcut-listen"
-  ];
+  const browserExtensionAttrs = ["data-lt-installed", "inmaintabuse", "cz-shortcut-listen"];
 
-  browserExtensionAttrs.forEach(attr => {
+  browserExtensionAttrs.forEach((attr) => {
     delete cleanProps[attr];
   });
 

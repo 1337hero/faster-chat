@@ -1,33 +1,23 @@
 import * as Headless from "@headlessui/react";
-import { clsx } from '@/lib/clsx';
-import { Link } from './link';
+import { clsx } from "@/lib/clsx";
+import { Link } from "./link";
 
-export function Dropdown(props) {
-  return <Headless.Menu {...props} />;
-}
+export const Dropdown = (props) => <Headless.Menu {...props} />;
 
-export function DropdownButton({
-  as = "button",
-  className,
-  ...props
-}) {
+export const DropdownButton = ({ as = "button", className, ...props }) => {
   return (
     <Headless.MenuButton
       as={as}
       {...props}
       className={clsx(
         className,
-        "flex items-center justify-between px-2 py-2 text-sm font-medium text-latte-subtext0 dark:text-macchiato-subtext0 transition-colors hover:bg-latte-overlay0/50 dark:hover:bg-macchiato-overlay0/50 focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50"
+        "text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-overlay0/50 dark:hover:bg-macchiato-overlay0/50 flex items-center justify-between px-2 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50"
       )}
     />
   );
-}
+};
 
-export function DropdownMenu({
-  anchor = "bottom",
-  className,
-  ...props
-}) {
+export const DropdownMenu = ({ anchor = "bottom", className, ...props }) => {
   return (
     <Headless.MenuItems
       {...props}
@@ -36,12 +26,9 @@ export function DropdownMenu({
       className={clsx(className, "bg-latte-overlay2 dark:bg-macchiato-overlay2 p-2 shadow-md")}
     />
   );
-}
+};
 
-export function DropdownItem({
-  className,
-  ...props
-}) {
+export const DropdownItem = ({ className, ...props }) => {
   const classes = clsx(
     className,
     // Base styles
@@ -53,4 +40,4 @@ export function DropdownItem({
   ) : (
     <Headless.MenuItem as="button" type="button" {...props} className={classes} />
   );
-}
+};

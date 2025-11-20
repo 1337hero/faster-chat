@@ -1,18 +1,53 @@
 import { Dexie } from "dexie";
+import { useAuthState } from "@/state/useAuthState";
 
 class ChatDatabase extends Dexie {
   constructor() {
     super("ChatDatabase");
+
+    // Version 1: Original schema
     this.version(1).stores({
       chats: "id, created_at, updated_at",
       messages: "id, chatId, created_at",
     });
+
+    // Version 2: Add userId column for multi-user support
+    this.version(2)
+      .stores({
+        chats: "id, userId, created_at, updated_at",
+        messages: "id, chatId, userId, created_at",
+      })
+      .upgrade(async (tx) => {
+        // Migrate existing data to have userId = null (guest data)
+        await tx
+          .table("chats")
+          .toCollection()
+          .modify((chat) => {
+            chat.userId = null;
+          });
+        await tx
+          .table("messages")
+          .toCollection()
+          .modify((message) => {
+            message.userId = null;
+          });
+      });
+  }
+
+  /**
+   * Get the current user ID from auth state
+   * Returns null if not authenticated (guest mode)
+   */
+  getCurrentUserId() {
+    const user = useAuthState.getState().user;
+    return user ? user.id : null;
   }
 
   async createChat(title) {
     const chat = {
       id: crypto.randomUUID(),
       title,
+      userId: this.getCurrentUserId(),
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -32,6 +67,7 @@ class ChatDatabase extends Dexie {
     const storedMessage = {
       ...message,
       id: crypto.randomUUID(),
+      userId: this.getCurrentUserId(),
       created_at: new Date(),
     };
 
@@ -44,11 +80,13 @@ class ChatDatabase extends Dexie {
   }
 
   async getChatMessages(chatId) {
-    return await this.messages.where("chatId").equals(chatId).sortBy("created_at");
+    const userId = this.getCurrentUserId();
+    return await this.messages.where({ chatId, userId }).sortBy("created_at");
   }
 
   async getChats() {
-    return await this.chats.orderBy("updated_at").reverse().toArray();
+    const userId = this.getCurrentUserId();
+    return await this.chats.where("userId").equals(userId).reverse().sortBy("updated_at");
   }
 
   async deleteChat(chatId) {

@@ -9,15 +9,17 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "@faster-chat/shared": "workspace:*",
-    "hono": "^4.7.12",
-    "@hono/node-server": "^1.14.3",
-    "ai": "^5.0.97",
     "@ai-sdk/anthropic": "^2.0.45",
     "@ai-sdk/openai": "^2.0.69",
+    "@faster-chat/shared": "workspace:*",
+    "@hono/node-server": "^1.14.3",
+    "@node-rs/argon2": "^2.0.2",
+    "ai": "^5.0.97",
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^16.4.7",
+    "hono": "^4.7.12",
     "ollama-ai-provider": "^1.2.0",
-    "zod": "^4.1.12",
-    "dotenv": "^16.4.7"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^20.19.25"

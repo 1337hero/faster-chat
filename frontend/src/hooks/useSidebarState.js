@@ -1,6 +1,6 @@
 import { UI_CONSTANTS } from "@faster-chat/shared";
-import { db } from '@/lib/db';
-import { useUiState } from '@/state/useUiState';
+import { db } from "@/lib/db";
+import { useUiState } from "@/state/useUiState";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "preact/hooks";

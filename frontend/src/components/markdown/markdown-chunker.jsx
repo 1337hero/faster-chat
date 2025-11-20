@@ -1,9 +1,9 @@
-import React, { memo } from '@preact/compat';
+import React, { memo } from "@preact/compat";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-function CopyIcon() {
+const CopyIcon = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -20,9 +20,9 @@ function CopyIcon() {
       <path d="M4 16c-1.1 0-2-.9-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
     </svg>
   );
-}
+};
 
-export function CodeBlock({ inline, className, children, ...props }) {
+export const CodeBlock = ({ inline, className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || "");
   const lang = match ? match[1] : "";
 
@@ -38,7 +38,7 @@ export function CodeBlock({ inline, className, children, ...props }) {
         <span className="font-mono">{lang || "text"}</span>
         <button
           onClick={copyToClipboard}
-          className="opacity-0 transition-colors group-hover:opacity-100 hover:text-white"
+          className="opacity-0 transition-colors hover:text-white group-hover:opacity-100"
           suppressHydrationWarning>
           <CopyIcon />
         </button>
@@ -58,9 +58,9 @@ export function CodeBlock({ inline, className, children, ...props }) {
       {children}
     </code>
   );
-}
+};
 
-export const MarkdownContent = memo(function MarkdownContent({ content }) {
+export const MarkdownContent = memo(({ content }) => {
   return (
     <ReactMarkdown
       components={{
@@ -84,9 +84,7 @@ export const MarkdownContent = memo(function MarkdownContent({ content }) {
         ul: ({ children }) => <ul suppressHydrationWarning>{children}</ul>,
         ol: ({ children }) => <ol suppressHydrationWarning>{children}</ol>,
         li: ({ children }) => <li suppressHydrationWarning>{children}</li>,
-        blockquote: ({ children }) => (
-          <blockquote suppressHydrationWarning>{children}</blockquote>
-        ),
+        blockquote: ({ children }) => <blockquote suppressHydrationWarning>{children}</blockquote>,
       }}
       unwrapDisallowed={true}>
       {content}
