@@ -33,7 +33,6 @@ const Sidebar = () => {
 
   const handleSelectSession = (chatId) => {
     handleLinkClick();
-    // Navigation is handled by the Link component in the chat list
   };
 
   const handleLogoClick = async () => {

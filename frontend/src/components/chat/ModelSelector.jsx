@@ -42,16 +42,13 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
-  // Fetch enabled models from API
   const { data, isLoading } = useQuery({
     queryKey: ["models", "enabled"],
     queryFn: () => providersClient.getEnabledModels(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const models = data?.models || [];
-
-  // Find current model or use default
   const currentModelData = models.find((m) => m.model_id === currentModel) || models.find((m) => m.is_default) || models[0];
 
   useEffect(() => {
@@ -64,7 +61,6 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // If models haven't loaded yet, show loading state
   if (isLoading || !currentModelData) {
     return (
       <div className="bg-latte-surface0 dark:bg-macchiato-surface0 rounded-xl px-3 py-2 text-sm">

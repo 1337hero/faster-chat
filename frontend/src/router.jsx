@@ -1,5 +1,6 @@
 import MainLayout from "@/components/layout/MainLayout";
 import Sidebar from "@/components/layout/Sidebar";
+import { hasSeenAdminConnectionsOnboarding, markAdminConnectionsOnboardingSeen } from "@/lib/adminOnboarding";
 import { db } from "@/lib/db";
 import { useAuthState } from "@/state/useAuthState";
 import {
@@ -11,7 +12,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
-import { lazy, Suspense, useEffect, useState } from "preact/compat";
+import { lazy, Suspense, useEffect, useRef, useState } from "preact/compat";
 
 // Lazy load page components
 const Login = lazy(() => import("@/pages/public/Login"));
@@ -82,23 +83,43 @@ const indexRoute = createRoute({
   path: "/",
   component: () => {
     const navigate = useNavigate();
+    const { user } = useAuthState();
     const [isChecking, setIsChecking] = useState(true);
+    const hasStartedNavigation = useRef(false);
 
     useEffect(() => {
+      // Prevent double execution
+      if (hasStartedNavigation.current) return;
+
       async function loadChatOrCreateNew() {
         try {
-          // Check for existing chats
           const existingChats = await db.getChats();
+          const hasSeenOnboarding = hasSeenAdminConnectionsOnboarding(user?.id);
+
+          // First-time admin onboarding: redirect to Connections tab before creating chats
+          if (
+            user?.role === "admin" &&
+            existingChats.length === 0 &&
+            !hasSeenOnboarding
+          ) {
+            markAdminConnectionsOnboardingSeen(user.id);
+            navigate({
+              to: "/admin",
+              search: { tab: "connections" },
+              replace: true,
+            });
+            return;
+          }
 
           if (existingChats && existingChats.length > 0) {
-            // Load most recent chat (getChats already sorts by updated_at)
+            // Load most recent chat
             navigate({
               to: "/chat/$chatId",
               params: { chatId: existingChats[0].id },
               replace: true,
             });
           } else {
-            // No chats exist - create new chat ready
+            // Create new chat
             const newChatId = nanoid();
             navigate({
               to: "/chat/$chatId",
@@ -120,8 +141,9 @@ const indexRoute = createRoute({
         }
       }
 
+      hasStartedNavigation.current = true;
       loadChatOrCreateNew();
-    }, [navigate]);
+    }, [navigate, user]);
 
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -145,6 +167,12 @@ const chatRoute = createRoute({
 const adminRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/admin",
+  validateSearch: (search) => ({
+    tab:
+      search?.tab === "users" || search?.tab === "models" || search?.tab === "connections"
+        ? search.tab
+        : undefined,
+  }),
   component: () => (
     <Suspense fallback={<LoadingSpinner />}>
       <Admin />

@@ -1,6 +1,7 @@
 import { UI_CONSTANTS } from "@faster-chat/shared";
 import { db } from "@/lib/db";
 import { useUiState } from "@/state/useUiState";
+import { useAuthState } from "@/state/useAuthState";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "preact/hooks";
@@ -8,7 +9,11 @@ import { useEffect, useState } from "preact/hooks";
 export function useSidebarState() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const chats = useLiveQuery(() => db.getChats(), []);
+  const userId = useAuthState((state) => state.user?.id ?? null);
+  const chats = useLiveQuery(() => {
+    if (userId === null) return [];
+    return db.getChats();
+  }, [userId]);
   const isSidebarOpen = useUiState((state) => state.sidebarOpen);
   const setIsSidebarOpen = useUiState((state) => state.setSidebarOpen);
   const toggleSidebar = useUiState((state) => state.toggleSidebar);

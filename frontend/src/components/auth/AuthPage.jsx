@@ -19,15 +19,13 @@ const AuthPage = () => {
         await login(username, password);
       } else {
         if (password !== confirmPassword) {
-          // Simple validation
           alert("Passwords do not match");
           return;
         }
         await register(username, password);
       }
-      // Auth state will update and trigger redirect
+      // Auth state will update and Login component will handle redirect
     } catch (err) {
-      // Error is already set in auth state
       console.error("Auth error:", err);
     }
   };

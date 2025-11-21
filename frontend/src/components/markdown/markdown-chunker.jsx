@@ -1,4 +1,4 @@
-import React, { memo } from "@preact/compat";
+import React from "@preact/compat";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -60,7 +60,7 @@ export const CodeBlock = ({ inline, className, children, ...props }) => {
   );
 };
 
-export const MarkdownContent = memo(({ content }) => {
+export const MarkdownContent = ({ content }) => {
   return (
     <ReactMarkdown
       components={{
@@ -90,4 +90,4 @@ export const MarkdownContent = memo(({ content }) => {
       {content}
     </ReactMarkdown>
   );
-});
+};

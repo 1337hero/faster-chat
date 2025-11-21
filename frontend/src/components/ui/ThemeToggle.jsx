@@ -1,5 +1,5 @@
 import { useUiState } from "@/state/useUiState";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 
 const CLICK_SOUND_PATH = "/sounds/light-on.mp3";
 const CLICK_SOUND_VOLUME = 0.25;
@@ -7,19 +7,15 @@ const CLICK_SOUND_VOLUME = 0.25;
 export const ThemeToggle = () => {
   const theme = useUiState((state) => state.theme);
   const toggleTheme = useUiState((state) => state.toggleTheme);
-  const initializeTheme = useUiState((state) => state.initializeTheme);
-  const [mounted, setMounted] = useState(false);
   const clickSoundRef = useRef(null);
 
   useEffect(() => {
-    setMounted(true);
-    initializeTheme();
-    if (typeof window !== "undefined" && !clickSoundRef.current) {
+    if (!clickSoundRef.current) {
       const audio = new Audio(CLICK_SOUND_PATH);
       audio.volume = CLICK_SOUND_VOLUME;
       clickSoundRef.current = audio;
     }
-  }, [initializeTheme]);
+  }, []);
 
   const handleToggle = () => {
     toggleTheme();
@@ -30,14 +26,6 @@ export const ThemeToggle = () => {
       audio.play().catch(() => {});
     }
   };
-
-  if (!mounted) {
-    return (
-      <button className="rounded-md p-2 opacity-0">
-        <div className="h-5 w-5" />
-      </button>
-    );
-  }
 
   return (
     <button

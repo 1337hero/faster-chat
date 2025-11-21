@@ -32,49 +32,41 @@ export const chatRouter = new Hono();
  * @param {string} modelId - The model_id from the database
  */
 function getModel(modelId) {
-  // Query database for model and provider
-  const models = dbUtils.getAllModels();
-  const model = models.find((m) => m.model_id === modelId);
+  const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
 
-  if (!model) {
-    throw new Error(`Model ${modelId} not found in database`);
-  }
-
-  // Get provider details
-  const provider = dbUtils.getProviderById(model.provider_id);
-  if (!provider) {
-    throw new Error(`Provider for model ${modelId} not found`);
-  }
-
-  if (!provider.enabled) {
-    throw new Error(`Provider ${provider.name} is disabled`);
+  if (!modelRecord) {
+    throw new Error(`Model ${modelId} is disabled or not registered`);
   }
 
   // Decrypt API key
-  const apiKey = provider.encrypted_key
-    ? decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag)
+  const apiKey = modelRecord.provider_encrypted_key
+    ? decryptApiKey(
+        modelRecord.provider_encrypted_key,
+        modelRecord.provider_iv,
+        modelRecord.provider_auth_tag
+      )
     : "";
 
   // Create provider instance and return model
-  switch (provider.name) {
+  switch (modelRecord.provider_name) {
     case "anthropic": {
       const anthropic = createAnthropic({ apiKey });
-      return anthropic(model.model_id);
+      return anthropic(modelRecord.model_id);
     }
     case "openai": {
       const openai = createOpenAI({ apiKey });
-      return openai(model.model_id);
+      return openai(modelRecord.model_id);
     }
     case "ollama": {
       // Ollama uses OpenAI-compatible API
       const ollamaProvider = createOpenAI({
-        baseURL: provider.base_url || "http://localhost:11434/v1",
+        baseURL: modelRecord.provider_base_url || "http://localhost:11434/v1",
         apiKey: apiKey || "ollama", // Dummy key for local
       });
-      return ollamaProvider(model.model_id);
+      return ollamaProvider(modelRecord.model_id);
     }
     default:
-      throw new Error(`Provider ${provider.name} not supported`);
+      throw new Error(`Provider ${modelRecord.provider_name} not supported`);
   }
 }
 

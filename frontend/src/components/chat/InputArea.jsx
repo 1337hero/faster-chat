@@ -1,4 +1,4 @@
-import { memo, useRef } from "preact/compat";
+import { useRef } from "preact/hooks";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 
 const PaperclipIcon = ({ className, size = 20 }) => {
@@ -156,4 +156,4 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
   );
 };
 
-export default memo(InputArea);
+export default InputArea;

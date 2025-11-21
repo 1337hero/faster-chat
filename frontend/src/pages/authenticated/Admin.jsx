@@ -1,25 +1,39 @@
-import { useState } from "preact/hooks";
-import { useAuthState } from "@/state/useAuthState";
-import { Navigate } from "@tanstack/react-router";
-import UsersTab from "@/components/admin/UsersTab";
 import ConnectionsTab from "@/components/admin/ConnectionsTab";
 import ModelsTab from "@/components/admin/ModelsTab";
+import UsersTab from "@/components/admin/UsersTab";
+import { useAuthState } from "@/state/useAuthState";
+import { Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
 
 const tabs = [
   { id: "users", label: "Users" },
-  { id: "evaluations", label: "Evaluations" },
-  { id: "functions", label: "Functions" },
-  { id: "settings", label: "Settings" },
+  { id: "models", label: "Models" },
+  { id: "connections", label: "Connections" },
 ];
 
 const Admin = () => {
   const { user } = useAuthState();
-  const [activeTab, setActiveTab] = useState("users");
+  const navigate = useNavigate();
+  const search = useRouterState({ select: (state) => state.location.search });
+  const selectedTab = search?.tab;
+  const activeTab = tabs.some((tab) => tab.id === selectedTab) ? selectedTab : "users";
 
   // Admin-only access
   if (user?.role !== "admin") {
     return <Navigate to="/" replace />;
   }
+
+  const handleTabChange = (tabId) => {
+    navigate({
+      search: (previous) => {
+        const currentSearch = previous ?? {};
+        return {
+          ...currentSearch,
+          tab: tabId === "users" ? undefined : tabId,
+        };
+      },
+      replace: true,
+    });
+  };
 
   return (
     <div className="flex h-full flex-col bg-latte-base dark:bg-macchiato-base">
@@ -30,7 +44,7 @@ const Admin = () => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`border-b-2 px-1 pb-4 pt-4 text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? "border-latte-blue text-latte-text dark:border-macchiato-blue dark:text-macchiato-text"
@@ -47,13 +61,8 @@ const Admin = () => {
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
         {activeTab === "users" && <UsersTab />}
-        {activeTab === "evaluations" && (
-          <div className="p-6 text-latte-subtext0 dark:text-macchiato-subtext0">
-            Evaluations tab - Coming soon
-          </div>
-        )}
-        {activeTab === "functions" && <ModelsTab />}
-        {activeTab === "settings" && <ConnectionsTab />}
+        {activeTab === "models" && <ModelsTab />}
+        {activeTab === "connections" && <ConnectionsTab />}
       </div>
     </div>
   );

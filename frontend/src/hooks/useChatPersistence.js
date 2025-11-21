@@ -1,17 +1,20 @@
 import { db } from "@/lib/db";
+import { useAuthState } from "@/state/useAuthState";
 import { useLiveQuery } from "dexie-react-hooks";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 
 export function useChatPersistence(chatId) {
+  const userId = useAuthState((state) => state.user?.id ?? null);
+
   const chat = useLiveQuery(async () => {
-    if (!chatId) return null;
+    if (!chatId || userId === null) return null;
     return await db.chats.get(chatId);
-  }, [chatId]);
+  }, [chatId, userId]);
 
   const messages = useLiveQuery(async () => {
-    if (!chatId) return [];
+    if (!chatId || userId === null) return [];
     return await db.getChatMessages(chatId);
-  }, [chatId]);
+  }, [chatId, userId]);
 
   async function saveUserMessage(content, currentChatId) {
     await db.addMessage({

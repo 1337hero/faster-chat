@@ -52,10 +52,10 @@ app.route("/api", chatRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
-  app.use("/*", serveStatic({ root: "../frontend/dist" }));
+  app.use("/*", serveStatic({ root: "./frontend/dist" }));
 
   // Fallback to index.html for SPA routing
-  app.get("*", serveStatic({ path: "../frontend/dist/index.html" }));
+  app.get("*", serveStatic({ path: "./frontend/dist/index.html" }));
 }
 
 // Start server
@@ -64,6 +64,6 @@ const port = parseInt(process.env.PORT || "3001", 10);
 console.log(`Server is running on http://localhost:${port}`);
 
 serve({
-  fetch: app.fetch,
+  fetch: (request, connInfo) => app.fetch(request, connInfo),
   port,
 });

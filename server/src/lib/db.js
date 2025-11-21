@@ -384,6 +384,27 @@ export const dbUtils = {
   },
 
   /**
+   * Get a single enabled model (lookup by model_id string)
+   */
+  getEnabledModelWithProvider(modelIdentifier) {
+    const stmt = db.prepare(`
+      SELECT
+        m.*,
+        p.name as provider_name,
+        p.display_name as provider_display_name,
+        p.base_url as provider_base_url,
+        p.encrypted_key as provider_encrypted_key,
+        p.iv as provider_iv,
+        p.auth_tag as provider_auth_tag
+      FROM models m
+      JOIN providers p ON m.provider_id = p.id
+      WHERE m.model_id = ? AND m.enabled = 1 AND p.enabled = 1
+      LIMIT 1
+    `);
+    return stmt.get(modelIdentifier);
+  },
+
+  /**
    * Get models by provider
    */
   getModelsByProvider(providerId) {

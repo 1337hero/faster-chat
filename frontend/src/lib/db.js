@@ -32,6 +32,12 @@ class ChatDatabase extends Dexie {
             message.userId = null;
           });
       });
+
+    // Version 3: Add compound indexes for user-scoped queries
+    this.version(3).stores({
+      chats: "id, userId, created_at, updated_at, [userId+updated_at]",
+      messages: "id, chatId, userId, created_at, [chatId+userId]",
+    });
   }
 
   /**
@@ -81,11 +87,13 @@ class ChatDatabase extends Dexie {
 
   async getChatMessages(chatId) {
     const userId = this.getCurrentUserId();
-    return await this.messages.where({ chatId, userId }).sortBy("created_at");
+    if (userId === null) return [];
+    return await this.messages.where("[chatId+userId]").equals([chatId, userId]).sortBy("created_at");
   }
 
   async getChats() {
     const userId = this.getCurrentUserId();
+    if (userId === null) return [];
     return await this.chats.where("userId").equals(userId).reverse().sortBy("updated_at");
   }
 

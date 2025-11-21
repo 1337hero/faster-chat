@@ -17,14 +17,17 @@ const LoginSchema = z.object({
   password: z.string(),
 });
 
-// Simple in-memory rate limiting (per IP)
+// Simple in-memory rate limiting (per key)
 const loginAttempts = new Map();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const MAX_ATTEMPTS = 5;
 
-function checkRateLimit(ip) {
+const TRUST_PROXY = process.env.TRUST_PROXY === "true";
+const REGISTRATION_LOCK_MESSAGE = "Registration disabled. Ask an administrator to create an account.";
+
+function checkRateLimit(bucketKey) {
   const now = Date.now();
-  const attempts = loginAttempts.get(ip) || [];
+  const attempts = loginAttempts.get(bucketKey) || [];
 
   // Clean old attempts
   const recentAttempts = attempts.filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW);
@@ -34,15 +37,31 @@ function checkRateLimit(ip) {
   }
 
   recentAttempts.push(now);
-  loginAttempts.set(ip, recentAttempts);
+  loginAttempts.set(bucketKey, recentAttempts);
   return true;
 }
 
 // Helper to get client IP
 function getClientIP(c) {
-  return (
-    c.req.header("x-forwarded-for")?.split(",")[0].trim() || c.req.header("x-real-ip") || "unknown"
-  );
+  if (TRUST_PROXY) {
+    const forwarded = c.req.header("x-forwarded-for");
+    if (forwarded) {
+      return forwarded.split(",")[0].trim();
+    }
+    const real = c.req.header("x-real-ip");
+    if (real) {
+      return real;
+    }
+  }
+
+  const incoming = c.env?.incoming;
+  const socket =
+    incoming?.socket ||
+    incoming?.connection ||
+    incoming?.req?.socket ||
+    incoming?.req?.connection;
+
+  return socket?.remoteAddress || "local";
 }
 
 // Cookie settings
@@ -62,12 +81,21 @@ const COOKIE_OPTIONS = {
 authRouter.post("/register", async (c) => {
   try {
     const ip = getClientIP(c);
-    if (!checkRateLimit(ip)) {
+    if (!checkRateLimit(`register:ip:${ip}`)) {
       return c.json({ error: "Too many attempts. Please try again later." }, 429);
     }
 
     const body = await c.req.json();
     const { username, password } = RegisterSchema.parse(body);
+
+    if (!checkRateLimit(`register:user:${username.toLowerCase()}`)) {
+      return c.json({ error: "Too many attempts for this username." }, 429);
+    }
+
+    const userCount = dbUtils.getUserCount();
+    if (userCount > 0) {
+      return c.json({ error: REGISTRATION_LOCK_MESSAGE }, 403);
+    }
 
     // Check if username already exists
     const existingUser = dbUtils.getUserByUsername(username);
@@ -75,9 +103,7 @@ authRouter.post("/register", async (c) => {
       return c.json({ error: "Username already exists" }, 400);
     }
 
-    // Check if this is the first user
-    const userCount = dbUtils.getUserCount();
-    const role = userCount === 0 ? "admin" : "member";
+    const role = "admin";
 
     // Hash password
     const passwordHash = await hash(password, {
@@ -125,12 +151,13 @@ authRouter.post("/register", async (c) => {
 authRouter.post("/login", async (c) => {
   try {
     const ip = getClientIP(c);
-    if (!checkRateLimit(ip)) {
-      return c.json({ error: "Too many attempts. Please try again later." }, 429);
-    }
 
     const body = await c.req.json();
     const { username, password } = LoginSchema.parse(body);
+
+    if (!checkRateLimit(`login:ip:${ip}`) || !checkRateLimit(`login:user:${username.toLowerCase()}`)) {
+      return c.json({ error: "Too many attempts. Please try again later." }, 429);
+    }
 
     // Get user
     const user = dbUtils.getUserByUsername(username);

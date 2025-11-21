@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
 import { useChat } from "@/hooks/useChat";
@@ -81,7 +80,13 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       {/* Messages Area */}
       <div className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth p-4 md:px-20 md:py-8">
         <div className="mx-auto max-w-4xl">
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList
+            messages={messages}
+            isLoading={isLoading}
+            status={status}
+            onStop={stop}
+            onResume={resumeStream}
+          />
         </div>
       </div>
 
@@ -89,32 +94,14 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       <div className="bg-transparent p-6 pt-2">
         <div className="relative mx-auto max-w-4xl">
           <div
-            className={`relative flex items-end gap-2 rounded-3xl border p-3 transition-all duration-300 ${
-              isLoading
-                ? "bg-latte-surface0/50 dark:bg-macchiato-surface0/50 border-latte-surface1/50 dark:border-macchiato-surface1/50"
-                : "bg-latte-mantle dark:bg-macchiato-mantle border-latte-surface0 dark:border-macchiato-surface0 hover:border-latte-surface1 dark:hover:border-macchiato-surface1"
-            } `}
-            style={{ boxShadow: "var(--shadow-depth-lg)" }}>
+            className={`layered-panel elevate-lg relative flex items-end gap-3 rounded-[22px] px-4 py-3 transition-transform duration-200 ${
+              isLoading ? "opacity-95" : "hover:-translate-y-1"
+            }`}>
             <InputArea
               input={input}
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
             />
-
-            <div className="mt-2 flex items-center gap-2 px-4 pb-2">
-              <Button
-                color="red"
-                onClick={stop}
-                disabled={status !== "streaming" && status !== "submitted"}>
-                Stop
-              </Button>
-              <Button
-                outline
-                onClick={resumeStream}
-                disabled={!resumeStream || status === "streaming" || status === "submitted"}>
-                Resume
-              </Button>
-            </div>
           </div>
         </div>
       </div>

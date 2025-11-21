@@ -1,26 +1,15 @@
 import { create } from "zustand";
 import { authClient } from "../lib/authClient.js";
 
-/**
- * Auth state management
- * Stores current user info and provides auth actions
- */
 export const useAuthState = create((set, get) => ({
-  // State
-  user: null, // { id, username, role }
+  user: null,
   isLoading: true,
   error: null,
 
-  // Actions
   setUser: (user) => set({ user, error: null }),
-
   setError: (error) => set({ error }),
-
   clearError: () => set({ error: null }),
 
-  /**
-   * Check current session on app load
-   */
   checkSession: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -33,9 +22,6 @@ export const useAuthState = create((set, get) => ({
     }
   },
 
-  /**
-   * Login with username and password
-   */
   login: async (username, password) => {
     set({ isLoading: true, error: null });
     try {
@@ -48,9 +34,6 @@ export const useAuthState = create((set, get) => ({
     }
   },
 
-  /**
-   * Register a new user
-   */
   register: async (username, password) => {
     set({ isLoading: true, error: null });
     try {
@@ -63,9 +46,6 @@ export const useAuthState = create((set, get) => ({
     }
   },
 
-  /**
-   * Logout
-   */
   logout: async () => {
     set({ isLoading: true, error: null });
     try {

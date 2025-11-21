@@ -1,0 +1,2 @@
+# This file ensures the data directory is tracked by git
+# Database files (*.db, *.db-shm, *.db-wal) are gitignored but the directory must exist

@@ -56,10 +56,11 @@ const extractTextContent = (message) =>
     .map((part) => part.text)
     .join("");
 
-const MessageItem = memo(({ message }) => {
+const MessageItem = memo(({ message, onStop, onResume }) => {
   const isUser = message.role === "user";
   const content = extractTextContent(message);
   const isStreaming = message.experimental_status === "streaming";
+  const showActions = !isUser && (onStop || onResume);
 
   return (
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
@@ -96,6 +97,27 @@ const MessageItem = memo(({ message }) => {
           <div className={`font-sans ${isUser ? "font-medium text-white/95" : ""}`}>
             <MarkdownContent content={content} />
           </div>
+
+          {showActions && (
+            <div className="mt-4 flex justify-end gap-2">
+              {onStop && (
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-red dark:text-macchiato-red hover:text-latte-red hover:brightness-110 dark:hover:text-macchiato-red rounded-full border bg-latte-surface1/80 px-3 py-1 text-xs font-semibold transition-all duration-150 dark:bg-macchiato-surface1/80">
+                  Stop
+                </button>
+              )}
+              {onResume && (
+                <button
+                  type="button"
+                  onClick={onResume}
+                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-blue dark:text-macchiato-blue hover:text-latte-blue hover:brightness-110 dark:hover:text-macchiato-blue rounded-full border bg-latte-surface1/80 px-3 py-1 text-xs font-semibold transition-all duration-150 dark:bg-macchiato-surface1/80">
+                  Continue
+                </button>
+              )}
+            </div>
+          )}
 
           {isStreaming && (
             <div className="text-latte-mauve dark:text-macchiato-mauve mt-3 flex animate-pulse items-center gap-2">

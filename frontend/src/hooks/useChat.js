@@ -1,13 +1,11 @@
 import { db } from "@/lib/db";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
-export function useChat({ id: initialChatId, model }) {
-  const [chatId, setChatId] = useState(initialChatId);
+export function useChat({ id: chatId, model }) {
   const [input, setInput] = useState("");
-  const [pendingMessage, setPendingMessage] = useState(null);
   const navigate = useNavigate();
 
   const {
@@ -28,15 +26,6 @@ export function useChat({ id: initialChatId, model }) {
     },
   });
 
-  async function sendUserMessage(content, currentChatId) {
-    try {
-      await stream.send(content);
-      await saveUserMessage(content, currentChatId);
-    } catch (err) {
-      console.error("Failed to send message", err);
-    }
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -45,39 +34,26 @@ export function useChat({ id: initialChatId, model }) {
 
     setInput("");
 
-    let currentChatId = chatId;
+    const currentChatId = chatId || (await db.createChat()).id;
 
-    if (!currentChatId) {
-      const newChat = await db.createChat();
-      currentChatId = newChat.id;
-      setChatId(currentChatId);
+    if (!chatId) {
       navigate({
         to: "/chat/$chatId",
         params: { chatId: currentChatId },
       });
-
-      setPendingMessage(trimmedInput);
-      return;
     }
 
-    await sendUserMessage(trimmedInput, currentChatId);
+    try {
+      await stream.send(trimmedInput);
+      await saveUserMessage(trimmedInput, currentChatId);
+    } catch (err) {
+      console.error("Failed to send message", err);
+    }
   }
 
   function handleInputChange(e) {
     setInput(e.target.value);
   }
-
-  useEffect(() => {
-    setChatId(initialChatId);
-  }, [initialChatId]);
-
-  useEffect(() => {
-    if (!chatId || !pendingMessage) return;
-
-    sendUserMessage(pendingMessage, chatId).finally(() => {
-      setPendingMessage(null);
-    });
-  }, [chatId, pendingMessage]);
 
   const isLoading = (chatId && !chat) || stream.isStreaming;
   const canResume = stream.status !== "streaming" && stream.status !== "submitted";

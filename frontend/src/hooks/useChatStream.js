@@ -1,6 +1,6 @@
 import { DefaultChatTransport } from "ai";
 import { useChat as useAIChat } from "@ai-sdk/react";
-import { useEffect, useMemo, useRef } from "preact/hooks";
+import { useMemo, useRef } from "preact/hooks";
 
 const MAX_MESSAGE_HISTORY = 64;
 
@@ -27,10 +27,7 @@ function formatMessagesForTransport(messages) {
 
 export function useChatStream({ chatId, model, persistedMessages, onMessageComplete }) {
   const modelRef = useRef(model);
-
-  useEffect(() => {
-    modelRef.current = model;
-  }, [model]);
+  modelRef.current = model;
 
   const formattedMessages = useMemo(
     () =>
@@ -60,7 +57,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     []
   );
 
-  const { messages, sendMessage, status, error, setMessages, stop, resumeStream } = useAIChat({
+  const { messages, sendMessage, status, error, stop, resumeStream } = useAIChat({
     id: chatId,
     messages: formattedMessages,
     transport,
@@ -71,27 +68,11 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
         .map((part) => part.text)
         .join("");
 
-      // Don't save empty assistant messages
       if (onMessageComplete && content.trim()) {
         await onMessageComplete(content);
       }
     },
   });
-
-  const hasInitialized = useRef(false);
-
-  useEffect(() => {
-    hasInitialized.current = false;
-  }, [chatId]);
-
-  useEffect(() => {
-    if (!chatId) return;
-    if (hasInitialized.current) return;
-    if (persistedMessages === undefined) return;
-
-    setMessages(formattedMessages);
-    hasInitialized.current = true;
-  }, [chatId, persistedMessages, formattedMessages, setMessages]);
 
   async function send(content) {
     await sendMessage({

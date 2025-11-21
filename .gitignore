@@ -20,6 +20,9 @@
 
 # production
 /build
+dist
+dist-ssr
+*.local
 
 # Logs
 logs

@@ -14,33 +14,7 @@ export const useUiState = create(
       setSidebarCollapsed: (isCollapsed) => set({ sidebarCollapsed: isCollapsed }),
       toggleSidebarCollapse: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setPreferredModel: (modelId) => set({ preferredModel: modelId }),
-
-      toggleTheme: () =>
-        set((state) => {
-          const newTheme = state.theme === "light" ? "dark" : "light";
-
-          if (typeof window !== "undefined") {
-            if (newTheme === "dark") {
-              document.documentElement.classList.add("dark");
-            } else {
-              document.documentElement.classList.remove("dark");
-            }
-          }
-
-          return { theme: newTheme };
-        }),
-
-      initializeTheme: () =>
-        set((state) => {
-          if (typeof window !== "undefined") {
-            if (state.theme === "dark") {
-              document.documentElement.classList.add("dark");
-            } else {
-              document.documentElement.classList.remove("dark");
-            }
-          }
-          return {};
-        }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === "light" ? "dark" : "light" })),
     }),
     {
       name: "ui-state",
