@@ -13,9 +13,7 @@ export function useChatPersistence(chatId) {
 
   const messages = useLiveQuery(async () => {
     if (!chatId || userId === null) return [];
-    const msgs = await db.getChatMessages(chatId);
-    console.log("[DEBUG useChatPersistence] chatId:", chatId, "loaded messages:", msgs?.length, "first msg:", msgs?.[0]);
-    return msgs;
+    return await db.getChatMessages(chatId);
   }, [chatId, userId]);
 
   async function saveUserMessage(content, currentChatId) {

@@ -1,11 +1,26 @@
 import MessageItem from "./MessageItem";
 
 const MessageList = ({ messages, isLoading, status, onStop, onResume }) => {
-  const lastAssistantId = [...messages].reverse().find((msg) => msg.role === "assistant")?.id;
+  // Sort to ensure user messages come before assistant responses
+  // Group into pairs and ensure proper order even if timestamps are wrong
+  const sortedMessages = [...messages].sort((a, b) => {
+    const aTime = a.created_at || 0;
+    const bTime = b.created_at || 0;
+
+    // If timestamps are very close (within 5 seconds), ensure user comes first
+    if (Math.abs(aTime - bTime) < 5000) {
+      if (a.role === 'user' && b.role === 'assistant') return -1;
+      if (a.role === 'assistant' && b.role === 'user') return 1;
+    }
+
+    return aTime - bTime;
+  });
+
+  const lastAssistantId = [...sortedMessages].reverse().find((msg) => msg.role === "assistant")?.id;
 
   return (
     <div className="space-y-4">
-      {messages.map((message) => {
+      {sortedMessages.map((message) => {
         const isActiveAssistant = message.id === lastAssistantId && message.role === "assistant";
         const showStopAction =
           isActiveAssistant && (status === "streaming" || status === "submitted") && Boolean(onStop);

@@ -40,6 +40,8 @@
 - **🛠️ Self-Hostable**: One-command Docker deployment with optional HTTPS. No vendor lock-in.
 - **🎨 Modern Stack**: Preact + Hono + TanStack + Tailwind 4.1 + AI SDK.
 
+![Faster Chat Interface](faster-chat.png)
+
 ## ✨ Current Features
 
 - 💬 **Streaming Chat Interface** — Real-time token streaming with Vercel AI SDK
@@ -135,6 +137,16 @@ The app will be available at:
 - Register at `/login`; the **first account created is promoted to admin** automatically.
 - Admins can open `/admin` → Users tab to create users, reset passwords, and set roles (`admin`, `member`, `readonly`).
 - Sessions use HTTP-only cookies (`credentials: include`), so keep frontend and API on the same origin/ports listed above in development.
+
+#### Admin Panel
+
+The admin panel provides full control over API connections and model management:
+
+![API Connections Management](connections.png)
+*Manage AI provider connections and API keys*
+
+![Available Models](models.png)
+*Enable and configure models from multiple providers*
 
 ### Using Offline with Ollama
 

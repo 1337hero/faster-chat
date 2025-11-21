@@ -1,4 +1,4 @@
-import { useRef } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 
 const PaperclipIcon = ({ className, size = 20 }) => {
@@ -85,6 +85,13 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     element.style.height = "auto";
     element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
   };
+
+  // Reset height when input is cleared
+  useEffect(() => {
+    if (!input && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [input]);
 
   const handleChange = (e) => {
     adjustHeight(e.target);

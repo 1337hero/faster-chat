@@ -58,8 +58,6 @@ export function useChat({ id: chatId, model }) {
   const isLoading = (chatId && !chat) || stream.isStreaming;
   const canResume = stream.status !== "streaming" && stream.status !== "submitted";
 
-  console.log("[DEBUG useChat] chatId:", chatId, "returning messages:", stream.messages?.length, "first msg content:", stream.messages?.[0]?.parts?.[0]?.text?.substring(0, 50));
-
   return {
     messages: stream.messages,
     input,
