@@ -172,26 +172,50 @@ const ModelsTab = () => {
                           )}
                           {model.metadata?.input_price_per_1m !== undefined &&
                             model.metadata?.output_price_per_1m !== undefined && (
-                              <span>
+                              <span title="Input / Output price per 1M tokens">
                                 {formatPrice(model.metadata.input_price_per_1m)}/
-                                {formatPrice(model.metadata.output_price_per_1m)} per 1M tokens
+                                {formatPrice(model.metadata.output_price_per_1m)} per 1M
                               </span>
                             )}
+                          {model.metadata?.cache_read_price_per_1m > 0 && (
+                            <span
+                              className="text-latte-green dark:text-macchiato-green"
+                              title="Supports prompt caching"
+                            >
+                              💾 Cache: ${model.metadata.cache_read_price_per_1m.toFixed(2)}
+                            </span>
+                          )}
                           <div className="flex items-center gap-2">
+                            {model.metadata?.supports_reasoning && (
+                              <span
+                                className="rounded bg-latte-mauve/20 px-1.5 py-0.5 text-xs font-medium text-latte-mauve dark:bg-macchiato-mauve/20 dark:text-macchiato-mauve"
+                                title="Extended thinking / reasoning model"
+                              >
+                                🧠 Reasoning
+                              </span>
+                            )}
                             {model.metadata?.supports_vision && (
                               <span
                                 className="rounded bg-latte-surface0 px-1.5 py-0.5 text-xs dark:bg-macchiato-surface0"
-                                title="Supports vision"
+                                title="Supports vision / image inputs"
                               >
-                                Vision
+                                👁️ Vision
                               </span>
                             )}
                             {model.metadata?.supports_tools && (
                               <span
                                 className="rounded bg-latte-surface0 px-1.5 py-0.5 text-xs dark:bg-macchiato-surface0"
-                                title="Supports function calling"
+                                title="Supports function calling / tools"
                               >
-                                Tools
+                                🔧 Tools
+                              </span>
+                            )}
+                            {model.metadata?.experimental && (
+                              <span
+                                className="rounded bg-latte-yellow/20 px-1.5 py-0.5 text-xs font-medium text-latte-yellow dark:bg-macchiato-yellow/20 dark:text-macchiato-yellow"
+                                title="Experimental model"
+                              >
+                                ⚠️ Experimental
                               </span>
                             )}
                           </div>

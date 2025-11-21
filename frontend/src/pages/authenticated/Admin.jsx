@@ -1,8 +1,11 @@
-import ConnectionsTab from "@/components/admin/ConnectionsTab";
-import ModelsTab from "@/components/admin/ModelsTab";
-import UsersTab from "@/components/admin/UsersTab";
 import { useAuthState } from "@/state/useAuthState";
 import { Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
+import { lazy, Suspense } from "preact/compat";
+
+// Lazy load admin tab components for better code splitting
+const UsersTab = lazy(() => import("@/components/admin/UsersTab"));
+const ModelsTab = lazy(() => import("@/components/admin/ModelsTab"));
+const ConnectionsTab = lazy(() => import("@/components/admin/ConnectionsTab"));
 
 const tabs = [
   { id: "users", label: "Users" },
@@ -36,9 +39,9 @@ const Admin = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-latte-base dark:bg-macchiato-base">
+    <div className="bg-latte-base dark:bg-macchiato-base flex h-full flex-col">
       {/* Header with tabs */}
-      <div className="border-b border-latte-surface0 dark:border-macchiato-surface0">
+      <div className="border-latte-surface0 dark:border-macchiato-surface0 border-b">
         <div className="flex h-14 items-center px-6">
           <nav className="flex space-x-8">
             {tabs.map((tab) => (
@@ -48,9 +51,8 @@ const Admin = () => {
                 className={`border-b-2 px-1 pb-4 pt-4 text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? "border-latte-blue text-latte-text dark:border-macchiato-blue dark:text-macchiato-text"
-                    : "border-transparent text-latte-subtext0 hover:text-latte-subtext1 dark:text-macchiato-subtext0 dark:hover:text-macchiato-subtext1"
-                }`}
-              >
+                    : "text-latte-subtext0 hover:text-latte-subtext1 dark:text-macchiato-subtext0 dark:hover:text-macchiato-subtext1 border-transparent"
+                }`}>
                 {tab.label}
               </button>
             ))}
@@ -60,9 +62,16 @@ const Admin = () => {
 
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
-        {activeTab === "users" && <UsersTab />}
-        {activeTab === "models" && <ModelsTab />}
-        {activeTab === "connections" && <ConnectionsTab />}
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center p-8">
+              <div className="text-latte-subtext0 dark:text-macchiato-subtext0">Loading...</div>
+            </div>
+          }>
+          {activeTab === "users" && <UsersTab />}
+          {activeTab === "models" && <ModelsTab />}
+          {activeTab === "connections" && <ConnectionsTab />}
+        </Suspense>
       </div>
     </div>
   );

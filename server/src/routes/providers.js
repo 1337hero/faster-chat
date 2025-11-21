@@ -3,6 +3,12 @@ import { z } from "zod";
 import { dbUtils } from "../lib/db.js";
 import { encryptApiKey, decryptApiKey, maskApiKey } from "../lib/encryption.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import {
+  getAvailableProviders,
+  getModelsForProvider,
+  getProviderInfo,
+  getProviderType,
+} from "../lib/modelsdev.js";
 
 export const providersRouter = new Hono();
 
@@ -23,6 +29,20 @@ const UpdateProviderSchema = z.object({
   baseUrl: z.string().url().nullable().optional(),
   apiKey: z.string().min(1).optional(),
   enabled: z.boolean().optional(),
+});
+
+/**
+ * GET /api/admin/providers/available
+ * List all available providers from models.dev
+ */
+providersRouter.get("/available", async (c) => {
+  try {
+    const providers = await getAvailableProviders();
+    return c.json({ providers });
+  } catch (error) {
+    console.error("Get available providers error:", error);
+    return c.json({ error: "Failed to fetch available providers" }, 500);
+  }
 });
 
 /**
@@ -96,12 +116,12 @@ providersRouter.post("/", async (c) => {
     // Auto-fetch models based on provider type
     let models = [];
     try {
-      if (name === "openai") {
-        models = await fetchOpenAIModels(apiKey);
-      } else if (name === "anthropic") {
-        models = getAnthropicModels();
-      } else if (name === "ollama") {
+      if (name === "ollama") {
+        // Ollama: fetch from local instance
         models = await fetchOllamaModels(baseUrl);
+      } else {
+        // All other providers: use models.dev data
+        models = await getModelsForProvider(name);
       }
 
       // Save models to database
@@ -197,12 +217,12 @@ providersRouter.post("/:id/refresh-models", async (c) => {
 
     // Fetch models
     let models = [];
-    if (provider.name === "openai") {
-      models = await fetchOpenAIModels(apiKey);
-    } else if (provider.name === "anthropic") {
-      models = getAnthropicModels();
-    } else if (provider.name === "ollama") {
+    if (provider.name === "ollama") {
+      // Ollama: fetch from local instance
       models = await fetchOllamaModels(provider.base_url);
+    } else {
+      // All other providers: use models.dev data
+      models = await getModelsForProvider(provider.name);
     }
 
     // Delete existing models and add new ones
@@ -257,176 +277,49 @@ providersRouter.delete("/:id", async (c) => {
 // MODEL FETCHING UTILITIES
 // ========================================
 
-/**
- * Fetch models from OpenAI API
- */
-async function fetchOpenAIModels(apiKey) {
-  const response = await fetch("https://api.openai.com/v1/models", {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch OpenAI models");
-  }
-
-  const data = await response.json();
-
-  // Filter for GPT models only
-  return data.data
-    .filter((m) => m.id.includes("gpt"))
-    .map((m) => ({
-      model_id: m.id,
-      display_name: formatModelName(m.id),
-      enabled: true,
-      metadata: getOpenAIModelMetadata(m.id),
-    }));
-}
-
-/**
- * Get Anthropic models (manually maintained)
- * Using model IDs from original ModelRegistry
- */
-function getAnthropicModels() {
-  return [
-    {
-      model_id: "claude-sonnet-4-20250514",
-      display_name: "Claude Sonnet 4.5 🏆 (best)",
-      enabled: true,
-      metadata: {
-        contextWindow: 200000,
-        maxOutputTokens: 8192,
-        inputPrice: 3,
-        outputPrice: 15,
-        supportsStreaming: true,
-        supportsVision: true,
-        supportsTools: true,
-      },
-    },
-    {
-      model_id: "claude-3-5-haiku-20241022",
-      display_name: "Claude Haiku 4.5 (⚡fast)",
-      enabled: true,
-      metadata: {
-        contextWindow: 200000,
-        maxOutputTokens: 8192,
-        inputPrice: 0.8,
-        outputPrice: 4,
-        supportsStreaming: true,
-        supportsVision: true,
-        supportsTools: true,
-      },
-    },
-    {
-      model_id: "claude-opus-4-20250514",
-      display_name: "Claude Opus 4.1 (thinking) 💪💪",
-      enabled: true,
-      metadata: {
-        contextWindow: 200000,
-        maxOutputTokens: 8192,
-        inputPrice: 15,
-        outputPrice: 75,
-        supportsStreaming: true,
-        supportsVision: true,
-        supportsTools: true,
-      },
-    },
-  ];
-}
+// Note: OpenAI and Anthropic models now come from models.dev
+// No need for manual hardcoding anymore!
 
 /**
  * Fetch models from Ollama
+ * This is the only provider that dynamically fetches from the instance
  */
 async function fetchOllamaModels(baseUrl) {
-  const response = await fetch(`${baseUrl}/api/tags`);
+  try {
+    // Try the proper Ollama API endpoint first
+    const response = await fetch(`${baseUrl.replace('/v1', '')}/api/tags`, {
+      signal: AbortSignal.timeout(5000),
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch Ollama models");
-  }
-
-  const data = await response.json();
-
-  return data.models.map((m) => ({
-    model_id: m.name,
-    display_name: m.name,
-    enabled: true,
-    metadata: {
-      contextWindow: 8192, // Default, could parse from model details
-      supportsStreaming: true,
-      supportsVision: false,
-      supportsTools: false,
-      inputPrice: 0,
-      outputPrice: 0,
-    },
-  }));
-}
-
-/**
- * Format model name for display
- */
-function formatModelName(modelId) {
-  // Convert "gpt-4-turbo-2024-04-09" to "GPT-4 Turbo"
-  return modelId
-    .replace(/-\d{4}-\d{2}-\d{2}$/, "") // Remove date suffix
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-/**
- * Get metadata for OpenAI models
- */
-function getOpenAIModelMetadata(modelId) {
-  // Basic metadata for common models
-  const metadata = {
-    "gpt-4-turbo": {
-      contextWindow: 128000,
-      maxOutputTokens: 4096,
-      inputPrice: 10,
-      outputPrice: 30,
-      supportsVision: true,
-    },
-    "gpt-4o": {
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
-      inputPrice: 2.5,
-      outputPrice: 10,
-      supportsVision: true,
-    },
-    "gpt-4o-mini": {
-      contextWindow: 128000,
-      maxOutputTokens: 16384,
-      inputPrice: 0.15,
-      outputPrice: 0.6,
-      supportsVision: true,
-    },
-    "gpt-3.5-turbo": {
-      contextWindow: 16385,
-      maxOutputTokens: 4096,
-      inputPrice: 0.5,
-      outputPrice: 1.5,
-      supportsVision: false,
-    },
-  };
-
-  // Find best match
-  for (const [key, value] of Object.entries(metadata)) {
-    if (modelId.includes(key)) {
-      return {
-        ...value,
-        supportsStreaming: true,
-        supportsTools: true,
-      };
+    if (!response.ok) {
+      throw new Error(`Ollama API returned ${response.status}`);
     }
-  }
 
-  // Default metadata
-  return {
-    contextWindow: 8192,
-    maxOutputTokens: 4096,
-    supportsStreaming: true,
-    supportsVision: false,
-    supportsTools: true,
-    inputPrice: 0,
-    outputPrice: 0,
-  };
+    const data = await response.json();
+
+    if (!data.models || !Array.isArray(data.models)) {
+      throw new Error("Invalid response from Ollama");
+    }
+
+    return data.models.map((m) => ({
+      model_id: m.name,
+      display_name: m.name,
+      enabled: true,
+      metadata: {
+        context_window: 8192, // Default, Ollama doesn't expose this easily
+        max_output_tokens: 2048,
+        supports_streaming: true,
+        supports_vision: m.name.includes("llava") || m.name.includes("vision"),
+        supports_tools: m.name.includes("qwen") || m.name.includes("llama3"),
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+        size_bytes: m.size,
+        modified_at: m.modified_at,
+      },
+    }));
+  } catch (error) {
+    console.error("Failed to fetch Ollama models:", error.message);
+    // Fallback: return empty array or throw
+    throw new Error(`Could not connect to Ollama at ${baseUrl}. Make sure Ollama is running.`);
+  }
 }

@@ -11,6 +11,15 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma("foreign_keys = ON");
 
+// Performance pragmas for production
+if (process.env.NODE_ENV === "production") {
+  db.pragma("journal_mode = WAL"); // Write-Ahead Logging for better concurrency
+  db.pragma("synchronous = NORMAL"); // Balance between safety and speed
+  db.pragma("cache_size = -64000"); // 64MB cache (default is 2MB)
+  db.pragma("temp_store = MEMORY"); // Keep temp tables in memory
+  db.pragma("mmap_size = 30000000000"); // Memory-mapped I/O for large DBs
+}
+
 // Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -240,7 +249,17 @@ export const dbUtils = {
       INSERT INTO providers (name, display_name, provider_type, base_url, encrypted_key, iv, auth_tag, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const result = stmt.run(name, displayName, providerType, baseUrl, encryptedKey, iv, authTag, now, now);
+    const result = stmt.run(
+      name,
+      displayName,
+      providerType,
+      baseUrl,
+      encryptedKey,
+      iv,
+      authTag,
+      now,
+      now
+    );
     return result.lastInsertRowid;
   },
 

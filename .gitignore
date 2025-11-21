@@ -38,10 +38,10 @@ lerna-debug.log*
 !.env.sample
 .env.backup
 
-# Database
-/server/data/*.db
-/server/data/*.db-shm
-/server/data/*.db-wal
+# Database (ignore all .db files everywhere)
+*.db
+*.db-shm
+*.db-wal
 
 #cache
 .eslintcache

@@ -15,6 +15,7 @@ import { adminRouter } from "./routes/admin.js";
 import { providersRouter } from "./routes/providers.js";
 import { modelsRouter } from "./routes/models.js";
 import { ensureSession } from "./middleware/auth.js";
+import { initializeModelsDevCache } from "./lib/modelsdev.js";
 
 const app = new Hono();
 
@@ -57,6 +58,17 @@ if (process.env.NODE_ENV === "production") {
   // Fallback to index.html for SPA routing
   app.get("*", serveStatic({ path: "./frontend/dist/index.html" }));
 }
+
+// Initialize models.dev cache
+console.log("Initializing models.dev cache...");
+initializeModelsDevCache()
+  .then(() => {
+    console.log("✓ Models.dev cache initialized");
+  })
+  .catch((error) => {
+    console.warn("⚠ Failed to initialize models.dev cache:", error.message);
+    console.warn("  Server will continue, but provider/model data may be limited");
+  });
 
 // Start server
 const port = parseInt(process.env.PORT || "3001", 10);

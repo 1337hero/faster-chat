@@ -33,6 +33,10 @@ class ProvidersClient {
     return this._fetch("/api/admin/providers");
   }
 
+  async getAvailableProviders() {
+    return this._fetch("/api/admin/providers/available");
+  }
+
   async createProvider(name, displayName, providerType, baseUrl, apiKey) {
     return this._fetch("/api/admin/providers", {
       method: "POST",

@@ -1,11 +1,14 @@
 import { useState } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { lazy, Suspense } from "preact/compat";
 import { adminClient } from "@/lib/adminClient";
 import { Button } from "@/components/ui/button";
-import CreateUserModal from "./CreateUserModal";
-import EditUserRoleModal from "./EditUserRoleModal";
-import ResetPasswordModal from "./ResetPasswordModal";
-import DeleteUserModal from "./DeleteUserModal";
+
+// Lazy load modal components - only load when needed
+const CreateUserModal = lazy(() => import("./CreateUserModal"));
+const EditUserRoleModal = lazy(() => import("./EditUserRoleModal"));
+const ResetPasswordModal = lazy(() => import("./ResetPasswordModal"));
+const DeleteUserModal = lazy(() => import("./DeleteUserModal"));
 
 const UsersTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,10 +82,11 @@ const UsersTab = () => {
   return (
     <div className="flex h-full flex-col">
       {/* Header with search and add button */}
-      <div className="flex items-center justify-between border-b border-latte-surface0 px-6 py-4 dark:border-macchiato-surface0">
+      <div className="border-latte-surface0 dark:border-macchiato-surface0 flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-latte-text dark:text-macchiato-text">
-            Users <span className="text-latte-subtext0 dark:text-macchiato-subtext0">{users.length}</span>
+          <h2 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
+            Users{" "}
+            <span className="text-latte-subtext0 dark:text-macchiato-subtext0">{users.length}</span>
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -92,14 +96,13 @@ const UsersTab = () => {
               placeholder="Search"
               value={searchQuery}
               onInput={(e) => setSearchQuery(e.target.value)}
-              className="w-64 rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-sm text-latte-text placeholder-latte-subtext0 focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:placeholder-macchiato-subtext0 dark:focus:border-macchiato-blue"
+              className="border-latte-surface1 bg-latte-base text-latte-text placeholder-latte-subtext0 focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:placeholder-macchiato-subtext0 dark:focus:border-macchiato-blue w-64 rounded-lg border px-4 py-2 text-sm focus:outline-none"
             />
             <svg
-              className="absolute right-3 top-2.5 h-5 w-5 text-latte-subtext0 dark:text-macchiato-subtext0"
+              className="text-latte-subtext0 dark:text-macchiato-subtext0 absolute right-3 top-2.5 h-5 w-5"
               fill="none"
               stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+              viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -111,14 +114,8 @@ const UsersTab = () => {
           <Button
             onClick={() => setCreateModalOpen(true)}
             color="blue"
-            className="flex items-center gap-2"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            className="flex items-center gap-2">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -135,23 +132,23 @@ const UsersTab = () => {
       <div className="flex-1 overflow-auto px-6 py-4">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-latte-surface0 dark:border-macchiato-surface0">
-              <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+            <tr className="border-latte-surface0 dark:border-macchiato-surface0 border-b">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
                 Role
               </th>
-              <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
                 Name
               </th>
-              <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
                 Email
               </th>
-              <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
                 Last Active
               </th>
-              <th className="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
                 Created At
               </th>
-              <th className="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-latte-subtext0 dark:text-macchiato-subtext0">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-right text-xs font-semibold uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -160,51 +157,47 @@ const UsersTab = () => {
             {filteredUsers.map((user) => (
               <tr
                 key={user.id}
-                className="border-b border-latte-surface0 hover:bg-latte-mantle dark:border-macchiato-surface0 dark:hover:bg-macchiato-mantle"
-              >
+                className="border-latte-surface0 hover:bg-latte-mantle dark:border-macchiato-surface0 dark:hover:bg-macchiato-mantle border-b">
                 <td className="py-4">
                   <span
                     className={`inline-flex rounded-md px-2 py-1 text-xs font-medium uppercase ${
                       user.role === "admin"
                         ? "bg-latte-blue/10 text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue"
                         : "bg-latte-green/10 text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green"
-                    }`}
-                  >
+                    }`}>
                     {user.role}
                   </span>
                 </td>
                 <td className="py-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-latte-yellow text-latte-base dark:bg-macchiato-yellow dark:text-macchiato-base">
+                    <div className="bg-latte-yellow text-latte-base dark:bg-macchiato-yellow dark:text-macchiato-base flex h-10 w-10 items-center justify-center rounded-full">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="font-medium text-latte-text dark:text-macchiato-text">
+                    <span className="text-latte-text dark:text-macchiato-text font-medium">
                       {user.username}
                     </span>
                   </div>
                 </td>
-                <td className="py-4 text-latte-subtext0 dark:text-macchiato-subtext0">
+                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
                   {user.email || `${user.username}@mk3y.com`}
                 </td>
-                <td className="py-4 text-latte-subtext0 dark:text-macchiato-subtext0">
+                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
                   {formatRelativeTime(user.last_active)}
                 </td>
-                <td className="py-4 text-latte-subtext0 dark:text-macchiato-subtext0">
+                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
                   {formatDate(user.created_at)}
                 </td>
                 <td className="py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => setEditRoleUser(user)}
-                      className="rounded-lg p-2 text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text"
-                      title="Change role"
-                    >
+                      className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2"
+                      title="Change role">
                       <svg
                         className="h-5 w-5"
                         fill="none"
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                        viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -215,15 +208,13 @@ const UsersTab = () => {
                     </button>
                     <button
                       onClick={() => setResetPasswordUser(user)}
-                      className="rounded-lg p-2 text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text"
-                      title="Reset password"
-                    >
+                      className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2"
+                      title="Reset password">
                       <svg
                         className="h-5 w-5"
                         fill="none"
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                        viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -234,15 +225,13 @@ const UsersTab = () => {
                     </button>
                     <button
                       onClick={() => setDeleteUser(user)}
-                      className="rounded-lg p-2 text-latte-red hover:bg-latte-surface0 dark:text-macchiato-red dark:hover:bg-macchiato-surface0"
-                      title="Delete user"
-                    >
+                      className="text-latte-red hover:bg-latte-surface0 dark:text-macchiato-red dark:hover:bg-macchiato-surface0 rounded-lg p-2"
+                      title="Delete user">
                       <svg
                         className="h-5 w-5"
                         fill="none"
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                        viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -259,19 +248,39 @@ const UsersTab = () => {
         </table>
 
         {filteredUsers.length === 0 && (
-          <div className="py-12 text-center text-latte-subtext0 dark:text-macchiato-subtext0">
+          <div className="text-latte-subtext0 dark:text-macchiato-subtext0 py-12 text-center">
             No users found
           </div>
         )}
       </div>
 
-      {/* Modals */}
-      {createModalOpen && (
-        <CreateUserModal
-          isOpen={createModalOpen}
-          onClose={() => setCreateModalOpen(false)}
-        />
-      )}
+      {/* Modals - wrapped in Suspense for lazy loading */}
+      <Suspense fallback={null}>
+        {createModalOpen && (
+          <CreateUserModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />
+        )}
+        {editRoleUser && (
+          <EditUserRoleModal
+            user={editRoleUser}
+            isOpen={!!editRoleUser}
+            onClose={() => setEditRoleUser(null)}
+          />
+        )}
+        {resetPasswordUser && (
+          <ResetPasswordModal
+            user={resetPasswordUser}
+            isOpen={!!resetPasswordUser}
+            onClose={() => setResetPasswordUser(null)}
+          />
+        )}
+        {deleteUser && (
+          <DeleteUserModal
+            user={deleteUser}
+            isOpen={!!deleteUser}
+            onClose={() => setDeleteUser(null)}
+          />
+        )}
+      </Suspense>
       {editRoleUser && (
         <EditUserRoleModal
           user={editRoleUser}
