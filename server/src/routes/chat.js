@@ -58,15 +58,23 @@ function getModel(modelId) {
       return openai(modelRecord.model_id);
     }
     case "ollama": {
-      // Ollama uses OpenAI-compatible API
+      // Ollama uses OpenAI-compatible Chat Completions API (not Responses API)
       const ollamaProvider = createOpenAI({
         baseURL: modelRecord.provider_base_url || "http://localhost:11434/v1",
         apiKey: apiKey || "ollama", // Dummy key for local
       });
-      return ollamaProvider(modelRecord.model_id);
+      // Use .chat() to hit /v1/chat/completions instead of /v1/responses
+      return ollamaProvider.chat(modelRecord.model_id);
     }
-    default:
-      throw new Error(`Provider ${modelRecord.provider_name} not supported`);
+    default: {
+      // All other OpenAI-compatible providers (llama.cpp, llamafile, etc.)
+      const provider = createOpenAI({
+        baseURL: modelRecord.provider_base_url,
+        apiKey: apiKey || "local",
+      });
+      // Use .chat() for OpenAI-compatible endpoints
+      return provider.chat(modelRecord.model_id);
+    }
   }
 }
 
