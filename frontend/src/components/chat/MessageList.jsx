@@ -1,20 +1,31 @@
 import MessageItem from "./MessageItem";
 
-const MessageList = ({ messages, isLoading, status, onStop, onResume }) => {
-  // Sort to ensure user messages come before assistant responses
-  // Group into pairs and ensure proper order even if timestamps are wrong
-  const sortedMessages = [...messages].sort((a, b) => {
+function sortMessagesWithUserFirst(messages) {
+  return [...messages].sort((a, b) => {
     const aTime = a.created_at || 0;
     const bTime = b.created_at || 0;
 
-    // If timestamps are very close (within 5 seconds), ensure user comes first
-    if (Math.abs(aTime - bTime) < 5000) {
+    if (aTime > 0 && bTime > 0 && Math.abs(aTime - bTime) < 5000) {
       if (a.role === 'user' && b.role === 'assistant') return -1;
       if (a.role === 'assistant' && b.role === 'user') return 1;
     }
 
     return aTime - bTime;
   });
+}
+
+function shouldShowStopAction(isActive, status, onStop) {
+  const isStreaming = status === "streaming" || status === "submitted";
+  return isActive && isStreaming && Boolean(onStop);
+}
+
+function shouldShowResumeAction(isActive, status, onResume) {
+  const isStreaming = status === "streaming" || status === "submitted";
+  return isActive && !isStreaming && Boolean(onResume);
+}
+
+const MessageList = ({ messages, isLoading, status, onStop, onResume }) => {
+  const sortedMessages = sortMessagesWithUserFirst(messages);
 
   const lastAssistantId = [...sortedMessages].reverse().find((msg) => msg.role === "assistant")?.id;
 
@@ -22,13 +33,8 @@ const MessageList = ({ messages, isLoading, status, onStop, onResume }) => {
     <div className="space-y-4">
       {sortedMessages.map((message) => {
         const isActiveAssistant = message.id === lastAssistantId && message.role === "assistant";
-        const showStopAction =
-          isActiveAssistant && (status === "streaming" || status === "submitted") && Boolean(onStop);
-        const showResumeAction =
-          isActiveAssistant &&
-          status !== "streaming" &&
-          status !== "submitted" &&
-          Boolean(onResume);
+        const showStopAction = shouldShowStopAction(isActiveAssistant, status, onStop);
+        const showResumeAction = shouldShowResumeAction(isActiveAssistant, status, onResume);
 
         return (
           <MessageItem

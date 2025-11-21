@@ -25,19 +25,26 @@ function formatMessagesForTransport(messages) {
   }));
 }
 
+function deduplicateMessages(messages) {
+  const seen = new Set();
+  return messages.filter((msg) => {
+    const content = msg.parts?.map((p) => p.text).join("") || "";
+    const key = `${msg.role}:${content}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function useChatStream({ chatId, model, persistedMessages, onMessageComplete }) {
   const modelRef = useRef(model);
   modelRef.current = model;
 
-  const formattedMessages = useMemo(
-    () =>
-      (persistedMessages ?? []).map((msg) => ({
-        id: msg.id,
-        role: msg.role,
-        parts: [{ type: "text", text: msg.content }],
-      })),
-    [persistedMessages]
-  );
+  const formattedMessages = (persistedMessages ?? []).map((msg) => ({
+    id: msg.id,
+    role: msg.role,
+    parts: [{ type: "text", text: msg.content }],
+  }));
 
   const transport = useMemo(
     () =>
@@ -77,7 +84,9 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
   const isStreaming = status === "streaming" || status === "submitted";
 
   // Merge persisted messages from Dexie with any actively streaming message
-  const messages = isStreaming ? [...formattedMessages, ...streamingMessages] : formattedMessages;
+  const messages = isStreaming
+    ? deduplicateMessages([...formattedMessages, ...streamingMessages])
+    : formattedMessages;
 
   async function send(content) {
     await sendMessage({

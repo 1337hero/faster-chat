@@ -98,7 +98,8 @@
     position: relative;
     border-radius: 18px;
     border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-    background: linear-gradient(
+    background:
+      linear-gradient(
         180deg,
         color-mix(in srgb, var(--color-secondary) 35%, transparent),
         color-mix(in srgb, var(--color-background) 88%, transparent)
@@ -134,7 +135,8 @@
   .layered-panel-cta {
     border-width: 2px;
     border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border) 45%);
-    background: linear-gradient(
+    background:
+      linear-gradient(
         180deg,
         color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
         color-mix(in srgb, var(--color-secondary) 55%, transparent) 45%,
@@ -152,7 +154,7 @@
   /* Catppuccin-themed Switch Component */
   .switch-pseudo::before,
   .switch-pseudo::after {
-    @apply absolute transition-all duration-300 block w-3 h-3;
+    @apply absolute block h-3 w-3 transition-all duration-300;
     content: "";
   }
 
@@ -170,7 +172,7 @@
   }
 
   .switch-pseudo::after {
-    @apply opacity-100 bg-latte-surface2 dark:bg-macchiato-surface2;
+    @apply bg-latte-surface2 dark:bg-macchiato-surface2 opacity-100;
     right: 0.3rem;
     mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='currentColor'%3E%3Cpath d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3C/svg%3E");
     transform: translateX(0);
@@ -183,7 +185,7 @@
 
   /* Catppuccin-themed Radio Component */
   .radio-after::after {
-    @apply transition-all delay-75 duration-300 block opacity-0 w-2 h-2 rounded-full;
+    @apply block h-2 w-2 rounded-full opacity-0 transition-all delay-75 duration-300;
     content: "";
     background-color: var(--radio-color, currentColor);
     transform: scale(0.3);
@@ -192,5 +194,85 @@
   .radio-after:checked::after {
     @apply opacity-100;
     transform: scale(1);
+  }
+
+  /* KaTeX Math Rendering Styles */
+  .katex {
+    font-size: 1.1em;
+  }
+
+  .katex-display {
+    margin: 1em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Light mode KaTeX colors */
+  .katex .katex-html {
+    color: var(--color-latte-text);
+  }
+
+  /* Dark mode KaTeX colors */
+  .dark .katex .katex-html {
+    color: var(--color-macchiato-text);
+  }
+
+  /* Inline math spacing */
+  .markdown-block .katex {
+    display: inline-block;
+    margin: 0 0.2em;
+  }
+
+  /* Display math styling */
+  .markdown-block .katex-display {
+    padding: 1em;
+    background: var(--color-latte-surface0);
+    border-radius: 8px;
+    border: 1px solid var(--color-latte-surface1);
+  }
+
+  .dark .markdown-block .katex-display {
+    background: var(--color-macchiato-surface0);
+    border-color: var(--color-macchiato-surface1);
+  }
+
+  /* Code block and math spacing */
+  .markdown-block + .markdown-block {
+    margin-top: 0.5em;
+  }
+
+  /* Ensure proper spacing for lists with math */
+  .markdown-block ul,
+  .markdown-block ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  .markdown-block li {
+    margin: 0.25em 0;
+  }
+
+  /* Headings with math */
+  .markdown-block h1,
+  .markdown-block h2,
+  .markdown-block h3,
+  .markdown-block h4,
+  .markdown-block h5,
+  .markdown-block h6 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+  }
+
+  /* Blockquotes with math */
+  .markdown-block blockquote {
+    border-left: 3px solid var(--color-latte-mauve);
+    padding-left: 1em;
+    margin: 1em 0;
+    color: var(--color-latte-subtext0);
+  }
+
+  .dark .markdown-block blockquote {
+    border-left-color: var(--color-macchiato-mauve);
+    color: var(--color-macchiato-subtext0);
   }
 }
