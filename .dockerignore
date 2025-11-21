@@ -1,0 +1,14 @@
+node_modules
+frontend/node_modules
+server/node_modules
+frontend/dist
+server/dist
+server/data/*.db
+server/data/*.db-*
+packages/*/node_modules
+.git
+.gitignore
+*.log
+tmp
+dist
+Screenshot*

@@ -33,6 +33,7 @@ lerna-debug.log*
 # do not commit any .env files to git
 .env
 !.env.sample
+.env.backup
 
 # Database
 /server/data/*.db
