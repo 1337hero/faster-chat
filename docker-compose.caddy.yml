@@ -1,0 +1,29 @@
+# Optional Caddy reverse proxy for HTTPS
+# Usage: docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+
+services:
+  faster-chat:
+    # Remove direct port exposure when using Caddy
+    ports: []
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - faster-chat
+    networks:
+      - default
+
+volumes:
+  caddy-data:
+  caddy-config:

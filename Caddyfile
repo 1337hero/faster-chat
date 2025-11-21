@@ -1,0 +1,50 @@
+# Caddy configuration for Faster Chat
+# Automatic HTTPS with Let's Encrypt
+
+# Production: Replace with your actual domain
+# chat.yourdomain.com {
+#     reverse_proxy faster-chat:8787
+#
+#     # Security headers
+#     header {
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+#         X-Content-Type-Options "nosniff"
+#         X-Frame-Options "DENY"
+#         Referrer-Policy "strict-origin-when-cross-origin"
+#         Permissions-Policy "geolocation=(), microphone=(), camera=()"
+#     }
+#
+#     # Enable compression
+#     encode gzip zstd
+#
+#     # Access logs (optional)
+#     log {
+#         output file /data/access.log
+#     }
+# }
+
+# Local HTTPS with self-signed certificate
+chat.local {
+    tls internal  # Caddy generates self-signed cert
+    reverse_proxy faster-chat:8787
+
+    encode gzip zstd
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+    }
+}
+
+# Also keep HTTP on port 80
+:80 {
+    reverse_proxy faster-chat:8787
+    encode gzip zstd
+}
+
+# Alternative: Use a custom local domain (requires /etc/hosts entry)
+# chat.local {
+#     tls internal  # Self-signed cert for local development
+#     reverse_proxy faster-chat:8787
+# }

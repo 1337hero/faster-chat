@@ -1,0 +1,19 @@
+services:
+  faster-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - server/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=${APP_PORT:-8787}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///app/server/data/chat.db}
+    ports:
+      - "${HOST_PORT:-8787}:${APP_PORT:-8787}"
+    volumes:
+      - chat-data:/app/server/data
+
+volumes:
+  chat-data:

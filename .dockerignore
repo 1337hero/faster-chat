@@ -1,14 +1,47 @@
+# Dependencies
 node_modules
 frontend/node_modules
 server/node_modules
+packages/*/node_modules
+
+# Build outputs
 frontend/dist
 server/dist
+dist
+
+# Database files
 server/data/*.db
 server/data/*.db-*
-packages/*/node_modules
+*.db
+*.db-shm
+*.db-wal
+
+# Git and version control
 .git
 .gitignore
+.gitattributes
+
+# Development files
 *.log
 tmp
-dist
+.env.local
+.env.*.local
 Screenshot*
+*.md
+!README.md
+.vscode
+.idea
+
+# Docker files (don't copy into image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# Documentation
+docs/
+CLAUDE.md
+AGENTS.md
+
+# Scripts
+reset-db.sh
