@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/badge/Hono-4.7-FF6B00" alt="Hono" />
   </a>
   <a href="https://tailwindcss.com/">
-    <img src="https://img.shields.io/badge/Tailwind-4.0-38BDF8?logo=tailwindcss" alt="Tailwind CSS" />
+    <img src="https://img.shields.io/badge/Tailwind-4.1-38BDF8?logo=tailwindcss" alt="Tailwind CSS" />
   </a>
   <a href="https://tanstack.com/router">
     <img src="https://img.shields.io/badge/TanStack%20Router-1.98-FF4154" alt="TanStack Router" />
@@ -37,42 +37,50 @@
 - **🌐 Offline-Ready**: Use completely offline with local LLMs via Ollama, LM Studio, or any local inference server.
 - **🔌 Universal Compatibility**: Works with OpenAI, Anthropic, Groq, Mistral, OpenRouter, or any OpenAI-compatible API.
 - **⚡ Insanely Fast**: 3KB Preact runtime, zero SSR overhead, streaming responses, instant local saves.
-- **🛠️ Self-Hostable**: One-command Docker deployment coming soon. No vendor lock-in.
-- **🎨 Modern Stack**: Preact + Hono + TanStack + Tailwind 4.0 + AI SDK.
+- **🛠️ Self-Hostable**: One-command Docker deployment with optional HTTPS. No vendor lock-in.
+- **🎨 Modern Stack**: Preact + Hono + TanStack + Tailwind 4.1 + AI SDK.
 
 ## ✨ Current Features
 
 - 💬 **Streaming Chat Interface** — Real-time token streaming with Vercel AI SDK
-- 🗄️ **Local-First Persistence** — All chats saved to IndexedDB (Dexie) with offline support
+- 🗄️ **Local-First Persistence** — All chats saved to IndexedDB (Dexie) with server-side SQLite backup
 - 🤖 **Multi-Provider Support** — Switch between Anthropic, OpenAI, Ollama, and custom endpoints
-- 🎨 **Beautiful UI** — Tailwind 4.0 with Catppuccin color scheme and shadcn-style primitives
+- 🎨 **Beautiful UI** — Tailwind 4.1 with Catppuccin color scheme and shadcn-style primitives
 - 📱 **Responsive Design** — Works seamlessly on desktop, tablet, and mobile
-- ⚙️ **Model Selector** — Easy switching between models and providers
-- 🔄 **Resume Streams** — Continue interrupted conversations seamlessly
+- ⚙️ **Model Management** — Easy switching between models and providers with auto-discovery
+- 📝 **Markdown & Code Highlighting** — Full markdown rendering with Prism syntax highlighting
+- 🔐 **Multi-User Auth** — Session-based login, logout, and registration (first user becomes admin)
+- 🛡️ **Admin Panel** — Role-based access with user CRUD (create, delete, reset password, change roles) and admin-only routes
+- 🔑 **API Key Management** — Securely store and manage API keys for multiple providers with encryption
+- 🐳 **Docker Ready** — One-command deployment with optional Caddy for automatic HTTPS
 
 ## 🚀 Planned Features
 
 We're building Faster Chat into the most flexible, privacy-respecting AI interface available:
 
-### 🎛️ Settings & Configuration (Coming Soon)
-- **API Management UI** — Add/remove/configure API keys and endpoints through a settings page
-- **Custom Provider URLs** — Point to LMStudio, GroqCloud, Mistral API, OpenRouter, or your own inference server
-- **Model Discovery** — Auto-detect available models from connected providers
-- **Offline Model Management** — Browse and pull Ollama models directly from the UI
+### 🎛️ Settings & Configuration
+- ✅ **API Management UI** — Add/remove/configure API keys and endpoints (Admin → Connections)
+- ✅ **Custom Provider URLs** — Point to LMStudio, GroqCloud, Mistral API, OpenRouter, or your own inference server
+- ✅ **Model Discovery** — Auto-detect available models from connected providers
+- [ ] **Offline Model Management** — Browse and pull Ollama models directly from the UI
+- 🚧 **User Settings Page** — Basic account info page exists; full preferences UI coming soon
 
 ### 📝 Content & Capabilities
-- **Full Markdown & LaTeX Support** — Render beautiful formatted responses with math equations
-- **Code Syntax Highlighting** — Automatic language detection and formatting
-- **File Attachments** — Upload documents, images, and context for your conversations
-- **Image Generation** — Integrated support for DALL-E, Stable Diffusion, and local image models
-- **Web Search Integration** — Give your AI real-time internet access (optional)
-- **Local RAG** — Vector search over your documents with complete privacy
+- ✅ **Markdown Rendering** — Full markdown support with react-markdown
+- ✅ **Code Syntax Highlighting** — Automatic language detection with Prism
+- [ ] **LaTeX Support** — Render math equations in responses
+- [ ] **File Attachments** — Upload documents, images, and context for your conversations
+- [ ] **Tool Calling** — Infrastructure ready; full implementation pending
+- [ ] **Image Generation** — Integrated support for DALL-E, Stable Diffusion, and local image models
+- [ ] **Web Search Integration** — Give your AI real-time internet access (optional)
+- [ ] **Local RAG** — Vector search over your documents with complete privacy
 
 ### 🔐 Privacy & Control
-- **Fully Offline Mode** — Work completely disconnected with local models
-- **Data Export** — Download all your conversations in standard formats
-- **Multi-User Auth** — Role-based access with session management
-- **Server Persistence** — Optional SQLite/Postgres sync while keeping offline-first Dexie
+- ✅ **Fully Offline Mode** — Work completely disconnected with local models
+- ✅ **Multi-User Auth** — Role-based access with session management
+- ✅ **Server Persistence** — SQLite persistence with offline-first IndexedDB
+- [ ] **Data Export** — Download all your conversations in standard formats
+- [ ] **Postgres Support** — Optional PostgreSQL backend
 
 ### 🎨 Enhanced UX
 - **Voice Input/Output** — Speak to your AI and hear responses
@@ -80,34 +88,6 @@ We're building Faster Chat into the most flexible, privacy-respecting AI interfa
 - **Sharing & Collaboration** — Share conversations with teams
 - **Conversation Branching** — Explore alternative responses
 - **Dark/Light Themes** — Full theme customization
-
-## 🏗️ Architecture
-
-```
-faster-chat/
-├── frontend/          # Preact SPA (Vite + TanStack Router/Query)
-│   ├── src/
-│   │   ├── components/    # Feature-based components
-│   │   ├── hooks/         # React hooks for state & side effects
-│   │   ├── lib/           # Utilities, constants, Dexie setup
-│   │   └── styles/        # Tailwind 4.0 CSS with @theme configs
-│   └── vite.config.js     # Vite + Tailwind plugin
-│
-├── server/            # Hono API server
-│   └── src/
-│       └── routes/        # AI SDK transport endpoints
-│
-├── packages/
-│   └── shared/           # Shared types and constants
-│
-└── docs/                 # Documentation and guides
-```
-
-**Frontend**: Preact SPA with TanStack Router for routing, TanStack Query for server state, Zustand for UI preferences, and Dexie for local-first persistence. Everything streams through the Vercel AI SDK with chat transport.
-
-**Backend**: Lightweight Hono server that proxies requests to your chosen AI provider. Supports OpenAI, Anthropic, Ollama, and any OpenAI-compatible endpoint.
-
-**Styling**: Tailwind CSS 4.0 with CSS-native configuration, Catppuccin color palettes, and shadcn-inspired component primitives.
 
 ## Changelog
 
@@ -148,6 +128,13 @@ bun run dev
 The app will be available at:
 - **Frontend**: http://localhost:3000
 - **API Server**: http://localhost:3001
+  - (Production Docker deployment uses port 8787)
+
+### Authentication & Roles
+
+- Register at `/login`; the **first account created is promoted to admin** automatically.
+- Admins can open `/admin` → Users tab to create users, reset passwords, and set roles (`admin`, `member`, `readonly`).
+- Sessions use HTTP-only cookies (`credentials: include`), so keep frontend and API on the same origin/ports listed above in development.
 
 ### Using Offline with Ollama
 
@@ -210,10 +197,114 @@ bun run preview     # Preview production build
 **Server**:
 ```bash
 cd server
-bun run dev         # Hono dev server with hot reload on :3001
+bun run dev         # Hono dev server with hot reload on :8787
 bun run build       # Build for production
 bun run start       # Run production server
 ```
+
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/1337hero/faster-next-chat.git
+cd faster-next-chat
+
+# 2. Set up environment
+cp server/.env.example server/.env
+# Edit server/.env with your API keys
+
+# 3. Generate encryption key
+echo "API_KEY_ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" >> server/.env
+
+# 4. Start with Docker
+docker compose up -d
+
+# Access at http://localhost:8787
+# Note: Docker uses port 8787 by default (configurable via APP_PORT/HOST_PORT)
+# Development mode uses port 3001
+```
+
+### Docker Architecture
+
+The Docker setup uses a **hybrid build approach** for maximum compatibility:
+
+- **Builder Stage**: Bun 1.3 on Debian (fast dependency installation)
+- **Runtime Stage**: Node.js 22 on Debian (native module compatibility)
+- **Port**: 8787 (configurable via `APP_PORT` environment variable)
+- **Volume**: SQLite database persisted in `chat-data` volume
+
+### Optional: HTTPS with Caddy
+
+Add automatic HTTPS with Caddy reverse proxy:
+
+```bash
+# Start with Caddy (adds ~13MB)
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+
+# Access via HTTP
+http://localhost
+
+# For production with your domain:
+# 1. Edit Caddyfile and uncomment the production block
+# 2. Replace chat.yourdomain.com with your actual domain
+# 3. Point your DNS A record to your server
+# 4. Restart: docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+# Caddy automatically handles Let's Encrypt certificates!
+```
+
+**Features:**
+- ✅ Automatic HTTPS with Let's Encrypt
+- ✅ Auto-renewal of SSL certificates
+- ✅ HTTP/2 and HTTP/3 support
+- ✅ Gzip/Zstd compression
+- ✅ Security headers pre-configured
+- ✅ Only 13MB overhead (Alpine-based)
+
+See `docs/caddy-https-setup.md` for local HTTPS setup and `docs/docker-setup.md` for detailed configuration.
+
+### Environment Variables
+
+```bash
+# App Configuration
+APP_PORT=8787                    # Internal app port
+HOST_PORT=8787                   # Exposed port on host
+NODE_ENV=production              # Environment mode
+
+# Database
+DATABASE_URL=sqlite:///app/server/data/chat.db
+
+# Security (REQUIRED)
+API_KEY_ENCRYPTION_KEY=...       # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# AI Providers (add as needed)
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+OLLAMA_BASE_URL=http://host.docker.internal:11434  # For local Ollama
+```
+
+### Docker Commands
+
+```bash
+# Start services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Reset database (removes all data)
+docker compose down
+docker volume rm faster-chat_chat-data
+docker compose up -d
+```
+
 
 ## 🧭 Roadmap
 
@@ -222,29 +313,34 @@ bun run start       # Run production server
 - [x] Streaming chat with AI SDK
 - [x] Local-first persistence (Dexie/IndexedDB)
 - [x] Multi-provider support (Anthropic, OpenAI, Ollama)
-- [x] Tailwind 4.0 migration
+- [x] Tailwind 4.1 migration
 
-### Phase 2: Settings & Flexibility 🚧
-- [ ] Settings page for API/model management
-- [ ] Custom provider URL configuration UI
-- [ ] Model discovery and auto-detection
+### Phase 2: Settings & Flexibility ✅
+- [x] Admin panel for API/model/user management
+- [x] Custom provider URL configuration UI
+- [x] Model discovery and auto-detection
+- [x] Basic user-facing settings page (account info)
 - [ ] Ollama model browser and downloader
 - [ ] Keyboard shortcuts and accessibility
+- [ ] Advanced user preferences UI
 
-### Phase 3: Enhanced Capabilities 📋
-- [ ] Full Markdown & LaTeX rendering
-- [ ] Code syntax highlighting improvements
+### Phase 3: Enhanced Capabilities 🚧
+- [x] Markdown rendering with react-markdown
+- [x] Code syntax highlighting with Prism
+- [ ] LaTeX rendering for mathematical equations
+- [ ] Tool calling implementation
 - [ ] File attachments (documents, images)
 - [ ] Image generation integration
 - [ ] Web search capabilities
 - [ ] Local RAG with vector search
 
-### Phase 4: Multi-User & Deployment 🔜
-- [ ] User authentication and sessions
-- [ ] Role-based access control
-- [ ] Server-side persistence (SQLite/Postgres)
-- [ ] Docker image + docker-compose
-- [ ] One-command self-hosting
+### Phase 4: Multi-User & Deployment ✅
+- [x] User authentication and sessions (cookie-based)
+- [x] Role-based access control (admin/member/readonly)
+- [x] Server-side persistence (SQLite)
+- [x] Docker image + docker-compose
+- [x] One-command self-hosting
+- [x] Optional HTTPS with Caddy
 - [ ] Conversation sharing and collaboration
 
 ### Phase 5: Advanced Features 🌟
