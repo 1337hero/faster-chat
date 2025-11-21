@@ -73,7 +73,7 @@ const Sidebar = () => {
             onClick={handleLogoClick}
             title={logoTitle}>
             <div className="from-latte-blue to-latte-mauve dark:from-macchiato-blue dark:to-macchiato-mauve flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br shadow-lg">
-              <Zap className="h-5 w-5 text-white" />
+              <Zap className="h-8 w-8 text-white" />
             </div>
             {!sidebarCollapsed && (
               <h1 className="text-latte-text dark:text-macchiato-text overflow-hidden whitespace-nowrap text-xl font-extrabold tracking-tight">
@@ -109,7 +109,7 @@ const Sidebar = () => {
             className={`flex transform items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${
               sidebarCollapsed
                 ? "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text hover:text-latte-mauve dark:hover:text-macchiato-mauve mx-auto h-10 w-10 rounded-xl"
-                : "bg-latte-mauve dark:bg-macchiato-mauve hover:bg-latte-mauve/90 dark:hover:bg-macchiato-mauve/90 w-full rounded-xl px-4 py-2.5 font-medium text-white"
+                : "w-full rounded-xl px-4 py-2.5 font-medium btn btn-mauve"
             } `}
             title="New Chat">
             <SquarePen size={sidebarCollapsed ? 20 : 18} />

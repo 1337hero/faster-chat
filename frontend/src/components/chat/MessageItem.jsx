@@ -65,7 +65,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
   return (
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`flex max-w-[85%] gap-4 md:max-w-[75%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+        className={`flex max-w-[85%] gap-4 md:max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
         {/* Avatar */}
         <div
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10 ${

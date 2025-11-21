@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { providersClient } from "@/lib/providersClient";
+import { Switch } from "@/components/ui/Switch";
 
 const ModelsTab = () => {
   const queryClient = useQueryClient();
@@ -209,27 +210,18 @@ const ModelsTab = () => {
                           </button>
                         )}
 
-                        <button
-                          onClick={() =>
+                        <Switch
+                          color="blue"
+                          value={model.enabled}
+                          onChange={(enabled) =>
                             toggleMutation.mutate({
                               modelId: model.id,
-                              enabled: !model.enabled,
+                              enabled,
                             })
                           }
                           disabled={toggleMutation.isPending}
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-latte-blue focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-macchiato-blue ${
-                            model.enabled
-                              ? "bg-latte-blue dark:bg-macchiato-blue"
-                              : "bg-latte-surface1 dark:bg-macchiato-surface1"
-                          }`}
                           title={model.enabled ? "Disable model" : "Enable model"}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              model.enabled ? "translate-x-5" : "translate-x-0"
-                            }`}
-                          />
-                        </button>
+                        />
                       </div>
                     </div>
                   </div>

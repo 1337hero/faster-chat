@@ -57,9 +57,9 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     []
   );
 
-  const { messages, sendMessage, status, error, stop, resumeStream } = useAIChat({
+  const { messages: streamingMessages, sendMessage, status, error, stop, resumeStream } = useAIChat({
     id: chatId,
-    messages: formattedMessages,
+    messages: [], // Don't pass persisted messages - let Dexie handle display
     transport,
     resume: true,
     onFinish: async ({ message }) => {
@@ -74,6 +74,11 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     },
   });
 
+  const isStreaming = status === "streaming" || status === "submitted";
+
+  // Merge persisted messages from Dexie with any actively streaming message
+  const messages = isStreaming ? [...formattedMessages, ...streamingMessages] : formattedMessages;
+
   async function send(content) {
     await sendMessage({
       id: crypto.randomUUID(),
@@ -81,8 +86,6 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
       parts: [{ type: "text", text: content }],
     });
   }
-
-  const isStreaming = status === "streaming" || status === "submitted";
 
   return {
     messages,
