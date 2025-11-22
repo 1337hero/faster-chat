@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense } from "preact/compat";
+import { Plus, Zap, Key, Link2, Server, RefreshCw, XCircle, CheckCircle, Trash2 } from "lucide-react";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
 
@@ -79,9 +80,7 @@ const ConnectionsTab = () => {
           </p>
         </div>
         <Button onClick={() => setAddModalOpen(true)} color="blue">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus className="h-5 w-5" />
           Add Connection
         </Button>
       </div>
@@ -91,18 +90,7 @@ const ConnectionsTab = () => {
         <div className="space-y-4">
           {providers.length === 0 && (
             <div className="border-latte-surface1 dark:border-macchiato-surface1 rounded-lg border-2 border-dashed p-12 text-center">
-              <svg
-                className="text-latte-subtext0 dark:text-macchiato-subtext0 mx-auto h-12 w-12"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
+              <Zap className="text-latte-subtext0 dark:text-macchiato-subtext0 mx-auto h-12 w-12" />
               <h3 className="text-latte-text dark:text-macchiato-text mt-4 text-lg font-medium">
                 No connections yet
               </h3>
@@ -139,53 +127,20 @@ const ConnectionsTab = () => {
                   <div className="mt-2 space-y-1 text-sm">
                     {provider.masked_key && (
                       <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                          />
-                        </svg>
+                        <Key className="h-4 w-4" />
                         API Key: {provider.masked_key}
                       </div>
                     )}
 
                     {provider.base_url && (
                       <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
+                        <Link2 className="h-4 w-4" />
                         URL: {provider.base_url}
                       </div>
                     )}
 
                     <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                      </svg>
+                      <Server className="h-4 w-4" />
                       {provider.model_count} {provider.model_count === 1 ? "model" : "models"}{" "}
                       available
                     </div>
@@ -199,18 +154,7 @@ const ConnectionsTab = () => {
                     disabled={refreshMutation.isPending}
                     className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2 disabled:opacity-50"
                     title="Refresh models">
-                    <svg
-                      className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
+                    <RefreshCw className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
                   </button>
 
                   <button
@@ -224,31 +168,9 @@ const ConnectionsTab = () => {
                     className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2 disabled:opacity-50"
                     title={provider.enabled ? "Disable" : "Enable"}>
                     {provider.enabled ? (
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                        />
-                      </svg>
+                      <XCircle className="h-5 w-5" />
                     ) : (
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+                      <CheckCircle className="h-5 w-5" />
                     )}
                   </button>
 
@@ -265,14 +187,7 @@ const ConnectionsTab = () => {
                     disabled={deleteMutation.isPending}
                     className="text-latte-red hover:bg-latte-red/10 dark:text-macchiato-red dark:hover:bg-macchiato-red/10 rounded-lg p-2 disabled:opacity-50"
                     title="Delete connection">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
               </div>

@@ -4,11 +4,15 @@ import { dbUtils } from "../lib/db.js";
 import { encryptApiKey, decryptApiKey, maskApiKey } from "../lib/encryption.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import {
-  getAvailableProviders,
+  getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
   getProviderInfo,
-  getProviderType,
 } from "../lib/modelsdev.js";
+import {
+  getAvailableProviders as getNativeProviders,
+  PROVIDERS,
+  getProviderType,
+} from "@faster-chat/shared";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 
 export const providersRouter = new Hono();
@@ -34,12 +38,30 @@ const UpdateProviderSchema = z.object({
 
 /**
  * GET /api/admin/providers/available
- * List all available providers from models.dev
+ * List all available providers: LOCAL first, NATIVE second, COMMUNITY last (filtered)
  */
 providersRouter.get("/available", async (c) => {
   try {
-    const providers = await getAvailableProviders();
-    return c.json({ providers });
+    // Get native providers from our curated list
+    const nativeProviders = getNativeProviders();
+
+    // Get community providers from models.dev
+    const communityProviders = await getModelsDevProviders();
+
+    // Get list of native provider IDs to filter out duplicates
+    const nativeProviderIds = new Set(Object.keys(PROVIDERS));
+
+    // Filter community providers to exclude ones with native SDK support
+    const filteredCommunity = communityProviders.filter(p => !nativeProviderIds.has(p.id));
+
+    // Split native into local and official
+    const localProviders = nativeProviders.filter(p => p.type === "openai-compatible");
+    const officialProviders = nativeProviders.filter(p => p.type === "official");
+
+    // Combine: LOCAL → NATIVE → COMMUNITY
+    const allProviders = [...localProviders, ...officialProviders, ...filteredCommunity];
+
+    return c.json({ providers: allProviders });
   } catch (error) {
     console.error("Get available providers error:", error);
     return c.json({ error: "Failed to fetch available providers" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);

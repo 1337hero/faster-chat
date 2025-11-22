@@ -26,36 +26,42 @@ const AddProviderModal = ({ isOpen, onClose }) => {
   // Filter and group providers
   const filteredProviders = searchTerm
     ? availableProviders.filter((p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.name || p.displayName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.description || "").toLowerCase().includes(searchTerm.toLowerCase())
       )
     : availableProviders;
 
   const groupedProviders = {
-    local: filteredProviders.filter((p) => p.category === "local"),
-    official: filteredProviders.filter((p) => p.category === "official"),
+    // Local: native openai-compatible + community local
+    local: filteredProviders.filter((p) => p.type === "openai-compatible" || p.category === "local"),
+    // Official: native official + community official
+    official: filteredProviders.filter((p) => p.type === "official" || p.category === "official"),
+    // Community: only community providers (not local/official)
     community: filteredProviders.filter((p) => p.category === "community"),
   };
 
   const createMutation = useMutation({
     mutationFn: () => {
-      // For Ollama, use dummy API key if not provided
-      const finalApiKey = selectedProvider.id === "ollama" && !apiKey ? "ollama" : apiKey;
-      const finalBaseUrl = baseUrl || selectedProvider.api || null;
+      // For local providers, use dummy API key if not provided
+      const isLocalProvider = !selectedProvider.requiresApiKey || selectedProvider.category === "local";
+      const finalApiKey = isLocalProvider && !apiKey ? "local" : apiKey;
+      const finalBaseUrl = baseUrl || null;
+      const providerType = getProviderType(selectedProvider);
 
       console.log("Submitting provider:", {
         name: selectedProvider.id,
-        displayName: displayName || selectedProvider.name,
-        providerType: getProviderType(selectedProvider),
+        displayName: displayName || selectedProvider.displayName || selectedProvider.name,
+        providerType,
         baseUrl: finalBaseUrl,
         hasApiKey: !!finalApiKey,
       });
 
       return providersClient.createProvider(
         selectedProvider.id,
-        displayName || selectedProvider.name,
-        getProviderType(selectedProvider),
+        displayName || selectedProvider.displayName || selectedProvider.name,
+        providerType,
         finalBaseUrl,
         finalApiKey
       );
@@ -91,15 +97,16 @@ const AddProviderModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Validate API key for non-local providers
-    if (!apiKey && selectedProvider.category !== "local") {
+    // Validate API key if required (check both native and community formats)
+    const isLocalProvider = selectedProvider.category === "local" || selectedProvider.type === "openai-compatible";
+    if (!isLocalProvider && !apiKey && selectedProvider.requiresApiKey !== false) {
       setError("API key is required");
       return;
     }
 
     // Validate base URL if required
-    if (selectedProvider.requiresBaseUrl && !baseUrl) {
-      setError("Base URL is required");
+    if ((selectedProvider.requiresBaseUrl || isLocalProvider) && !baseUrl) {
+      setError(`${selectedProvider.baseUrlLabel || "Base URL"} is required`);
       return;
     }
 
@@ -108,8 +115,11 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
   const handleProviderSelect = (provider) => {
     setSelectedProvider(provider);
-    setDisplayName(provider.name);
-    if (provider.api) {
+    // Handle both native (displayName) and community (name) formats
+    setDisplayName(provider.displayName || provider.name);
+    if (provider.baseUrlPlaceholder) {
+      setBaseUrl(provider.baseUrlPlaceholder);
+    } else if (provider.api) {
       setBaseUrl(provider.api);
     } else if (provider.id === "ollama") {
       setBaseUrl("http://localhost:11434/v1");
@@ -117,13 +127,30 @@ const AddProviderModal = ({ isOpen, onClose }) => {
   };
 
   const getProviderType = (provider) => {
-    if (provider.id === "openai") return "official";
-    if (provider.id === "anthropic") return "official";
+    // Native providers have 'type' field
+    if (provider.type) return provider.type;
+    // Community providers - determine from category or ID
+    if (provider.id === "openai" || provider.id === "anthropic") return "official";
     return "openai-compatible";
   };
 
-  const getCategoryBadge = (category) => {
+  const getTypeBadge = (provider) => {
+    // Determine badge type from provider data
+    const badgeType = provider.type || provider.category;
+
     const badges = {
+      "openai-compatible": (
+        <span className="inline-flex items-center gap-1 rounded-md bg-latte-green/10 px-2 py-0.5 text-xs font-medium text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green">
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {provider.type ? "OpenAI Compatible" : "Local"}
+        </span>
+      ),
       local: (
         <span className="inline-flex items-center gap-1 rounded-md bg-latte-green/10 px-2 py-0.5 text-xs font-medium text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green">
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -145,7 +172,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
               clipRule="evenodd"
             />
           </svg>
-          Official
+          {provider.type ? "Native SDK" : "Official"}
         </span>
       ),
       community: (
@@ -157,7 +184,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         </span>
       ),
     };
-    return badges[category];
+    return badges[badgeType] || badges.community;
   };
 
   return (
@@ -182,7 +209,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
               </div>
             ) : (
               <div className="max-h-96 space-y-4 overflow-y-auto">
-                {/* Local Providers - PRIORITIZED */}
+                {/* Local Providers - FIRST */}
                 {groupedProviders.local.length > 0 && (
                   <div>
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-latte-subtext0 dark:text-macchiato-subtext0">
@@ -194,14 +221,14 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                           key={provider.id}
                           provider={provider}
                           onSelect={handleProviderSelect}
-                          badge={getCategoryBadge(provider.category)}
+                          badge={getTypeBadge(provider)}
                         />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Official Providers */}
+                {/* Official Native SDK Providers - SECOND */}
                 {groupedProviders.official.length > 0 && (
                   <div>
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-latte-subtext0 dark:text-macchiato-subtext0">
@@ -213,14 +240,14 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                           key={provider.id}
                           provider={provider}
                           onSelect={handleProviderSelect}
-                          badge={getCategoryBadge(provider.category)}
+                          badge={getTypeBadge(provider)}
                         />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Community Providers */}
+                {/* Community Providers - LAST */}
                 {groupedProviders.community.length > 0 && (
                   <div>
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-latte-subtext0 dark:text-macchiato-subtext0">
@@ -232,7 +259,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                           key={provider.id}
                           provider={provider}
                           onSelect={handleProviderSelect}
-                          badge={getCategoryBadge(provider.category)}
+                          badge={getTypeBadge(provider)}
                         />
                       ))}
                     </div>
@@ -254,9 +281,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-latte-blue dark:text-macchiato-blue">
-                    {selectedProvider.name}
+                    {selectedProvider.displayName || selectedProvider.name}
                   </span>
-                  {getCategoryBadge(selectedProvider.category)}
+                  {getTypeBadge(selectedProvider)}
                 </div>
                 <button
                   type="button"
@@ -271,12 +298,20 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   Change
                 </button>
               </div>
-              <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
-                {selectedProvider.description}
-              </p>
+              {(selectedProvider.website || selectedProvider.description) && (
+                <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
+                  {selectedProvider.website ? (
+                    <a href={selectedProvider.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {selectedProvider.website}
+                    </a>
+                  ) : (
+                    selectedProvider.description
+                  )}
+                </p>
+              )}
             </div>
 
-            {/* Display name */}
+            {/* Display Name */}
             <div>
               <label className="block text-sm font-medium text-latte-text dark:text-macchiato-text">
                 Display Name (optional)
@@ -285,7 +320,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 type="text"
                 value={displayName}
                 onInput={(e) => setDisplayName(e.target.value)}
-                placeholder={selectedProvider.name}
+                placeholder={selectedProvider.displayName || selectedProvider.name}
                 className="mt-1 w-full rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-latte-text focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue"
               />
             </div>
@@ -294,41 +329,63 @@ const AddProviderModal = ({ isOpen, onClose }) => {
             {(selectedProvider.requiresBaseUrl || selectedProvider.category === "local") && (
               <div>
                 <label className="block text-sm font-medium text-latte-text dark:text-macchiato-text">
-                  Base URL
+                  {selectedProvider.baseUrlLabel || "Base URL"}
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={baseUrl}
                   onInput={(e) => setBaseUrl(e.target.value)}
-                  placeholder={selectedProvider.id === "ollama" ? "http://localhost:11434/v1" : "https://..."}
+                  placeholder={selectedProvider.baseUrlPlaceholder || selectedProvider.id === "ollama" ? "http://localhost:11434/v1" : "https://..."}
                   className="mt-1 w-full rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-latte-text focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue"
                 />
                 <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
                   {selectedProvider.id === "ollama"
                     ? "The API endpoint where Ollama is running"
+                    : selectedProvider.category === "local"
+                    ? "The API endpoint for this local provider"
                     : "The API endpoint for this provider"}
                 </p>
               </div>
             )}
 
             {/* API Key */}
-            <div>
-              <label className="block text-sm font-medium text-latte-text dark:text-macchiato-text">
-                API Key {selectedProvider.category === "local" && "(optional for local)"}
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onInput={(e) => setApiKey(e.target.value)}
-                placeholder={selectedProvider.category === "local" ? "Not required for local" : "sk-..."}
-                className="mt-1 w-full rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-latte-text focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue"
-              />
-              <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
-                {selectedProvider.id === "openai" && "Get your key from platform.openai.com/api-keys"}
-                {selectedProvider.id === "anthropic" && "Get your key from console.anthropic.com"}
-                {selectedProvider.category === "local" && "Leave empty if running locally"}
-              </p>
-            </div>
+            {(selectedProvider.requiresApiKey || (selectedProvider.category !== "local" && selectedProvider.type !== "openai-compatible")) && (
+              <div>
+                <label className="block text-sm font-medium text-latte-text dark:text-macchiato-text">
+                  API Key {selectedProvider.category === "local" && "(optional for local)"}
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onInput={(e) => setApiKey(e.target.value)}
+                  placeholder={selectedProvider.category === "local" ? "Not required for local" : "sk-..."}
+                  className="mt-1 w-full rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-latte-text focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue"
+                />
+                {selectedProvider.docs && (
+                  <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
+                    Get your API key from{" "}
+                    <a href={selectedProvider.docs} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {selectedProvider.name} docs
+                    </a>
+                  </p>
+                )}
+                {selectedProvider.category === "local" && (
+                  <p className="mt-1 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
+                    Leave empty if running locally
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Environment Variables Warning */}
+            {selectedProvider.requiresEnvVars && (
+              <div className="rounded-lg bg-latte-yellow/10 p-3 text-sm text-latte-text dark:bg-macchiato-yellow/10 dark:text-macchiato-text">
+                <strong>Note:</strong> This provider requires environment variables:{" "}
+                <code className="rounded bg-latte-surface0 px-1 dark:bg-macchiato-surface0">
+                  {selectedProvider.requiresEnvVars.join(", ")}
+                </code>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg bg-latte-red/10 px-4 py-3 text-sm text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red">
@@ -361,12 +418,25 @@ const ProviderCard = ({ provider, onSelect, badge }) => (
     <div className="flex items-start justify-between gap-2">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-latte-text dark:text-macchiato-text">{provider.name}</span>
+          <span className="font-medium text-latte-text dark:text-macchiato-text">
+            {provider.displayName || provider.name}
+          </span>
           {badge}
         </div>
-        <p className="mt-1 text-sm text-latte-subtext0 dark:text-macchiato-subtext0">
-          {provider.description}
-        </p>
+        {/* Show capabilities for native providers OR description for community providers */}
+        {provider.type ? (
+          <div className="mt-1 flex flex-wrap gap-2 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
+            {provider.supportsVision && <span>👁️ Vision</span>}
+            {provider.supportsTools && <span>🔧 Tools</span>}
+            {provider.supportsStreaming && <span>⚡ Streaming</span>}
+            {provider.supportsReasoning && <span>🧠 Reasoning</span>}
+            {provider.supportsLiveSearch && <span>🔍 Live Search</span>}
+          </div>
+        ) : provider.description && (
+          <p className="mt-1 text-sm text-latte-subtext0 dark:text-macchiato-subtext0">
+            {provider.description}
+          </p>
+        )}
       </div>
       <svg
         className="h-5 w-5 flex-shrink-0 text-latte-subtext0 dark:text-macchiato-subtext0"

@@ -1,45 +1,25 @@
-import { useState, useEffect } from "preact/hooks";
-import { File, Download } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Download, File } from "lucide-react";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 
-/**
- * MessageAttachment - Display file attachment in a message
- * Simple Open WebUI-style: filename + icon + download
- */
 export default function MessageAttachment({ fileId }) {
-  const [fileMetadata, setFileMetadata] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    async function fetchFileMetadata() {
-      try {
-        const response = await fetch(`${API_BASE}/api/files/${fileId}`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to load file");
-        }
-
-        const data = await response.json();
-        setFileMetadata(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFileMetadata();
-  }, [fileId]);
+  const { data: fileMetadata, isLoading, error } = useQuery({
+    queryKey: ["file", fileId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE}/api/files/${fileId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to load file");
+      return response.json();
+    },
+  });
 
   const handleDownload = () => {
     window.open(`${API_BASE}/api/files/${fileId}/content`, "_blank");
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-latte-surface0/50 dark:bg-macchiato-surface0/50 text-latte-subtext0 dark:text-macchiato-subtext0 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
         <File size={16} />

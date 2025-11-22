@@ -1,10 +1,16 @@
-import { useState } from "preact/hooks";
+import { useState, useRef, useEffect } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Server, Star, ChevronDown, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { providersClient } from "@/lib/providersClient";
+import { getProviderLogoUrl, getProviderBranding } from "@/lib/providerUtils";
 import { Switch } from "@/components/ui/Switch";
 
 const ModelsTab = () => {
   const queryClient = useQueryClient();
+  const [expandedProviders, setExpandedProviders] = useState({});
+  const [editingModelId, setEditingModelId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  const inputRef = useRef(null);
 
   // Fetch all models
   const { data, isLoading, error } = useQuery({
@@ -18,11 +24,25 @@ const ModelsTab = () => {
   const modelsByProvider = models.reduce((acc, model) => {
     const provider = model.provider_display_name || model.provider;
     if (!acc[provider]) {
-      acc[provider] = [];
+      acc[provider] = {
+        displayName: provider,
+        providerId: model.provider_name || model.provider?.toLowerCase(),
+        models: [],
+      };
     }
-    acc[provider].push(model);
+    acc[provider].models.push(model);
     return acc;
   }, {});
+
+  // Initialize expanded state (all collapsed by default for long lists)
+  const toggleProvider = (provider) => {
+    setExpandedProviders((prev) => ({
+      ...prev,
+      [provider]: !prev[provider],
+    }));
+  };
+
+  const isExpanded = (provider) => expandedProviders[provider] ?? false;
 
   // Toggle model enabled
   const toggleMutation = useMutation({
@@ -40,6 +60,51 @@ const ModelsTab = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
     },
   });
+
+  // Update model display name
+  const updateDisplayNameMutation = useMutation({
+    mutationFn: ({ modelId, displayName }) =>
+      providersClient.updateModel(modelId, { displayName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
+      setEditingModelId(null);
+      setEditingName("");
+    },
+  });
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingModelId && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingModelId]);
+
+  const startEditing = (model) => {
+    setEditingModelId(model.id);
+    setEditingName(model.display_name);
+  };
+
+  const cancelEditing = () => {
+    setEditingModelId(null);
+    setEditingName("");
+  };
+
+  const saveEditing = (modelId) => {
+    if (editingName.trim()) {
+      updateDisplayNameMutation.mutate({ modelId, displayName: editingName.trim() });
+    } else {
+      cancelEditing();
+    }
+  };
+
+  const handleKeyDown = (e, modelId) => {
+    if (e.key === "Enter") {
+      saveEditing(modelId);
+    } else if (e.key === "Escape") {
+      cancelEditing();
+    }
+  };
 
   const formatPrice = (price) => {
     if (!price) return "Free";
@@ -86,19 +151,7 @@ const ModelsTab = () => {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-latte-subtext0 dark:text-macchiato-subtext0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
+            <Server className="mx-auto h-12 w-12 text-latte-subtext0 dark:text-macchiato-subtext0" />
             <h3 className="mt-4 text-lg font-medium text-latte-text dark:text-macchiato-text">
               No models available
             </h3>
@@ -128,17 +181,50 @@ const ModelsTab = () => {
       {/* Models list by provider */}
       <div className="flex-1 overflow-auto p-6">
         <div className="space-y-6">
-          {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
-            <div key={provider}>
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-latte-subtext0 dark:text-macchiato-subtext0">
-                {provider} ({providerModels.length} {providerModels.length === 1 ? "model" : "models"})
-              </h3>
+          {Object.entries(modelsByProvider).map(([provider, providerData]) => {
+            const expanded = isExpanded(provider);
+            const enabledCount = providerData.models.filter((m) => m.enabled).length;
+            const logoUrl = getProviderLogoUrl(providerData.providerId);
+            const branding = getProviderBranding(providerData.providerId);
 
-              <div className="space-y-2">
-                {providerModels.map((model) => (
+            return (
+              <div key={provider}>
+                <button
+                  onClick={() => toggleProvider(provider)}
+                  className="mb-3 flex w-full items-center gap-2 text-left text-sm font-semibold uppercase tracking-wide text-latte-subtext0 transition-colors hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:text-macchiato-text"
+                >
+                  {expanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <div
+                    className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                      branding.className ||
+                      "bg-gradient-to-br from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20"
+                    }`}
+                    style={branding.style}
+                  >
+                    <img
+                      src={logoUrl}
+                      alt={`${providerData.displayName} logo`}
+                      className="h-4 w-4 dark:invert dark:brightness-90"
+                      onError={(e) => {
+                        e.target.parentElement.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <span>
+                    {providerData.displayName} ({enabledCount}/{providerData.models.length} enabled)
+                  </span>
+                </button>
+
+                {expanded && (
+                  <div className="space-y-2">
+                    {providerData.models.map((model) => (
                   <div
                     key={model.id}
-                    className={`rounded-lg border p-4 transition-colors ${
+                    className={`group rounded-lg border p-4 transition-colors ${
                       model.enabled
                         ? "border-latte-surface1 bg-latte-mantle dark:border-macchiato-surface1 dark:bg-macchiato-mantle"
                         : "border-latte-surface0 bg-latte-base opacity-60 dark:border-macchiato-surface0 dark:bg-macchiato-base"
@@ -147,18 +233,52 @@ const ModelsTab = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-latte-text dark:text-macchiato-text">
-                            {model.display_name}
-                          </h4>
+                          {editingModelId === model.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                ref={inputRef}
+                                type="text"
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(e, model.id)}
+                                onBlur={() => saveEditing(model.id)}
+                                className="rounded border border-latte-blue px-2 py-1 text-sm font-semibold text-latte-text focus:outline-none focus:ring-2 focus:ring-latte-blue dark:border-macchiato-blue dark:bg-macchiato-base dark:text-macchiato-text dark:focus:ring-macchiato-blue"
+                                disabled={updateDisplayNameMutation.isPending}
+                              />
+                              <button
+                                onClick={() => saveEditing(model.id)}
+                                disabled={updateDisplayNameMutation.isPending}
+                                className="rounded p-1 text-latte-green hover:bg-latte-green/10 dark:text-macchiato-green dark:hover:bg-macchiato-green/10"
+                                title="Save"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={updateDisplayNameMutation.isPending}
+                                className="rounded p-1 text-latte-red hover:bg-latte-red/10 dark:text-macchiato-red dark:hover:bg-macchiato-red/10"
+                                title="Cancel"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-latte-text dark:text-macchiato-text">
+                                {model.display_name}
+                              </h4>
+                              <button
+                                onClick={() => startEditing(model)}
+                                className="rounded p-1 text-latte-subtext0 opacity-0 transition-opacity hover:bg-latte-surface0 hover:text-latte-text group-hover:opacity-100 dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text"
+                                title="Edit name"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
                           {model.is_default && (
                             <span className="inline-flex items-center gap-1 rounded-md bg-latte-blue/10 px-2 py-0.5 text-xs font-medium text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue">
-                              <svg
-                                className="h-3 w-3"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
+                              <Star className="h-3 w-3 fill-current" />
                               Default
                             </span>
                           )}
@@ -249,10 +369,12 @@ const ModelsTab = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

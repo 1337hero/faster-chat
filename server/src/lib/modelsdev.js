@@ -3,9 +3,17 @@
  * https://models.dev/api.json
  */
 
+import {
+  TIMEOUTS,
+  CACHE_DURATIONS,
+  categorizeProvider,
+  getProviderType,
+  requiresBaseUrl as checkRequiresBaseUrl,
+} from "@faster-chat/shared";
+
 let cachedDatabase = null;
 let lastFetchTime = null;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION = CACHE_DURATIONS.MODELS_DEV;
 
 /**
  * Fetch the models.dev database
@@ -25,7 +33,7 @@ export async function fetchModelsDevDatabase() {
       headers: {
         "User-Agent": "faster-chat",
       },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: AbortSignal.timeout(TIMEOUTS.MODELS_DEV_FETCH),
     });
 
     if (!response.ok) {
@@ -74,11 +82,11 @@ export async function getAvailableProviders() {
     name: info.name,
     displayName: info.name,
     description: getProviderDescription(id, info),
-    category: categorizeProvider(id, info),
+    category: categorizeProvider(id),
     env: info.env || [],
     api: info.api,
     npm: info.npm,
-    requiresBaseUrl: !info.api, // If no default API, needs custom URL
+    requiresBaseUrl: checkRequiresBaseUrl(id, info),
     modelCount: Object.keys(info.models || {}).length,
   }));
 
@@ -139,24 +147,6 @@ export async function getAvailableProviders() {
 }
 
 /**
- * Categorize providers: local, official, or community
- */
-function categorizeProvider(id, info) {
-  const localProviders = ["ollama", "lmstudio", "llama-cpp", "llamafile"];
-
-  if (localProviders.some(name => id.toLowerCase().includes(name))) {
-    return "local";
-  }
-
-  const officialProviders = ["openai", "anthropic", "google", "cohere", "mistral"];
-  if (officialProviders.some(name => id.toLowerCase().includes(name))) {
-    return "official";
-  }
-
-  return "community";
-}
-
-/**
  * Generate a description for a provider
  */
 function getProviderDescription(id, info) {
@@ -214,38 +204,6 @@ export async function getModelsForProvider(providerName) {
       status: model.status,
     },
   }));
-}
-
-/**
- * Determine provider type for AI SDK
- */
-export function getProviderType(providerName, providerInfo) {
-  // Map provider to implementation type
-  if (providerName === "openai") return "official";
-  if (providerName === "anthropic") return "official";
-
-  // OpenAI-compatible providers
-  const compatibleProviders = [
-    "ollama",
-    "lmstudio",
-    "llama-cpp",
-    "groq",
-    "openrouter",
-    "together",
-    "perplexity",
-  ];
-
-  if (compatibleProviders.some(name => providerName.toLowerCase().includes(name))) {
-    return "openai-compatible";
-  }
-
-  // Check npm package hint
-  if (providerInfo?.npm?.includes("openai-compatible")) {
-    return "openai-compatible";
-  }
-
-  // Default to openai-compatible for safety
-  return "openai-compatible";
 }
 
 // Auto-fetch on startup with retry

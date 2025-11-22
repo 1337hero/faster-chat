@@ -2,12 +2,10 @@ import { config } from "dotenv";
 import { Hono } from "hono";
 import { z } from "zod";
 import { streamText } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import { ollama } from "ollama-ai-provider";
-import { getSystemPrompt } from "@faster-chat/shared";
+import { getSystemPrompt, MODEL_FEATURES } from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { decryptApiKey } from "../lib/encryption.js";
+import { getModelInstance } from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
@@ -43,44 +41,7 @@ function getModel(modelId) {
     throw new Error(`Model ${modelId} is disabled or not registered`);
   }
 
-  // Decrypt API key
-  const apiKey = modelRecord.provider_encrypted_key
-    ? decryptApiKey(
-        modelRecord.provider_encrypted_key,
-        modelRecord.provider_iv,
-        modelRecord.provider_auth_tag
-      )
-    : "";
-
-  // Create provider instance and return model
-  switch (modelRecord.provider_name) {
-    case "anthropic": {
-      const anthropic = createAnthropic({ apiKey });
-      return anthropic(modelRecord.model_id);
-    }
-    case "openai": {
-      const openai = createOpenAI({ apiKey });
-      return openai(modelRecord.model_id);
-    }
-    case "ollama": {
-      // Ollama uses OpenAI-compatible Chat Completions API (not Responses API)
-      const ollamaProvider = createOpenAI({
-        baseURL: modelRecord.provider_base_url || "http://localhost:11434/v1",
-        apiKey: apiKey || "ollama", // Dummy key for local
-      });
-      // Use .chat() to hit /v1/chat/completions instead of /v1/responses
-      return ollamaProvider.chat(modelRecord.model_id);
-    }
-    default: {
-      // All other OpenAI-compatible providers (llama.cpp, llamafile, etc.)
-      const provider = createOpenAI({
-        baseURL: modelRecord.provider_base_url,
-        apiKey: apiKey || "local",
-      });
-      // Use .chat() for OpenAI-compatible endpoints
-      return provider.chat(modelRecord.model_id);
-    }
-  }
+  return getModelInstance(modelRecord, decryptApiKey);
 }
 
 /**
@@ -132,7 +93,7 @@ async function fileToContentPart(file) {
  */
 function applyCacheControl(messages, modelId) {
   // Only apply caching for Anthropic/Claude models
-  if (!modelId.includes('claude')) {
+  if (!MODEL_FEATURES.SUPPORTS_PROMPT_CACHING(modelId)) {
     return messages;
   }
 
@@ -142,18 +103,18 @@ function applyCacheControl(messages, modelId) {
       return {
         ...msg,
         experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: 'ephemeral' } }
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } }
         }
       };
     }
 
-    // Cache last 2 conversation messages
-    const isLastTwo = idx >= arr.length - 2;
-    if (isLastTwo && idx > 0) { // Skip if it's only the system message
+    // Cache recent conversation messages
+    const isRecentMessage = idx >= arr.length - MODEL_FEATURES.CACHE_LAST_N_MESSAGES;
+    if (isRecentMessage && idx > 0) { // Skip if it's only the system message
       return {
         ...msg,
         experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: 'ephemeral' } }
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } }
         }
       };
     }

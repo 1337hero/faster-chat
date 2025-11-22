@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send } from "lucide-react";
 import FileUpload, { FilePreviewList } from "./FileUpload";
@@ -13,13 +13,6 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     element.style.height = "auto";
     element.style.height = `${Math.min(element.scrollHeight, UI_CONSTANTS.INPUT_MAX_HEIGHT)}px`;
   };
-
-  // Reset height when input is cleared
-  useEffect(() => {
-    if (!input && textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  }, [input]);
 
   const handleChange = (e) => {
     adjustHeight(e.target);
@@ -42,6 +35,11 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     // Pass fileIds to parent
     const fileIds = selectedFiles.map((f) => f.id);
     handleSubmit(e, fileIds);
+
+    // Reset textarea height when clearing input
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
 
     // Clear selected files after submission
     setSelectedFiles([]);
