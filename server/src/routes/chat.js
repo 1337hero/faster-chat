@@ -112,6 +112,56 @@ async function fileToContentPart(file) {
 }
 
 /**
+ * Apply Anthropic prompt caching to messages
+ *
+ * Strategy:
+ * - Cache system prompt (rarely changes, ~1024+ tokens)
+ * - Cache last 2 conversation messages (recent context)
+ *
+ * Benefits:
+ * - Reduces latency (faster responses)
+ * - Reduces cost (90% discount on cached tokens)
+ * - Cache valid for 5 minutes (ephemeral)
+ *
+ * Only applies to Claude models - other providers ignore this metadata
+ *
+ * @param {Array} messages - Model messages
+ * @param {string} modelId - Model identifier
+ * @returns {Array} Messages with cache control metadata
+ */
+function applyCacheControl(messages, modelId) {
+  // Only apply caching for Anthropic/Claude models
+  if (!modelId.includes('claude')) {
+    return messages;
+  }
+
+  return messages.map((msg, idx, arr) => {
+    // Cache system prompt (first message)
+    if (msg.role === 'system') {
+      return {
+        ...msg,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: 'ephemeral' } }
+        }
+      };
+    }
+
+    // Cache last 2 conversation messages
+    const isLastTwo = idx >= arr.length - 2;
+    if (isLastTwo && idx > 0) { // Skip if it's only the system message
+      return {
+        ...msg,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: 'ephemeral' } }
+        }
+      };
+    }
+
+    return msg;
+  });
+}
+
+/**
  * Convert chat messages to model messages format
  * @param {Array} messages
  * @param {string} systemPrompt
@@ -183,11 +233,14 @@ chatRouter.post("/chat", async (c) => {
     const model = getModel(modelId);
     const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
-    const messages = await convertToModelMessages(
+    let messages = await convertToModelMessages(
       validated.messages,
       systemPrompt.content,
       validated.fileIds || []
     );
+
+    // Apply prompt caching for Claude models
+    messages = applyCacheControl(messages, modelId);
 
     const stream = await streamText({
       model,
