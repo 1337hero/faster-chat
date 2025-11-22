@@ -1,0 +1,21 @@
+# Default owner for everything
+* @1337hero
+
+# Frontend-specific
+/frontend/ @1337hero
+
+# Backend-specific
+/server/ @1337hero
+
+# Documentation requires approval
+/docs/ @1337hero
+/README.md @1337hero
+/CLAUDE.md @1337hero
+/AGENTS.md @1337hero
+
+# GitHub configuration
+/.github/ @1337hero
+
+# Docker and deployment
+/Dockerfile @1337hero
+/docker-compose.yml @1337hero

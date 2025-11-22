@@ -1,0 +1,61 @@
+# Auto-labeling configuration for PRs based on file paths
+
+'frontend':
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/**/*'
+
+'backend':
+  - changed-files:
+    - any-glob-to-any-file: 'server/**/*'
+
+'shared':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/shared/**/*'
+
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**/*'
+      - '*.md'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+
+'components':
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/src/components/**/*'
+
+'database':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'frontend/src/lib/db.js'
+      - 'server/src/lib/db.js'
+      - '**/migrations/**/*'
+
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'frontend/package.json'
+      - 'server/package.json'
+      - 'bun.lockb'
+
+'docker':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
+
+'github-actions':
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**/*'
+
+'config':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.config.js'
+      - '*.config.mjs'
+      - 'frontend/*.config.js'
+      - 'server/*.config.js'
+      - 'tailwind.config.js'
+      - 'vite.config.js'
