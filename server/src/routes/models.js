@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 
 export const modelsRouter = new Hono();
 
@@ -44,7 +45,7 @@ publicRouter.get("/", async (c) => {
     return c.json({ models: modelsWithMetadata });
   } catch (error) {
     console.error("List models error:", error);
-    return c.json({ error: "Failed to list models" }, 500);
+    return c.json({ error: "Failed to list models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -75,7 +76,7 @@ adminRouter.get("/", async (c) => {
     return c.json({ models: modelsWithMetadata });
   } catch (error) {
     console.error("List all models error:", error);
-    return c.json({ error: "Failed to list models" }, 500);
+    return c.json({ error: "Failed to list models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -89,7 +90,7 @@ adminRouter.get("/:id", async (c) => {
 
     const model = dbUtils.getModelWithMetadata(modelId);
     if (!model) {
-      return c.json({ error: "Model not found" }, 404);
+      return c.json({ error: "Model not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     return c.json({
@@ -115,7 +116,7 @@ adminRouter.get("/:id", async (c) => {
     });
   } catch (error) {
     console.error("Get model error:", error);
-    return c.json({ error: "Failed to get model" }, 500);
+    return c.json({ error: "Failed to get model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -131,7 +132,7 @@ adminRouter.put("/:id", async (c) => {
 
     const model = dbUtils.getModelById(modelId);
     if (!model) {
-      return c.json({ error: "Model not found" }, 404);
+      return c.json({ error: "Model not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     dbUtils.updateModel(modelId, updates);
@@ -139,10 +140,10 @@ adminRouter.put("/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Update model error:", error);
-    return c.json({ error: "Failed to update model" }, 500);
+    return c.json({ error: "Failed to update model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -156,7 +157,7 @@ adminRouter.put("/:id/default", async (c) => {
 
     const model = dbUtils.getModelById(modelId);
     if (!model) {
-      return c.json({ error: "Model not found" }, 404);
+      return c.json({ error: "Model not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     dbUtils.updateModel(modelId, { isDefault: true });
@@ -164,7 +165,7 @@ adminRouter.put("/:id/default", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Set default model error:", error);
-    return c.json({ error: "Failed to set default model" }, 500);
+    return c.json({ error: "Failed to set default model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -178,7 +179,7 @@ adminRouter.delete("/:id", async (c) => {
 
     const model = dbUtils.getModelById(modelId);
     if (!model) {
-      return c.json({ error: "Model not found" }, 404);
+      return c.json({ error: "Model not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     dbUtils.deleteModel(modelId);
@@ -186,7 +187,7 @@ adminRouter.delete("/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Delete model error:", error);
-    return c.json({ error: "Failed to delete model" }, 500);
+    return c.json({ error: "Failed to delete model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 

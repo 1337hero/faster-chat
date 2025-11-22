@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { hash } from "@node-rs/argon2";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import { hashPassword } from "../lib/security.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 
 export const adminRouter = new Hono();
 
@@ -34,7 +35,7 @@ adminRouter.get("/users", async (c) => {
     return c.json({ users });
   } catch (error) {
     console.error("List users error:", error);
-    return c.json({ error: "Failed to list users" }, 500);
+    return c.json({ error: "Failed to list users" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -51,16 +52,11 @@ adminRouter.post("/users", async (c) => {
     // Check if username already exists
     const existingUser = dbUtils.getUserByUsername(username);
     if (existingUser) {
-      return c.json({ error: "Username already exists" }, 400);
+      return c.json({ error: "Username already exists" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     // Hash password
-    const passwordHash = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    const passwordHash = await hashPassword(password);
 
     // Create user
     const userId = dbUtils.createUser(username, passwordHash, role, currentUser.id);
@@ -77,10 +73,10 @@ adminRouter.post("/users", async (c) => {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Create user error:", error);
-    return c.json({ error: "Failed to create user" }, 500);
+    return c.json({ error: "Failed to create user" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -95,7 +91,7 @@ adminRouter.put("/users/:id/role", async (c) => {
 
     // Prevent self-demotion
     if (userId === currentUser.id) {
-      return c.json({ error: "Cannot change your own role" }, 400);
+      return c.json({ error: "Cannot change your own role" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     const body = await c.req.json();
@@ -104,7 +100,7 @@ adminRouter.put("/users/:id/role", async (c) => {
     // Check if user exists
     const user = dbUtils.getUserById(userId);
     if (!user) {
-      return c.json({ error: "User not found" }, 404);
+      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     // Update role
@@ -122,10 +118,10 @@ adminRouter.put("/users/:id/role", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Update role error:", error);
-    return c.json({ error: "Failed to update role" }, 500);
+    return c.json({ error: "Failed to update role" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -142,16 +138,11 @@ adminRouter.put("/users/:id/password", async (c) => {
     // Check if user exists
     const user = dbUtils.getUserById(userId);
     if (!user) {
-      return c.json({ error: "User not found" }, 404);
+      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     // Hash new password
-    const passwordHash = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    const passwordHash = await hashPassword(password);
 
     // Update password
     dbUtils.updateUserPassword(userId, passwordHash);
@@ -162,10 +153,10 @@ adminRouter.put("/users/:id/password", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Reset password error:", error);
-    return c.json({ error: "Failed to reset password" }, 500);
+    return c.json({ error: "Failed to reset password" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -180,13 +171,13 @@ adminRouter.delete("/users/:id", async (c) => {
 
     // Prevent self-deletion
     if (userId === currentUser.id) {
-      return c.json({ error: "Cannot delete your own account" }, 400);
+      return c.json({ error: "Cannot delete your own account" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     // Check if user exists
     const user = dbUtils.getUserById(userId);
     if (!user) {
-      return c.json({ error: "User not found" }, 404);
+      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     // Delete user (sessions will cascade delete)
@@ -195,6 +186,6 @@ adminRouter.delete("/users/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Delete user error:", error);
-    return c.json({ error: "Failed to delete user" }, 500);
+    return c.json({ error: "Failed to delete user" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });

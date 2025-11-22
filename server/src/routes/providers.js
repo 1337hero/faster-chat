@@ -9,6 +9,7 @@ import {
   getProviderInfo,
   getProviderType,
 } from "../lib/modelsdev.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 
 export const providersRouter = new Hono();
 
@@ -41,7 +42,7 @@ providersRouter.get("/available", async (c) => {
     return c.json({ providers });
   } catch (error) {
     console.error("Get available providers error:", error);
-    return c.json({ error: "Failed to fetch available providers" }, 500);
+    return c.json({ error: "Failed to fetch available providers" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -73,7 +74,7 @@ providersRouter.get("/", async (c) => {
     return c.json({ providers: providersWithCounts });
   } catch (error) {
     console.error("List providers error:", error);
-    return c.json({ error: "Failed to list providers" }, 500);
+    return c.json({ error: "Failed to list providers" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -96,7 +97,7 @@ providersRouter.post("/", async (c) => {
     // Check if provider already exists
     const existing = dbUtils.getProviderByName(name);
     if (existing) {
-      return c.json({ error: "Provider already exists" }, 400);
+      return c.json({ error: "Provider already exists" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     // Encrypt API key
@@ -154,10 +155,10 @@ providersRouter.post("/", async (c) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Validation error:", error.errors);
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Create provider error:", error);
-    return c.json({ error: "Failed to create provider" }, 500);
+    return c.json({ error: "Failed to create provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -173,7 +174,7 @@ providersRouter.put("/:id", async (c) => {
 
     const provider = dbUtils.getProviderById(providerId);
     if (!provider) {
-      return c.json({ error: "Provider not found" }, 404);
+      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     // If updating API key, encrypt it
@@ -190,10 +191,10 @@ providersRouter.put("/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Update provider error:", error);
-    return c.json({ error: "Failed to update provider" }, 500);
+    return c.json({ error: "Failed to update provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -207,7 +208,7 @@ providersRouter.post("/:id/refresh-models", async (c) => {
 
     const provider = dbUtils.getProviderById(providerId);
     if (!provider) {
-      return c.json({ error: "Provider not found" }, 404);
+      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     // Decrypt API key
@@ -247,7 +248,7 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     });
   } catch (error) {
     console.error("Refresh models error:", error);
-    return c.json({ error: "Failed to refresh models: " + error.message }, 500);
+    return c.json({ error: "Failed to refresh models: " + error.message }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -261,7 +262,7 @@ providersRouter.delete("/:id", async (c) => {
 
     const provider = dbUtils.getProviderById(providerId);
     if (!provider) {
-      return c.json({ error: "Provider not found" }, 404);
+      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     dbUtils.deleteProvider(providerId);
@@ -269,7 +270,7 @@ providersRouter.delete("/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Delete provider error:", error);
-    return c.json({ error: "Failed to delete provider" }, 500);
+    return c.json({ error: "Failed to delete provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 

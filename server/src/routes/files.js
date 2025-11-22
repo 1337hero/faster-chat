@@ -4,6 +4,7 @@ import { writeFile, readFile } from "fs/promises";
 import path from "path";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 import {
   generateFileId,
   sanitizeFilename,
@@ -33,13 +34,13 @@ filesRouter.post("/", async (c) => {
     const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {
-      return c.json({ error: "No file provided" }, 400);
+      return c.json({ error: "No file provided" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     // Validate file type and size
     const validation = validateFile(file.type, file.size);
     if (!validation.valid) {
-      return c.json({ error: validation.error }, 400);
+      return c.json({ error: validation.error }, HTTP_STATUS.BAD_REQUEST);
     }
 
     // Generate file ID and create stored filename
@@ -80,7 +81,7 @@ filesRouter.post("/", async (c) => {
     if (!fileRecord) {
       // Cleanup file if database insert failed
       await deleteFileFromDisk(filePath);
-      return c.json({ error: "Failed to save file metadata" }, 500);
+      return c.json({ error: "Failed to save file metadata" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
 
     // Return file metadata
@@ -95,7 +96,7 @@ filesRouter.post("/", async (c) => {
     });
   } catch (error) {
     console.error("File upload error:", error);
-    return c.json({ error: "File upload failed" }, 500);
+    return c.json({ error: "File upload failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -128,7 +129,7 @@ filesRouter.get("/:id", async (c) => {
     });
   } catch (error) {
     console.error("Get file metadata error:", error);
-    return c.json({ error: "Failed to get file metadata" }, 500);
+    return c.json({ error: "Failed to get file metadata" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -162,9 +163,9 @@ filesRouter.get("/:id/content", async (c) => {
   } catch (error) {
     console.error("Get file content error:", error);
     if (error.code === "ENOENT") {
-      return c.json({ error: "File not found on disk" }, 404);
+      return c.json({ error: "File not found on disk" }, HTTP_STATUS.NOT_FOUND);
     }
-    return c.json({ error: "Failed to retrieve file" }, 500);
+    return c.json({ error: "Failed to retrieve file" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -192,13 +193,13 @@ filesRouter.delete("/:id", async (c) => {
     const deleted = dbUtils.deleteFile(fileId);
 
     if (!deleted) {
-      return c.json({ error: "Failed to delete file from database" }, 500);
+      return c.json({ error: "Failed to delete file from database" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
 
     return c.json({ message: "File deleted successfully" });
   } catch (error) {
     console.error("Delete file error:", error);
-    return c.json({ error: "Failed to delete file" }, 500);
+    return c.json({ error: "Failed to delete file" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -229,6 +230,6 @@ filesRouter.get("/", async (c) => {
     });
   } catch (error) {
     console.error("List files error:", error);
-    return c.json({ error: "Failed to list files" }, 500);
+    return c.json({ error: "Failed to list files" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });

@@ -11,6 +11,7 @@ import { decryptApiKey } from "../lib/encryption.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 
 // Ensure environment variables are loaded even when this module is imported before index config()
 config();
@@ -167,56 +168,62 @@ function applyCacheControl(messages, modelId) {
  * @param {string} systemPrompt
  * @param {Array} fileIds - File IDs for the last user message
  */
-async function convertToModelMessages(messages, systemPrompt, fileIds = []) {
-  const result = [];
+/**
+ * Add system message to result array if system prompt is provided
+ */
+function addSystemMessage(systemPrompt) {
+  return systemPrompt ? [{ role: "system", content: systemPrompt }] : [];
+}
 
-  // Add system message if present
-  if (systemPrompt) {
-    result.push({ role: "system", content: systemPrompt });
+/**
+ * Check if this is the last user message with file attachments
+ */
+function isLastUserMessageWithFiles(index, messages, fileIds) {
+  return (
+    index === messages.length - 1 &&
+    messages[index].role === "user" &&
+    fileIds.length > 0
+  );
+}
+
+/**
+ * Create multimodal content array with text and file attachments
+ */
+async function createMultimodalContent(message, fileIds) {
+  const content = [];
+
+  // Add text content if present
+  if (message.content.trim()) {
+    content.push({ type: "text", text: message.content });
   }
 
-  // Add conversation messages
+  // Fetch and add file content parts
+  const files = dbUtils.getFilesByIds(fileIds);
+  for (const file of files) {
+    try {
+      const contentPart = await fileToContentPart(file);
+      content.push(contentPart);
+    } catch (error) {
+      console.error(`Failed to process file ${file.id}:`, error);
+      // Continue with other files
+    }
+  }
+
+  return content;
+}
+
+async function convertToModelMessages(messages, systemPrompt, fileIds = []) {
+  const result = addSystemMessage(systemPrompt);
+
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     if (msg.role === "system") continue;
 
-    // Check if this is the last user message and has file attachments
-    const isLastUserMessage = i === messages.length - 1 && msg.role === "user";
-    const hasFiles = isLastUserMessage && fileIds.length > 0;
-
-    if (hasFiles) {
-      // Fetch files from database
-      const files = dbUtils.getFilesByIds(fileIds);
-
-      // Create multimodal content array
-      const content = [];
-
-      // Add text content if present
-      if (msg.content.trim()) {
-        content.push({ type: "text", text: msg.content });
-      }
-
-      // Add file content parts
-      for (const file of files) {
-        try {
-          const contentPart = await fileToContentPart(file);
-          content.push(contentPart);
-        } catch (error) {
-          console.error(`Failed to process file ${file.id}:`, error);
-          // Continue with other files
-        }
-      }
-
-      result.push({
-        role: msg.role,
-        content,
-      });
+    if (isLastUserMessageWithFiles(i, messages, fileIds)) {
+      const content = await createMultimodalContent(msg, fileIds);
+      result.push({ role: msg.role, content });
     } else {
-      // Regular text message
-      result.push({
-        role: msg.role,
-        content: msg.content,
-      });
+      result.push({ role: msg.role, content: msg.content });
     }
   }
 
@@ -252,7 +259,7 @@ chatRouter.post("/chat", async (c) => {
     return stream.toUIMessageStreamResponse();
   } catch (error) {
     console.error("Chat error:", error);
-    return c.json({ error: error instanceof Error ? error.message : "Internal server error" }, 500);
+    return c.json({ error: error instanceof Error ? error.message : "Internal server error" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 

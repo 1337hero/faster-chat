@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { hash, verify } from "@node-rs/argon2";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { dbUtils } from "../lib/db.js";
+import { hashPassword, verifyPassword } from "../lib/security.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { RATE_LIMIT, AUTH } from "../lib/constants.js";
 
 export const authRouter = new Hono();
 
@@ -19,20 +21,15 @@ const LoginSchema = z.object({
 
 // Simple in-memory rate limiting (per key)
 const loginAttempts = new Map();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const MAX_ATTEMPTS = 5;
-
-const TRUST_PROXY = process.env.TRUST_PROXY === "true";
-const REGISTRATION_LOCK_MESSAGE = "Registration disabled. Ask an administrator to create an account.";
 
 function checkRateLimit(bucketKey) {
   const now = Date.now();
   const attempts = loginAttempts.get(bucketKey) || [];
 
   // Clean old attempts
-  const recentAttempts = attempts.filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW);
+  const recentAttempts = attempts.filter((timestamp) => now - timestamp < RATE_LIMIT.WINDOW_MS);
 
-  if (recentAttempts.length >= MAX_ATTEMPTS) {
+  if (recentAttempts.length >= RATE_LIMIT.MAX_ATTEMPTS) {
     return false;
   }
 
@@ -43,7 +40,7 @@ function checkRateLimit(bucketKey) {
 
 // Helper to get client IP
 function getClientIP(c) {
-  if (TRUST_PROXY) {
+  if (AUTH.TRUST_PROXY) {
     const forwarded = c.req.header("x-forwarded-for");
     if (forwarded) {
       return forwarded.split(",")[0].trim();
@@ -82,36 +79,31 @@ authRouter.post("/register", async (c) => {
   try {
     const ip = getClientIP(c);
     if (!checkRateLimit(`register:ip:${ip}`)) {
-      return c.json({ error: "Too many attempts. Please try again later." }, 429);
+      return c.json({ error: "Too many attempts. Please try again later." }, HTTP_STATUS.TOO_MANY_REQUESTS);
     }
 
     const body = await c.req.json();
     const { username, password } = RegisterSchema.parse(body);
 
     if (!checkRateLimit(`register:user:${username.toLowerCase()}`)) {
-      return c.json({ error: "Too many attempts for this username." }, 429);
+      return c.json({ error: "Too many attempts for this username." }, HTTP_STATUS.TOO_MANY_REQUESTS);
     }
 
     const userCount = dbUtils.getUserCount();
     if (userCount > 0) {
-      return c.json({ error: REGISTRATION_LOCK_MESSAGE }, 403);
+      return c.json({ error: AUTH.REGISTRATION_LOCK_MESSAGE }, HTTP_STATUS.FORBIDDEN);
     }
 
     // Check if username already exists
     const existingUser = dbUtils.getUserByUsername(username);
     if (existingUser) {
-      return c.json({ error: "Username already exists" }, 400);
+      return c.json({ error: "Username already exists" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     const role = "admin";
 
     // Hash password
-    const passwordHash = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    const passwordHash = await hashPassword(password);
 
     // Create user
     const userId = dbUtils.createUser(username, passwordHash, role);
@@ -137,10 +129,10 @@ authRouter.post("/register", async (c) => {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Register error:", error);
-    return c.json({ error: "Registration failed" }, 500);
+    return c.json({ error: "Registration failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -156,19 +148,19 @@ authRouter.post("/login", async (c) => {
     const { username, password } = LoginSchema.parse(body);
 
     if (!checkRateLimit(`login:ip:${ip}`) || !checkRateLimit(`login:user:${username.toLowerCase()}`)) {
-      return c.json({ error: "Too many attempts. Please try again later." }, 429);
+      return c.json({ error: "Too many attempts. Please try again later." }, HTTP_STATUS.TOO_MANY_REQUESTS);
     }
 
     // Get user
     const user = dbUtils.getUserByUsername(username);
     if (!user) {
-      return c.json({ error: "Invalid credentials" }, 401);
+      return c.json({ error: "Invalid credentials" }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     // Verify password
-    const valid = await verify(user.password_hash, password);
+    const valid = await verifyPassword(user.password_hash, password);
     if (!valid) {
-      return c.json({ error: "Invalid credentials" }, 401);
+      return c.json({ error: "Invalid credentials" }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     // Create session
@@ -189,10 +181,10 @@ authRouter.post("/login", async (c) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, 400);
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
     }
     console.error("Login error:", error);
-    return c.json({ error: "Login failed" }, 500);
+    return c.json({ error: "Login failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -219,7 +211,7 @@ authRouter.post("/logout", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Logout error:", error);
-    return c.json({ error: "Logout failed" }, 500);
+    return c.json({ error: "Logout failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -232,7 +224,7 @@ authRouter.get("/session", async (c) => {
     const sessionId = getCookie(c, COOKIE_NAME);
 
     if (!sessionId) {
-      return c.json({ user: null }, 401);
+      return c.json({ user: null }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     const session = dbUtils.getSession(sessionId);
@@ -245,7 +237,7 @@ authRouter.get("/session", async (c) => {
         sameSite: COOKIE_OPTIONS.sameSite,
         path: COOKIE_OPTIONS.path,
       });
-      return c.json({ user: null }, 401);
+      return c.json({ user: null }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     return c.json({
@@ -260,6 +252,6 @@ authRouter.get("/session", async (c) => {
     });
   } catch (error) {
     console.error("Session check error:", error);
-    return c.json({ error: "Session check failed" }, 500);
+    return c.json({ error: "Session check failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
