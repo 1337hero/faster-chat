@@ -50,7 +50,8 @@
 - 🎨 **Beautiful UI** — Tailwind 4.1 with Catppuccin color scheme and shadcn-style primitives
 - 📱 **Responsive Design** — Works seamlessly on desktop, tablet, and mobile
 - ⚙️ **Model Management** — Easy switching between models and providers with auto-discovery
-- 📝 **Markdown & Code Highlighting** — Full markdown rendering with Prism syntax highlighting
+- 📝 **Markdown & Code Highlighting** — Full markdown rendering with syntax highlighting and LaTeX support
+- 📎 **File Attachments** — Upload and attach files to chat messages with preview and download
 - 🔐 **Multi-User Auth** — Session-based login, logout, and registration (first user becomes admin)
 - 🛡️ **Admin Panel** — Role-based access with user CRUD (create, delete, reset password, change roles) and admin-only routes
 - 🔑 **API Key Management** — Securely store and manage API keys for multiple providers with encryption
@@ -70,8 +71,8 @@ We're building Faster Chat into the most flexible, privacy-respecting AI interfa
 ### 📝 Content & Capabilities
 - ✅ **Markdown Rendering** — Full markdown support with react-markdown
 - ✅ **Code Syntax Highlighting** — Automatic language detection with Prism
-- [ ] **LaTeX Support** — Render math equations in responses
-- [ ] **File Attachments** — Upload documents, images, and context for your conversations
+- ✅ **LaTeX Support** — Render math equations in responses with KaTeX
+- ✅ **File Attachments** — Upload documents, images, and context for your conversations
 - [ ] **Tool Calling** — Infrastructure ready; full implementation pending
 - [ ] **Image Generation** — Integrated support for DALL-E, Stable Diffusion, and local image models
 - [ ] **Web Search Integration** — Give your AI real-time internet access (optional)
@@ -336,12 +337,12 @@ docker compose up -d
 - [ ] Keyboard shortcuts and accessibility
 - [ ] Advanced user preferences UI
 
-### Phase 3: Enhanced Capabilities 🚧
+### Phase 3: Enhanced Capabilities ✅
 - [x] Markdown rendering with react-markdown
 - [x] Code syntax highlighting with Prism
-- [ ] LaTeX rendering for mathematical equations
+- [x] LaTeX rendering for mathematical equations
+- [x] File attachments (documents, images)
 - [ ] Tool calling implementation
-- [ ] File attachments (documents, images)
 - [ ] Image generation integration
 - [ ] Web search capabilities
 - [ ] Local RAG with vector search
