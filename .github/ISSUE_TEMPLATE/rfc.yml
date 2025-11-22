@@ -1,0 +1,20 @@
+name: "📄 RFC"
+description: "Propose a significant technical or process change"
+labels: [rfc, needs discussion]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact / Migration Strategy

@@ -1,0 +1,98 @@
+name: "🔌 Provider Integration Request"
+description: "Request support for a new AI provider"
+title: "[PROVIDER] <provider name>"
+labels: [provider, feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request integration for a new AI provider. We use [models.dev](https://models.dev) for auto-discovery when possible.
+
+  - type: input
+    id: provider_name
+    attributes:
+      label: Provider Name
+      description: "Official name of the AI provider"
+      placeholder: "e.g., Cohere, Together AI, Replicate"
+    validations:
+      required: true
+
+  - type: input
+    id: provider_url
+    attributes:
+      label: Provider Website / API Docs
+      placeholder: "https://..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: API Compatibility
+      description: "Is the provider OpenAI-compatible?"
+      options:
+        - OpenAI-compatible (drop-in replacement)
+        - Anthropic-compatible
+        - Custom API (needs adapter)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: base_url
+    attributes:
+      label: Base URL / API Endpoint
+      placeholder: "https://api.provider.com/v1"
+
+  - type: dropdown
+    id: models_dev
+    attributes:
+      label: Is this provider in models.dev?
+      description: "Check https://models.dev/api.json to see if it's already listed"
+      options:
+        - "Yes - already in models.dev"
+        - "No - needs to be added"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: models
+    attributes:
+      label: Popular Models to Support
+      description: "List the key models from this provider"
+      placeholder: |
+        - command-r-plus
+        - command-r
+        - embed-english-v3.0
+
+  - type: textarea
+    id: auth
+    attributes:
+      label: Authentication Method
+      description: "How does this provider handle API keys?"
+      placeholder: |
+        - API key in Authorization header
+        - Bearer token
+        - Custom header
+        - etc.
+
+  - type: textarea
+    id: special_features
+    attributes:
+      label: Special Features / Considerations
+      description: "Anything unique about this provider? Rate limits, special capabilities, etc."
+      placeholder: |
+        - Supports vision models
+        - Requires OAuth instead of API key
+        - Has aggressive rate limiting
+        - Offers free tier
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the Roadmap to see if this is already planned
+        - label: I searched existing issues for this provider
+        - label: I'm willing to help test this integration

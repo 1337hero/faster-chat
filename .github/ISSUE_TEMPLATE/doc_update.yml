@@ -1,0 +1,13 @@
+name: "📚 Documentation Update"
+description: "Fix or add docs/readme content"
+title: "[DOC] <area> – <concise summary>"
+labels: [documentation]
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Affected Doc / URL
+  - type: textarea
+    id: change
+    attributes:
+      label: What needs to change?

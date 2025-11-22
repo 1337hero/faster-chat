@@ -1,0 +1,91 @@
+name: "✨ Feature Request"
+description: "Propose a new capability or enhancement"
+title: "[FEAT] <concise summary>"
+labels: [feature, product]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before submitting:** Check the [Roadmap](https://github.com/1337hero/faster-next-chat#roadmap) to see if this feature is already planned.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight Checklist
+      options:
+        - label: I checked the Roadmap and this isn't already planned
+          required: true
+        - label: I searched existing feature requests for duplicates
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Goal
+      description: "What user pain are we solving? Why does this matter?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: "Which area does this feature belong to?"
+      options:
+        - Chat Interface (messaging, streaming, UX)
+        - Admin Panel (providers, models, users)
+        - AI Capabilities (tools, vision, search, RAG)
+        - Settings & Preferences
+        - Authentication & Security
+        - Deployment & Infrastructure
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope (in / out)
+      placeholder: |
+        **In‑scope**
+        - User can attach images to chat messages
+        - Images display inline with preview
+        - Support PNG, JPG, WebP
+
+        **Out‑of‑scope**
+        - Video attachments (separate feature)
+        - Image editing tools
+
+  - type: textarea
+    id: stories
+    attributes:
+      label: User Stories
+      placeholder: |
+        1. As a user, I want to attach images to my messages so that I can ask vision models about them.
+        2. As a user, I want to see image previews so that I know what I attached.
+
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance Criteria
+      description: "How will we know this is done? Use Given/When/Then format if helpful."
+      placeholder: |
+        - [ ] User can click attach button and select image files
+        - [ ] Selected images show preview before sending
+        - [ ] Images are sent to vision-capable models
+        - [ ] Images persist in chat history
+    validations:
+      required: true
+
+  - type: input
+    id: figma
+    attributes:
+      label: Design / Mockup link (if any)
+      placeholder: "Figma, screenshot, or sketch URL"
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: "Did you consider other approaches? Why is this the best solution?"

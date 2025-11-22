@@ -1,0 +1,16 @@
+name: "🚨 Security Issue"
+description: "Report a vulnerability confidentially"
+assignees: security‑team
+labels: [security]
+private: true
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary of the vulnerability
+    validations:
+      required: true
+  - type: textarea
+    id: exploit
+    attributes:
+      label: Proof‑of‑Concept / Exploit steps

@@ -1,0 +1,17 @@
+name: "🛠 Improvement"
+description: "Minor UI/UX or perf adjustment — not a full feature"
+title: "[IMPR] <concise summary>"
+labels: [improvement]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & Motivation
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Change
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance Criteria

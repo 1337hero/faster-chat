@@ -1,0 +1,87 @@
+name: "🐛 Bug Report"
+description: "Report a reproducible problem"
+title: "[BUG] <concise summary>"
+labels: [bug, needs triage]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for helping us improve! Fill out every required field."
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Type
+      description: How are you running Faster Chat?
+      options:
+        - Development (bun run dev)
+        - Docker (self-hosted)
+        - Other (please specify in Environment)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      description: Which part of the app is affected?
+      options:
+        - Chat Interface (messaging, streaming)
+        - Admin Panel (providers, models, users)
+        - Authentication (login, registration)
+        - File Attachments
+        - Offline Mode / Ollama
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: "Browser, OS, AI provider (if relevant)"
+      placeholder: "Chrome 126 – macOS 14.5 – using Ollama with llama3.2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to chat interface
+        2. Select Claude 3.5 Sonnet model
+        3. Type a message with @ file attachment
+        4. Click send
+        5. Expected stream to start, but saw error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots / Console logs / Server logs
+      description: "Drag‑n‑drop images or paste stack traces. Check browser console (F12) and server logs if running Docker."
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the browser console for errors (F12)
+        - label: I checked server logs (if using Docker)
+        - label: I searched existing issues for duplicates
+        - label: This happens consistently (not a one-time glitch)

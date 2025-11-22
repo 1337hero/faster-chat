@@ -1,0 +1,13 @@
+name: "💸 Tech‑Debt / Refactor"
+description: "Code health improvements that deliver no direct user value"
+title: "[DEBT] <module> – <concise summary>"
+labels: [tech‑debt]
+body:
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why now?
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed Approach
