@@ -43,6 +43,10 @@ lerna-debug.log*
 *.db-shm
 *.db-wal
 
+# File uploads (keep directory structure but ignore uploaded files)
+/server/data/uploads/*
+!/server/data/uploads/.gitkeep
+
 #cache
 .eslintcache
 
