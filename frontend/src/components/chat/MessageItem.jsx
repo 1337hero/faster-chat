@@ -1,54 +1,7 @@
 import { MarkdownContent } from "@/components/markdown/markdown-chunker";
 import { memo } from "@preact/compat";
-
-const CpuIcon = ({ className, size = 24 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <rect width="16" height="16" x="4" y="4" rx="2" />
-      <rect width="6" height="6" x="9" y="9" rx="1" />
-      <path d="M15 2v2" />
-      <path d="M15 20v2" />
-      <path d="M2 15h2" />
-      <path d="M2 9h2" />
-      <path d="M20 15h2" />
-      <path d="M20 9h2" />
-      <path d="M9 2v2" />
-      <path d="M9 20v2" />
-    </svg>
-  );
-};
-
-const SparklesIcon = ({ className, size = 18 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M19 17v4" />
-      <path d="M3 5h4" />
-      <path d="M17 19h4" />
-    </svg>
-  );
-};
+import { Cpu, Sparkles } from "lucide-react";
+import MessageAttachment from "./MessageAttachment";
 
 const extractTextContent = (message) =>
   message.parts
@@ -61,43 +14,72 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
   const content = extractTextContent(message);
   const isStreaming = message.experimental_status === "streaming";
   const showActions = !isUser && (onStop || onResume);
+  const hasAttachments = message.fileIds && message.fileIds.length > 0;
+  const modelName = message.model || null;
 
   return (
+    // MESSAGE ROW: Controls alignment (user messages right, AI messages left)
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
+      {/* MESSAGE CONTAINER: Contains avatar + bubble, controls flex direction */}
       <div
         className={`flex max-w-[85%] gap-4 md:max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-        {/* Avatar */}
+
+        {/* AVATAR SECTION */}
         <div
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10 ${
             isUser
-              ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-text dark:text-macchiato-text"
-              : "from-latte-mauve to-latte-blue dark:from-macchiato-mauve dark:to-macchiato-blue bg-gradient-to-br text-white"
+              ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-text dark:text-macchiato-text" // USER AVATAR: neutral background
+              : "from-latte-mauve to-latte-blue dark:from-macchiato-mauve dark:to-macchiato-blue bg-gradient-to-br text-white" // AI AVATAR: gradient background
           } `}
           style={{ boxShadow: "var(--shadow-depth-md)" }}>
           {isUser ? (
             <div className="text-xs font-bold">ME</div>
           ) : (
-            <CpuIcon className="h-5 w-5 md:h-6 md:w-6" />
+            <Cpu className="h-5 w-5 md:h-6 md:w-6" />
           )}
         </div>
 
-        {/* Bubble */}
+        {/* MESSAGE BUBBLE: Main content container */}
         <div
-          className={`relative overflow-hidden rounded-2xl p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
+          className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
-              ? "from-latte-blue to-latte-sky dark:from-macchiato-blue dark:to-macchiato-sky rounded-tr-sm bg-gradient-to-br text-white"
-              : "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text border-latte-surface1/30 dark:border-macchiato-surface1/30 rounded-tl-sm border"
+              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-tl-lg rounded-bl-lg rounded-br-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
+              : "text-latte-text dark:text-macchiato-text " // AI BUBBLE: solid background with border, left corner cut
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
-          {/* Shiny effect for AI messages */}
+
+          {/* AI ACCENT: Gradient lines on top and bottom (only show on AI messages) */}
           {!isUser && (
-            <div className="from-latte-blue via-latte-mauve dark:from-macchiato-blue dark:via-macchiato-mauve absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
+            <>
+              <div className="from-latte-blue via-latte-mauve dark:from-macchiato-blue dark:via-macchiato-mauve absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
+            </>
           )}
 
+          {/* MODEL NAME (only shows on AI messages with model info) */}
+          {!isUser && modelName && (
+            <div className="mb-2 flex items-center gap-1.5">
+              <Cpu className="h-3 w-3 text-latte-mauve dark:text-macchiato-mauve" />
+              <span className="text-latte-subtext0 dark:text-macchiato-subtext0 text-xs font-medium">
+                {modelName}
+              </span>
+            </div>
+          )}
+
+          {/* FILE ATTACHMENTS (when present) */}
+          {hasAttachments && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {message.fileIds.map((fileId) => (
+                <MessageAttachment key={fileId} fileId={fileId} />
+              ))}
+            </div>
+          )}
+
+          {/* MESSAGE TEXT CONTENT */}
           <div className={`font-sans ${isUser ? "font-medium text-white/95" : ""}`}>
             <MarkdownContent content={content} />
           </div>
 
+          {/* ACTION BUTTONS (Stop/Continue - only on AI messages) */}
           {showActions && (
             <div className="mt-4 flex justify-end gap-2">
               {onStop && (
@@ -119,15 +101,19 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
             </div>
           )}
 
+          {/* STREAMING INDICATOR (only shows while AI is typing) */}
           {isStreaming && (
             <div className="text-latte-mauve dark:text-macchiato-mauve mt-3 flex animate-pulse items-center gap-2">
-              <SparklesIcon className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" />
               <span className="text-xs font-medium">Processing...</span>
             </div>
           )}
         </div>
+        {/* END MESSAGE BUBBLE */}
       </div>
+      {/* END MESSAGE CONTAINER */}
     </div>
+    // END MESSAGE ROW
   );
 });
 

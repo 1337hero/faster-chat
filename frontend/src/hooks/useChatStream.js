@@ -44,6 +44,8 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     id: msg.id,
     role: msg.role,
     parts: [{ type: "text", text: msg.content }],
+    fileIds: msg.fileIds || [], // Preserve fileIds from Dexie
+    model: msg.model || null, // Preserve model from Dexie
   }));
 
   const transport = useMemo(
@@ -52,11 +54,17 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
         api: "/api/chat",
         prepareSendMessagesRequest: ({ messages: outgoingMessages }) => {
           const normalized = formatMessagesForTransport(outgoingMessages ?? []);
+
+          // Extract fileIds from the last message (user message)
+          const lastMessage = outgoingMessages?.[outgoingMessages.length - 1];
+          const fileIds = lastMessage?.fileIds || [];
+
           return {
             body: {
               model: modelRef.current,
               systemPromptId: "default",
               messages: normalized,
+              fileIds, // Include fileIds in request
             },
           };
         },
@@ -83,17 +91,30 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
 
   const isStreaming = status === "streaming" || status === "submitted";
 
+  // Attach current model to streaming assistant messages
+  const streamingMessagesWithModel = streamingMessages.map((msg) => ({
+    ...msg,
+    model: msg.role === "assistant" ? modelRef.current : msg.model,
+  }));
+
   // Merge persisted messages from Dexie with any actively streaming message
   const messages = isStreaming
-    ? deduplicateMessages([...formattedMessages, ...streamingMessages])
+    ? deduplicateMessages([...formattedMessages, ...streamingMessagesWithModel])
     : formattedMessages;
 
-  async function send(content) {
-    await sendMessage({
+  async function send(content, fileIds = []) {
+    const message = {
       id: crypto.randomUUID(),
       role: "user",
       parts: [{ type: "text", text: content }],
-    });
+    };
+
+    // Attach fileIds to message if provided
+    if (fileIds.length > 0) {
+      message.fileIds = fileIds;
+    }
+
+    await sendMessage(message);
   }
 
   return {

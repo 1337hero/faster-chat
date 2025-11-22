@@ -14,6 +14,7 @@ import { authRouter } from "./routes/auth.js";
 import { adminRouter } from "./routes/admin.js";
 import { providersRouter } from "./routes/providers.js";
 import { modelsRouter } from "./routes/models.js";
+import { filesRouter } from "./routes/files.js";
 import { ensureSession } from "./middleware/auth.js";
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
 
@@ -50,6 +51,9 @@ app.route("/api", modelsRouter);
 // Protected API routes (require authentication)
 app.use("/api/chat/*", ensureSession);
 app.route("/api", chatRouter);
+
+// Files routes (authentication handled in router)
+app.route("/api/files", filesRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

@@ -8,6 +8,9 @@ import { ollama } from "ollama-ai-provider";
 import { getSystemPrompt } from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { decryptApiKey } from "../lib/encryption.js";
+import { readFile } from "fs/promises";
+import path from "path";
+import { FILE_CONFIG } from "../lib/fileUtils.js";
 
 // Ensure environment variables are loaded even when this module is imported before index config()
 config();
@@ -23,6 +26,7 @@ const ChatRequestSchema = z.object({
       content: z.string(),
     })
   ),
+  fileIds: z.array(z.string()).optional(),
 });
 
 export const chatRouter = new Hono();
@@ -79,11 +83,41 @@ function getModel(modelId) {
 }
 
 /**
+ * Convert file to multimodal content part
+ * @param {object} file - File record from database
+ */
+async function fileToContentPart(file) {
+  // Read file from disk
+  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+  const fileBuffer = await readFile(filePath);
+
+  // Check if file is an image
+  const isImage = file.mime_type?.startsWith("image/");
+
+  if (isImage) {
+    // Convert image to base64 and create image content part
+    const base64Data = fileBuffer.toString("base64");
+    return {
+      type: "image",
+      image: `data:${file.mime_type};base64,${base64Data}`,
+    };
+  }
+
+  // For non-image files, just include filename and content as text
+  // (Future: could implement PDF/document text extraction)
+  return {
+    type: "text",
+    text: `[Attached file: ${file.filename}]`,
+  };
+}
+
+/**
  * Convert chat messages to model messages format
  * @param {Array} messages
  * @param {string} systemPrompt
+ * @param {Array} fileIds - File IDs for the last user message
  */
-function convertToModelMessages(messages, systemPrompt) {
+async function convertToModelMessages(messages, systemPrompt, fileIds = []) {
   const result = [];
 
   // Add system message if present
@@ -92,14 +126,49 @@ function convertToModelMessages(messages, systemPrompt) {
   }
 
   // Add conversation messages
-  messages.forEach((msg) => {
-    if (msg.role !== "system") {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (msg.role === "system") continue;
+
+    // Check if this is the last user message and has file attachments
+    const isLastUserMessage = i === messages.length - 1 && msg.role === "user";
+    const hasFiles = isLastUserMessage && fileIds.length > 0;
+
+    if (hasFiles) {
+      // Fetch files from database
+      const files = dbUtils.getFilesByIds(fileIds);
+
+      // Create multimodal content array
+      const content = [];
+
+      // Add text content if present
+      if (msg.content.trim()) {
+        content.push({ type: "text", text: msg.content });
+      }
+
+      // Add file content parts
+      for (const file of files) {
+        try {
+          const contentPart = await fileToContentPart(file);
+          content.push(contentPart);
+        } catch (error) {
+          console.error(`Failed to process file ${file.id}:`, error);
+          // Continue with other files
+        }
+      }
+
+      result.push({
+        role: msg.role,
+        content,
+      });
+    } else {
+      // Regular text message
       result.push({
         role: msg.role,
         content: msg.content,
       });
     }
-  });
+  }
 
   return result;
 }
@@ -114,7 +183,11 @@ chatRouter.post("/chat", async (c) => {
     const model = getModel(modelId);
     const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
-    const messages = convertToModelMessages(validated.messages, systemPrompt.content);
+    const messages = await convertToModelMessages(
+      validated.messages,
+      systemPrompt.content,
+      validated.fileIds || []
+    );
 
     const stream = await streamText({
       model,

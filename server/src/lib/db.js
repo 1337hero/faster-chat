@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { randomBytes } from "crypto";
 import { config } from "dotenv";
+import { DB_CONSTANTS } from "@faster-chat/shared";
 
 config();
 
@@ -11,13 +12,12 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma("foreign_keys = ON");
 
-// Performance pragmas for production
 if (process.env.NODE_ENV === "production") {
-  db.pragma("journal_mode = WAL"); // Write-Ahead Logging for better concurrency
-  db.pragma("synchronous = NORMAL"); // Balance between safety and speed
-  db.pragma("cache_size = -64000"); // 64MB cache (default is 2MB)
-  db.pragma("temp_store = MEMORY"); // Keep temp tables in memory
-  db.pragma("mmap_size = 30000000000"); // Memory-mapped I/O for large DBs
+  db.pragma("journal_mode = WAL");
+  db.pragma("synchronous = NORMAL");
+  db.pragma(`cache_size = ${DB_CONSTANTS.CACHE_SIZE_PAGES}`);
+  db.pragma("temp_store = MEMORY");
+  db.pragma(`mmap_size = ${DB_CONSTANTS.MMAP_SIZE_BYTES}`);
 }
 
 // Create tables
@@ -85,17 +85,53 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_models_provider_id ON models(provider_id);
   CREATE INDEX IF NOT EXISTS idx_models_enabled ON models(enabled);
+
+  -- Files table for attachments
+  CREATE TABLE IF NOT EXISTS files (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    filename TEXT NOT NULL,
+    stored_filename TEXT NOT NULL,
+    path TEXT NOT NULL,
+    mime_type TEXT,
+    size INTEGER NOT NULL,
+    hash TEXT,
+    meta TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
+  CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
+  CREATE INDEX IF NOT EXISTS idx_files_hash ON files(hash);
 `);
 
-/**
- * Database utilities
- */
+function parseFileMeta(file) {
+  if (file && file.meta) {
+    try {
+      file.meta = JSON.parse(file.meta);
+    } catch (e) {
+      file.meta = null;
+    }
+  }
+  return file;
+}
+
+function buildUpdateFields(updates, fieldMap) {
+  const fields = [];
+  const values = [];
+
+  for (const [key, sqlColumn] of Object.entries(fieldMap)) {
+    if (updates[key] !== undefined) {
+      fields.push(`${sqlColumn} = ?`);
+      values.push(updates[key]);
+    }
+  }
+
+  return { fields, values };
+}
 
 export const dbUtils = {
-  /**
-   * Get user by username
-   * @param {string} username
-   */
   getUserByUsername(username) {
     const stmt = db.prepare("SELECT * FROM users WHERE username = ?");
     return stmt.get(username);
@@ -134,13 +170,8 @@ export const dbUtils = {
     return result.count;
   },
 
-  /**
-   * Create a new session
-   * @param {number} userId
-   * @param {number} expiresInMs
-   */
-  createSession(userId, expiresInMs = 7 * 24 * 60 * 60 * 1000) {
-    const sessionId = randomBytes(32).toString("hex");
+  createSession(userId, expiresInMs = DB_CONSTANTS.DEFAULT_SESSION_EXPIRY_MS) {
+    const sessionId = randomBytes(DB_CONSTANTS.SESSION_ID_BYTES).toString("hex");
     const expiresAt = Date.now() + expiresInMs;
 
     const stmt = db.prepare(
@@ -295,36 +326,23 @@ export const dbUtils = {
     return stmt.all();
   },
 
-  /**
-   * Update provider
-   */
   updateProvider(providerId, updates) {
-    const fields = [];
-    const values = [];
+    const fieldMap = {
+      displayName: "display_name",
+      baseUrl: "base_url",
+      encryptedKey: "encrypted_key",
+      iv: "iv",
+      authTag: "auth_tag",
+      enabled: "enabled",
+    };
 
-    if (updates.displayName !== undefined) {
-      fields.push("display_name = ?");
-      values.push(updates.displayName);
-    }
-    if (updates.baseUrl !== undefined) {
-      fields.push("base_url = ?");
-      values.push(updates.baseUrl);
-    }
-    if (updates.encryptedKey !== undefined) {
-      fields.push("encrypted_key = ?");
-      values.push(updates.encryptedKey);
-    }
-    if (updates.iv !== undefined) {
-      fields.push("iv = ?");
-      values.push(updates.iv);
-    }
-    if (updates.authTag !== undefined) {
-      fields.push("auth_tag = ?");
-      values.push(updates.authTag);
-    }
+    const { fields, values } = buildUpdateFields(updates, fieldMap);
+
     if (updates.enabled !== undefined) {
-      fields.push("enabled = ?");
-      values.push(updates.enabled ? 1 : 0);
+      const enabledIndex = fields.findIndex(f => f.includes("enabled"));
+      if (enabledIndex >= 0) {
+        values[enabledIndex] = updates.enabled ? 1 : 0;
+      }
     }
 
     if (fields.length === 0) return;
@@ -431,28 +449,31 @@ export const dbUtils = {
     return stmt.all(providerId);
   },
 
-  /**
-   * Update model
-   */
   updateModel(modelId, updates) {
-    const fields = [];
-    const values = [];
+    const fieldMap = {
+      displayName: "display_name",
+      enabled: "enabled",
+      isDefault: "is_default",
+    };
 
-    if (updates.displayName !== undefined) {
-      fields.push("display_name = ?");
-      values.push(updates.displayName);
+    if (updates.isDefault) {
+      db.prepare("UPDATE models SET is_default = 0").run();
     }
+
+    const { fields, values } = buildUpdateFields(updates, fieldMap);
+
     if (updates.enabled !== undefined) {
-      fields.push("enabled = ?");
-      values.push(updates.enabled ? 1 : 0);
-    }
-    if (updates.isDefault !== undefined) {
-      // If setting as default, unset all others first
-      if (updates.isDefault) {
-        db.prepare("UPDATE models SET is_default = 0").run();
+      const enabledIndex = fields.findIndex(f => f.includes("enabled"));
+      if (enabledIndex >= 0) {
+        values[enabledIndex] = updates.enabled ? 1 : 0;
       }
-      fields.push("is_default = ?");
-      values.push(updates.isDefault ? 1 : 0);
+    }
+
+    if (updates.isDefault !== undefined) {
+      const defaultIndex = fields.findIndex(f => f.includes("is_default"));
+      if (defaultIndex >= 0) {
+        values[defaultIndex] = updates.isDefault ? 1 : 0;
+      }
     }
 
     if (fields.length === 0) return;
@@ -562,17 +583,126 @@ export const dbUtils = {
     `);
     return stmt.get(modelId);
   },
+
+  // ========================================
+  // FILE UTILITIES
+  // ========================================
+
+  /**
+   * Create a new file record
+   * @param {string} id - UUID for the file
+   * @param {number} userId - User ID who uploaded the file
+   * @param {string} filename - Original filename
+   * @param {string} storedFilename - Filename stored on disk ({uuid}_{filename})
+   * @param {string} path - Relative path to file
+   * @param {string} mimeType - MIME type of the file
+   * @param {number} size - File size in bytes
+   * @param {string|null} hash - SHA-256 hash (optional)
+   * @param {object|null} meta - Additional metadata (optional)
+   */
+  createFile(id, userId, filename, storedFilename, path, mimeType, size, hash = null, meta = null) {
+    const stmt = db.prepare(`
+      INSERT INTO files (id, user_id, filename, stored_filename, path, mime_type, size, hash, meta, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const metaJson = meta ? JSON.stringify(meta) : null;
+    const result = stmt.run(id, userId, filename, storedFilename, path, mimeType, size, hash, metaJson, Date.now());
+    return result.changes > 0 ? id : null;
+  },
+
+  getFileById(fileId) {
+    const stmt = db.prepare("SELECT * FROM files WHERE id = ?");
+    return parseFileMeta(stmt.get(fileId));
+  },
+
+  getFileByIdAndUser(fileId, userId) {
+    const stmt = db.prepare("SELECT * FROM files WHERE id = ? AND user_id = ?");
+    return parseFileMeta(stmt.get(fileId, userId));
+  },
+
+  getFilesByUserId(userId) {
+    const stmt = db.prepare("SELECT * FROM files WHERE user_id = ? ORDER BY created_at DESC");
+    return stmt.all(userId).map(parseFileMeta);
+  },
+
+  getFilesByIds(fileIds) {
+    if (!fileIds || fileIds.length === 0) return [];
+    const placeholders = fileIds.map(() => "?").join(",");
+    const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`);
+    return stmt.all(...fileIds).map(parseFileMeta);
+  },
+
+  /**
+   * Update file metadata
+   * @param {string} fileId
+   * @param {object} meta
+   */
+  updateFileMetadata(fileId, meta) {
+    const stmt = db.prepare("UPDATE files SET meta = ? WHERE id = ?");
+    const metaJson = JSON.stringify(meta);
+    stmt.run(metaJson, fileId);
+  },
+
+  /**
+   * Delete file by ID
+   * @param {string} fileId
+   */
+  deleteFile(fileId) {
+    const stmt = db.prepare("DELETE FROM files WHERE id = ?");
+    const result = stmt.run(fileId);
+    return result.changes > 0;
+  },
+
+  /**
+   * Delete file by ID with user check
+   * @param {string} fileId
+   * @param {number} userId
+   */
+  deleteFileByUser(fileId, userId) {
+    const stmt = db.prepare("DELETE FROM files WHERE id = ? AND user_id = ?");
+    const result = stmt.run(fileId, userId);
+    return result.changes > 0;
+  },
+
+  /**
+   * Delete all files for a user
+   * @param {number} userId
+   */
+  deleteFilesByUserId(userId) {
+    const stmt = db.prepare("DELETE FROM files WHERE user_id = ?");
+    const result = stmt.run(userId);
+    return result.changes;
+  },
+
+  /**
+   * Get file count for a user
+   * @param {number} userId
+   */
+  getFileCountByUserId(userId) {
+    const stmt = db.prepare("SELECT COUNT(*) as count FROM files WHERE user_id = ?");
+    const result = stmt.get(userId);
+    return result.count;
+  },
+
+  /**
+   * Get total storage used by a user (in bytes)
+   * @param {number} userId
+   */
+  getStorageUsedByUserId(userId) {
+    const stmt = db.prepare("SELECT SUM(size) as total FROM files WHERE user_id = ?");
+    const result = stmt.get(userId);
+    return result.total || 0;
+  },
 };
 
 // Clean up expired sessions on startup
 dbUtils.cleanExpiredSessions();
 
-// Schedule cleanup every hour
 setInterval(
   () => {
     dbUtils.cleanExpiredSessions();
   },
-  60 * 60 * 1000
+  DB_CONSTANTS.SESSION_CLEANUP_INTERVAL_MS
 );
 
 export default db;

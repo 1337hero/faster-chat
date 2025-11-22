@@ -1,89 +1,17 @@
-import { useEffect, useRef } from "preact/hooks";
-import { UI_CONSTANTS } from "@faster-chat/shared";
-
-const PaperclipIcon = ({ className, size = 20 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-    </svg>
-  );
-};
-
-const ImageIcon = ({ className, size = 20 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </svg>
-  );
-};
-
-const GlobeIcon = ({ className, size = 20 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-      <path d="M2 12h20" />
-    </svg>
-  );
-};
-
-const SendIcon = ({ className, size = 20 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <path d="m22 2-7 20-4-9-9-4Z" />
-      <path d="M22 2 11 13" />
-    </svg>
-  );
-};
+import { useEffect, useRef, useState } from "preact/hooks";
+import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
+import { Paperclip, Image, Globe, Send } from "lucide-react";
+import FileUpload, { FilePreviewList } from "./FileUpload";
 
 const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
   const textareaRef = useRef(null);
+  const fileUploadRef = useRef(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadError, setUploadError] = useState(null);
 
   const adjustHeight = (element) => {
     element.style.height = "auto";
-    element.style.height = `${Math.min(element.scrollHeight, 200)}px`;
+    element.style.height = `${Math.min(element.scrollHeight, UI_CONSTANTS.INPUT_MAX_HEIGHT)}px`;
   };
 
   // Reset height when input is cleared
@@ -101,36 +29,84 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && input.trim()) {
-        handleSubmit(e);
+      if (!disabled && (input.trim() || selectedFiles.length > 0)) {
+        handleFormSubmit(e);
       }
     }
   };
 
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (disabled) return;
+
+    // Pass fileIds to parent
+    const fileIds = selectedFiles.map((f) => f.id);
+    handleSubmit(e, fileIds);
+
+    // Clear selected files after submission
+    setSelectedFiles([]);
+    setUploadError(null);
+  };
+
+  const handleFilesUploaded = (files) => {
+    setSelectedFiles((prev) => [...prev, ...files]);
+    setUploadError(null);
+  };
+
+  const handleFileError = (error) => {
+    setUploadError(error);
+    setTimeout(() => setUploadError(null), FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
+  };
+
+  const removeFile = (fileId) => {
+    setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const isSubmitDisabled = (!input.trim() && selectedFiles.length === 0) || disabled;
+
   return (
     <>
+      {/* File Upload Component (hidden) */}
+      <FileUpload
+        ref={fileUploadRef}
+        onFilesUploaded={handleFilesUploaded}
+        onError={handleFileError}
+        disabled={disabled}
+      />
+
+      {/* Upload Error */}
+      {uploadError && (
+        <div className="mb-2 rounded-lg bg-latte-red/10 dark:bg-macchiato-red/10 text-latte-red dark:text-macchiato-red px-3 py-2 text-sm">
+          {uploadError}
+        </div>
+      )}
+
+      {/* File Previews */}
+      <FilePreviewList files={selectedFiles} onRemove={removeFile} />
+
       {/* Tool Buttons */}
       <div className="mb-1.5 ml-1 flex items-center gap-1">
         <button
           type="button"
+          onClick={() => fileUploadRef.current?.handleButtonClick?.()}
           className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
           title="Add Attachment"
           disabled={disabled}>
-          <PaperclipIcon size={20} />
+          <Paperclip size={20} />
         </button>
         <button
           type="button"
           className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-pink dark:hover:text-macchiato-pink hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
           title="Generate Image"
           disabled={disabled}>
-          <ImageIcon size={20} />
+          <Image size={20} />
         </button>
         <button
           type="button"
           className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-green dark:hover:text-macchiato-green hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
           title="Search Web"
           disabled={disabled}>
-          <GlobeIcon size={20} />
+          <Globe size={20} />
         </button>
       </div>
 
@@ -148,16 +124,20 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
 
       {/* Send Button */}
       <button
-        onClick={handleSubmit}
-        disabled={!input.trim() || disabled}
+        onClick={handleFormSubmit}
+        disabled={isSubmitDisabled}
         type="button"
         className={`mb-0.5 flex-shrink-0 rounded-2xl p-3 transition-all duration-200 ${
-          !input.trim() || disabled
+          isSubmitDisabled
             ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-overlay0 dark:text-macchiato-overlay0 cursor-not-allowed"
             : "btn-blue hover:-translate-y-0.5"
         } `}
-        style={!input.trim() || disabled ? {} : { boxShadow: "var(--shadow-depth-md)" }}>
-        <SendIcon size={20} />
+        style={
+          isSubmitDisabled
+            ? {}
+            : { boxShadow: "var(--shadow-depth-md)" }
+        }>
+        <Send size={20} />
       </button>
     </>
   );

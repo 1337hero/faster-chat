@@ -1,42 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { providersClient } from "@/lib/providersClient";
-
-const ZapIcon = ({ className, size = 14 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-};
-
-const ChevronDownIcon = ({ className, size = 16 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-};
+import { Zap, ChevronDown } from "lucide-react";
 
 const ModelSelector = ({ currentModel, onModelChange }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,10 +41,10 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
         className="bg-latte-surface0 hover:bg-latte-surface1 dark:bg-macchiato-surface0 dark:hover:bg-macchiato-surface1 text-latte-text dark:text-macchiato-text flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
         style={{ boxShadow: "var(--shadow-depth-sm)" }}>
         <span className="flex items-center gap-2">
-          <ZapIcon className="text-latte-mauve dark:text-macchiato-mauve" size={14} />
+          <Zap className="text-latte-mauve dark:text-macchiato-mauve" size={14} />
           {currentModelData.display_name}
         </span>
-        <ChevronDownIcon
+        <ChevronDown
           className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>

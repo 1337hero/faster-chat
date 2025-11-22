@@ -16,11 +16,12 @@ export function useChatPersistence(chatId) {
     return await db.getChatMessages(chatId);
   }, [chatId, userId]);
 
-  async function saveUserMessage(content, currentChatId) {
+  async function saveUserMessage(content, currentChatId, fileIds = []) {
     await db.addMessage({
       chatId: currentChatId,
       content,
       role: "user",
+      fileIds,
     });
 
     const isFirstMessage = messages?.length === 0;
@@ -34,11 +35,12 @@ export function useChatPersistence(chatId) {
     }
   }
 
-  async function saveAssistantMessage(content, currentChatId) {
+  async function saveAssistantMessage(content, currentChatId, model = null) {
     await db.addMessage({
       chatId: currentChatId,
       content,
       role: "assistant",
+      model,
     });
   }
 

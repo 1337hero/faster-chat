@@ -38,6 +38,38 @@ class ChatDatabase extends Dexie {
       chats: "id, userId, created_at, updated_at, [userId+updated_at]",
       messages: "id, chatId, userId, created_at, [chatId+userId]",
     });
+
+    // Version 4: Add support for file attachments
+    this.version(4)
+      .stores({
+        chats: "id, userId, created_at, updated_at, [userId+updated_at]",
+        messages: "id, chatId, userId, created_at, [chatId+userId], *fileIds",
+      })
+      .upgrade(async (tx) => {
+        // Migrate existing messages to have fileIds = []
+        await tx
+          .table("messages")
+          .toCollection()
+          .modify((message) => {
+            message.fileIds = [];
+          });
+      });
+
+    // Version 5: Add model field to messages for AI responses
+    this.version(5)
+      .stores({
+        chats: "id, userId, created_at, updated_at, [userId+updated_at]",
+        messages: "id, chatId, userId, created_at, [chatId+userId], *fileIds, model",
+      })
+      .upgrade(async (tx) => {
+        // Migrate existing messages to have model = null
+        await tx
+          .table("messages")
+          .toCollection()
+          .modify((message) => {
+            message.model = null;
+          });
+      });
   }
 
   /**
@@ -74,6 +106,8 @@ class ChatDatabase extends Dexie {
       ...message,
       id: crypto.randomUUID(),
       userId: this.getCurrentUserId(),
+      fileIds: message.fileIds || [],
+      model: message.model || null,
       created_at: new Date(),
     };
 

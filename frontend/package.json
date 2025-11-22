@@ -21,6 +21,7 @@
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^1.1.7",
     "katex": "^0.16.25",
+    "lucide-react": "^0.554.0",
     "nanoid": "^5.0.0",
     "preact": "^10.25.5",
     "react-markdown": "^9.0.1",

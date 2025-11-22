@@ -7,26 +7,6 @@ import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
 
-const MenuIcon = ({ className, size = 24 }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}>
-      <line x1="4" x2="20" y1="12" y2="12" />
-      <line x1="4" x2="20" y1="6" y2="6" />
-      <line x1="4" x2="20" y1="18" y2="18" />
-    </svg>
-  );
-};
-
 const ChatInterface = ({ chatId, onMenuClick }) => {
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
@@ -66,10 +46,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
                 onClick={onMenuClick}
                 className="hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 text-latte-text dark:text-macchiato-text rounded-lg p-2 md:hidden"
                 aria-label="Open menu">
-                <MenuIcon />
               </button>
             )}
-
             <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
           </div>
 
@@ -81,8 +59,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
           ref={scrollContainerRef}
-          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth p-4 md:px-20"
-          style={{ paddingTop: "1rem", paddingBottom: "180px" }}>
+          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
           <div className="mx-auto max-w-4xl">
             <MessageList
               messages={messages}

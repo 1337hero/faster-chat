@@ -21,16 +21,16 @@ export function useChat({ id: chatId, model }) {
     persistedMessages,
     onMessageComplete: async (content) => {
       if (chatId) {
-        await saveAssistantMessage(content, chatId);
+        await saveAssistantMessage(content, chatId, model);
       }
     },
   });
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e, fileIds = []) {
     e.preventDefault();
 
     const trimmedInput = input.trim();
-    if (!trimmedInput) return;
+    if (!trimmedInput && fileIds.length === 0) return;
 
     setInput("");
 
@@ -44,8 +44,8 @@ export function useChat({ id: chatId, model }) {
     }
 
     try {
-      await saveUserMessage(trimmedInput, currentChatId);
-      await stream.send(trimmedInput);
+      await saveUserMessage(trimmedInput, currentChatId, fileIds);
+      await stream.send(trimmedInput, fileIds);
     } catch (err) {
       console.error("Failed to send message", err);
     }
