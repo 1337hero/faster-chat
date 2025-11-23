@@ -1,7 +1,17 @@
 import { useState } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense } from "preact/compat";
-import { Plus, Zap, Key, Link2, Server, RefreshCw, XCircle, CheckCircle, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Zap,
+  Key,
+  Link2,
+  Server,
+  RefreshCw,
+  XCircle,
+  CheckCircle,
+  Trash2,
+} from "lucide-react";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
 
@@ -154,7 +164,9 @@ const ConnectionsTab = () => {
                     disabled={refreshMutation.isPending}
                     className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2 disabled:opacity-50"
                     title="Refresh models">
-                    <RefreshCw className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+                    <RefreshCw
+                      className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`}
+                    />
                   </button>
 
                   <button

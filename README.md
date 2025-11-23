@@ -388,7 +388,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 If Faster Chat helps you take control of your AI conversations, consider giving us a star!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=open-webui/open-webui,1337hero/faster-next-chat&type=date&legend=top-left)](https://www.star-history.com/#open-webui/open-webui&1337hero/faster-next-chat&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=1337hero/faster-chat&type=date&legend=top-left)](https://www.star-history.com/#1337hero/faster-chat&type=date&legend=top-left)
 
 ---
 

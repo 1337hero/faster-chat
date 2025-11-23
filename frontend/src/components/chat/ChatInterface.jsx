@@ -1,17 +1,25 @@
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useChat } from "@/hooks/useChat";
+import { useVoice } from "@/hooks/useVoice";
 import { useUiState } from "@/state/useUiState";
+import { VOICE_CONSTANTS } from "@faster-chat/shared";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
+import VoiceStatusIndicator from "./VoiceStatusIndicator";
+import VoiceSettings from "./VoiceSettings";
 
 const ChatInterface = ({ chatId, onMenuClick }) => {
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollContainerRef = useRef(null);
+  const [voiceError, setVoiceError] = useState(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const lastSpokenMessageRef = useRef(null);
 
   const {
     messages,
@@ -22,9 +30,34 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
     status,
     stop,
     resumeStream,
+    setInput,
   } = useChat({
     id: chatId,
     model: preferredModel,
+  });
+
+  // Voice integration
+  const voice = useVoice({
+    onSpeechResult: async (transcript) => {
+      // CRITICAL: Don't use setInput + handleSubmit - state update is async
+      // Instead, pass transcript directly via custom event property
+      setInput(transcript);
+
+      try {
+        const customEvent = {
+          preventDefault: () => {},
+          voiceTranscript: transcript,
+        };
+        await handleSubmit(customEvent);
+      } catch (err) {
+        console.error("[ChatInterface] Voice submission failed:", err);
+      }
+    },
+    onError: (error) => {
+      console.error("Voice error:", error);
+      setVoiceError(error);
+      setTimeout(() => setVoiceError(null), VOICE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
+    },
   });
 
   useLayoutEffect(() => {
@@ -33,6 +66,39 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages, autoScroll]);
+
+  const shouldSpeakMessage = (message) => {
+    if (!message) return false;
+    const isAssistantMessage = message.role === "assistant";
+    const hasTextContent = message.parts?.some((part) => part.type === "text" && part.text?.trim());
+    const notAlreadySpoken = lastSpokenMessageRef.current !== message.id;
+    return isAssistantMessage && hasTextContent && notAlreadySpoken;
+  };
+
+  const extractTextContent = (message) => {
+    return (
+      message.parts
+        ?.filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join("") || ""
+    );
+  };
+
+  useLayoutEffect(() => {
+    if (!voice.isActive || messages.length === 0 || isLoading) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (!shouldSpeakMessage(lastMessage)) return;
+
+    const content = extractTextContent(lastMessage);
+    lastSpokenMessageRef.current = lastMessage.id;
+
+    if (voice.isProcessing) {
+      voice.completeProcessing();
+    }
+
+    voice.speakStream(content);
+  }, [messages, voice.isActive, voice.isProcessing, isLoading]);
 
   return (
     <div className="bg-latte-base dark:bg-macchiato-base relative z-0 flex h-full flex-1 flex-col">
@@ -45,13 +111,13 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
               <button
                 onClick={onMenuClick}
                 className="hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 text-latte-text dark:text-macchiato-text rounded-lg p-2 md:hidden"
-                aria-label="Open menu">
-              </button>
+                aria-label="Open menu"></button>
             )}
             <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
           </div>
 
           <div className="flex items-center gap-3">
+            <VoiceStatusIndicator voiceControls={voice} />
             <ThemeToggle />
             <UserMenu />
           </div>
@@ -59,7 +125,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
           ref={scrollContainerRef}
-          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
+          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pb-[180px] pt-12 md:px-20">
           <div className="mx-auto max-w-4xl">
             <MessageList
               messages={messages}
@@ -77,6 +143,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Input Area - Floating on top */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
           <div className="pointer-events-auto relative mx-auto max-w-4xl">
+            <ErrorBanner message={voiceError} className="mb-3" />
+
             <div
               className={`layered-panel elevate-lg relative flex items-end gap-3 rounded-[22px] px-4 py-3 transition-transform duration-200 ${
                 isLoading ? "opacity-95" : "hover:-translate-y-1"
@@ -85,6 +153,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
                 input={input}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
+                voiceControls={voice}
               />
             </div>
           </div>
@@ -96,6 +165,11 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
           </div>
         </div>
       </div>
+
+      {/* Voice Settings Modal */}
+      {showVoiceSettings && (
+        <VoiceSettings voiceControls={voice} onClose={() => setShowVoiceSettings(false)} />
+      )}
     </div>
   );
 };

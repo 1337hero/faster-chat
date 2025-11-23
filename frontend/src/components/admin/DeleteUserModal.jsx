@@ -30,11 +30,11 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Delete User">
       <div className="space-y-4">
         <p className="text-latte-text dark:text-macchiato-text">
-          Are you sure you want to delete <strong>{user?.username}</strong>? This action cannot
-          be undone.
+          Are you sure you want to delete <strong>{user?.username}</strong>? This action cannot be
+          undone.
         </p>
 
-        <div className="rounded-lg bg-latte-red/10 px-4 py-3 text-sm text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red">
+        <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
           <p className="font-medium">Warning:</p>
           <ul className="ml-4 mt-1 list-disc">
             <li>All user data will be permanently deleted</li>
@@ -44,7 +44,7 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
         </div>
 
         {error && (
-          <div className="rounded-lg bg-latte-red/10 px-4 py-3 text-sm text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red">
+          <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
             {error}
           </div>
         )}
@@ -57,8 +57,7 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
             type="button"
             color="red"
             onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-          >
+            disabled={deleteMutation.isPending}>
             {deleteMutation.isPending ? "Deleting..." : "Delete User"}
           </Button>
         </div>

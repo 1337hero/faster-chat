@@ -339,7 +339,7 @@ export const dbUtils = {
     const { fields, values } = buildUpdateFields(updates, fieldMap);
 
     if (updates.enabled !== undefined) {
-      const enabledIndex = fields.findIndex(f => f.includes("enabled"));
+      const enabledIndex = fields.findIndex((f) => f.includes("enabled"));
       if (enabledIndex >= 0) {
         values[enabledIndex] = updates.enabled ? 1 : 0;
       }
@@ -463,14 +463,14 @@ export const dbUtils = {
     const { fields, values } = buildUpdateFields(updates, fieldMap);
 
     if (updates.enabled !== undefined) {
-      const enabledIndex = fields.findIndex(f => f.includes("enabled"));
+      const enabledIndex = fields.findIndex((f) => f.includes("enabled"));
       if (enabledIndex >= 0) {
         values[enabledIndex] = updates.enabled ? 1 : 0;
       }
     }
 
     if (updates.isDefault !== undefined) {
-      const defaultIndex = fields.findIndex(f => f.includes("is_default"));
+      const defaultIndex = fields.findIndex((f) => f.includes("is_default"));
       if (defaultIndex >= 0) {
         values[defaultIndex] = updates.isDefault ? 1 : 0;
       }
@@ -606,7 +606,18 @@ export const dbUtils = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const metaJson = meta ? JSON.stringify(meta) : null;
-    const result = stmt.run(id, userId, filename, storedFilename, path, mimeType, size, hash, metaJson, Date.now());
+    const result = stmt.run(
+      id,
+      userId,
+      filename,
+      storedFilename,
+      path,
+      mimeType,
+      size,
+      hash,
+      metaJson,
+      Date.now()
+    );
     return result.changes > 0 ? id : null;
   },
 
@@ -698,11 +709,8 @@ export const dbUtils = {
 // Clean up expired sessions on startup
 dbUtils.cleanExpiredSessions();
 
-setInterval(
-  () => {
-    dbUtils.cleanExpiredSessions();
-  },
-  DB_CONSTANTS.SESSION_CLEANUP_INTERVAL_MS
-);
+setInterval(() => {
+  dbUtils.cleanExpiredSessions();
+}, DB_CONSTANTS.SESSION_CLEANUP_INTERVAL_MS);
 
 export default db;
