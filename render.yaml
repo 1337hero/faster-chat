@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: faster-chat
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: oregon
+    healthCheckPath: /api/models
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8787
+      - key: DATABASE_URL
+        value: sqlite:///app/server/data/chat.db
+      - key: API_KEY_ENCRYPTION_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false
+    disk:
+      name: chat-data
+      mountPath: /app/server/data
+      sizeGB: 1

@@ -1,0 +1,38 @@
+# fly.toml app configuration file
+# See https://fly.io/docs/reference/configuration/ for information
+
+app = "faster-chat"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8787"
+  DATABASE_URL = "sqlite:///app/server/data/chat.db"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/models"
+
+[mounts]
+  source = "chat_data"
+  destination = "/app/server/data"
+  initial_size = "1gb"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
