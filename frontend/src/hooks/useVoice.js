@@ -1,12 +1,12 @@
-import { useRef, useState } from 'preact/hooks';
-import { VOICE_CONSTANTS, CHAT_STATES } from '@faster-chat/shared';
-import { useSpeechRecognition } from './voice/useSpeechRecognition';
-import { useTextToSpeech } from './voice/useTextToSpeech';
-import { useVoiceSelection } from './voice/useVoiceSelection';
+import { useRef, useState } from "preact/hooks";
+import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
+import { useSpeechRecognition } from "./voice/useSpeechRecognition";
+import { useTextToSpeech } from "./voice/useTextToSpeech";
+import { useVoiceSelection } from "./voice/useVoiceSelection";
 
 export function useVoice({ onSpeechResult, onError }) {
   const [currentState, setCurrentState] = useState(CHAT_STATES.IDLE);
-  const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
   const currentStateRef = useRef(CHAT_STATES.IDLE);
 
   currentStateRef.current = currentState;
@@ -22,7 +22,7 @@ export function useVoice({ onSpeechResult, onError }) {
       }
 
       if (final.trim().length > VOICE_CONSTANTS.MIN_TRANSCRIPT_LENGTH) {
-        setTranscript('');
+        setTranscript("");
         setCurrentState(CHAT_STATES.PROCESSING);
 
         if (onSpeechResult) {
@@ -35,7 +35,7 @@ export function useVoice({ onSpeechResult, onError }) {
       if (onError) {
         onError(error);
       }
-    }
+    },
   });
 
   const tts = useTextToSpeech({
@@ -52,7 +52,7 @@ export function useVoice({ onSpeechResult, onError }) {
       } else {
         setCurrentState(CHAT_STATES.COOLDOWN);
       }
-    }
+    },
   });
 
   const changeVoice = (voice) => {
@@ -61,15 +61,16 @@ export function useVoice({ onSpeechResult, onError }) {
   };
 
   const startConversation = () => {
-    const isSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis;
+    const isSupported =
+      !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis;
 
     if (!isSupported) {
-      if (onError) onError('Voice not supported in this browser');
+      if (onError) onError("Voice not supported in this browser");
       return;
     }
 
     setCurrentState(CHAT_STATES.LISTENING);
-    setTranscript('');
+    setTranscript("");
     recognition.start();
   };
 
@@ -77,7 +78,7 @@ export function useVoice({ onSpeechResult, onError }) {
     recognition.stop();
     tts.cancelAll();
     setCurrentState(CHAT_STATES.IDLE);
-    setTranscript('');
+    setTranscript("");
   };
 
   const toggleConversation = () => {
@@ -97,7 +98,8 @@ export function useVoice({ onSpeechResult, onError }) {
   };
 
   const derivedState = {
-    isSupported: !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis,
+    isSupported:
+      !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis,
     isActive: currentState !== CHAT_STATES.IDLE,
     isListening: currentState === CHAT_STATES.LISTENING,
     isProcessing: currentState === CHAT_STATES.PROCESSING,

@@ -29,15 +29,14 @@ export const Switch = ({ color = "blue", value, label, onChange, disabled, ...pr
       id={id}
       onClick={onClickEvent}
       className={clsx("inline-flex items-center", {
-        "opacity-50 cursor-not-allowed": disabled,
+        "cursor-not-allowed opacity-50": disabled,
       })}
-      {...props}
-    >
+      {...props}>
       <div
         tabIndex={disabled ? -1 : 0}
         onKeyDown={onKeyEvent}
         className={clsx(
-          "switch-pseudo relative inline-flex items-center h-7 w-12 p-[2px] border-2 rounded-[20px] transition-colors outline-latte-lavender dark:outline-macchiato-lavender overflow-hidden",
+          "switch-pseudo outline-latte-lavender dark:outline-macchiato-lavender relative inline-flex h-7 w-12 items-center overflow-hidden rounded-[20px] border-2 p-[2px] transition-colors",
           {
             "cursor-pointer": !disabled,
             "cursor-not-allowed": disabled,
@@ -61,17 +60,13 @@ export const Switch = ({ color = "blue", value, label, onChange, disabled, ...pr
                   ? "var(--ctp-latte-green, var(--ctp-macchiato-green))"
                   : "var(--ctp-latte-red, var(--ctp-macchiato-red))"
             : undefined,
-        }}
-      >
+        }}>
         <span
-          className={clsx(
-            "relative z-10 h-full w-5 rounded-full transition-all duration-300",
-            {
-              "bg-latte-surface2 dark:bg-macchiato-surface2": !value,
-              "bg-current": value,
-              "translate-x-full": value,
-            }
-          )}
+          className={clsx("relative z-10 h-full w-5 rounded-full transition-all duration-300", {
+            "bg-latte-surface2 dark:bg-macchiato-surface2": !value,
+            "bg-current": value,
+            "translate-x-full": value,
+          })}
         />
       </div>
 

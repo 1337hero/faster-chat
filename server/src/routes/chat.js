@@ -99,23 +99,24 @@ function applyCacheControl(messages, modelId) {
 
   return messages.map((msg, idx, arr) => {
     // Cache system prompt (first message)
-    if (msg.role === 'system') {
+    if (msg.role === "system") {
       return {
         ...msg,
         experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } }
-        }
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
+        },
       };
     }
 
     // Cache recent conversation messages
     const isRecentMessage = idx >= arr.length - MODEL_FEATURES.CACHE_LAST_N_MESSAGES;
-    if (isRecentMessage && idx > 0) { // Skip if it's only the system message
+    if (isRecentMessage && idx > 0) {
+      // Skip if it's only the system message
       return {
         ...msg,
         experimental_providerMetadata: {
-          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } }
-        }
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
+        },
       };
     }
 
@@ -140,11 +141,7 @@ function addSystemMessage(systemPrompt) {
  * Check if this is the last user message with file attachments
  */
 function isLastUserMessageWithFiles(index, messages, fileIds) {
-  return (
-    index === messages.length - 1 &&
-    messages[index].role === "user" &&
-    fileIds.length > 0
-  );
+  return index === messages.length - 1 && messages[index].role === "user" && fileIds.length > 0;
 }
 
 /**
@@ -220,7 +217,10 @@ chatRouter.post("/chat", async (c) => {
     return stream.toUIMessageStreamResponse();
   } catch (error) {
     console.error("Chat error:", error);
-    return c.json({ error: error instanceof Error ? error.message : "Internal server error" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    return c.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
   }
 });
 

@@ -4,13 +4,7 @@ import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-react";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
 
-const InputArea = ({
-  input,
-  handleInputChange,
-  handleSubmit,
-  disabled,
-  voiceControls
-}) => {
+const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -119,15 +113,15 @@ const InputArea = ({
               !voiceControls.isSupported
                 ? "text-latte-overlay0/40 dark:text-macchiato-overlay0/40 cursor-not-allowed opacity-50"
                 : voiceControls.isActive
-                ? "bg-latte-red/20 dark:bg-macchiato-red/20 text-latte-red dark:text-macchiato-red hover:bg-latte-red/30 dark:hover:bg-macchiato-red/30 animate-pulse"
-                : "text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-blue dark:hover:text-macchiato-blue hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50"
+                  ? "bg-latte-red/20 dark:bg-macchiato-red/20 text-latte-red dark:text-macchiato-red hover:bg-latte-red/30 dark:hover:bg-macchiato-red/30 animate-pulse"
+                  : "text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-blue dark:hover:text-macchiato-blue hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50"
             }`}
             title={
               !voiceControls.isSupported
                 ? "Voice not supported in this browser"
                 : voiceControls.isActive
-                ? "Voice Active - Click to Stop"
-                : "Click to Start Voice Chat"
+                  ? "Voice Active - Click to Stop"
+                  : "Click to Start Voice Chat"
             }
             disabled={disabled || !voiceControls.isSupported}>
             {voiceControls.isActive ? <MicOff size={20} /> : <Mic size={20} />}
@@ -157,11 +151,7 @@ const InputArea = ({
             ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-overlay0 dark:text-macchiato-overlay0 cursor-not-allowed"
             : "btn-blue hover:-translate-y-0.5"
         } `}
-        style={
-          isSubmitDisabled
-            ? {}
-            : { boxShadow: "var(--shadow-depth-md)" }
-        }>
+        style={isSubmitDisabled ? {} : { boxShadow: "var(--shadow-depth-md)" }}>
         <Send size={20} />
       </button>
     </>

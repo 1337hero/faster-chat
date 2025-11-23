@@ -72,7 +72,14 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     []
   );
 
-  const { messages: streamingMessages, sendMessage, status, error, stop, resumeStream } = useAIChat({
+  const {
+    messages: streamingMessages,
+    sendMessage,
+    status,
+    error,
+    stop,
+    resumeStream,
+  } = useAIChat({
     id: chatId,
     messages: [], // Don't pass persisted messages - let Dexie handle display
     transport,

@@ -122,7 +122,10 @@ class ChatDatabase extends Dexie {
   async getChatMessages(chatId) {
     const userId = this.getCurrentUserId();
     if (userId === null) return [];
-    return await this.messages.where("[chatId+userId]").equals([chatId, userId]).sortBy("created_at");
+    return await this.messages
+      .where("[chatId+userId]")
+      .equals([chatId, userId])
+      .sortBy("created_at");
   }
 
   async getChats() {

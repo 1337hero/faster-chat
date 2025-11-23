@@ -1,6 +1,9 @@
 import MainLayout from "@/components/layout/MainLayout";
 import Sidebar from "@/components/layout/Sidebar";
-import { hasSeenAdminConnectionsOnboarding, markAdminConnectionsOnboardingSeen } from "@/lib/adminOnboarding";
+import {
+  hasSeenAdminConnectionsOnboarding,
+  markAdminConnectionsOnboardingSeen,
+} from "@/lib/adminOnboarding";
 import { db } from "@/lib/db";
 import { useAuthState } from "@/state/useAuthState";
 import {
@@ -97,11 +100,7 @@ const indexRoute = createRoute({
           const hasSeenOnboarding = hasSeenAdminConnectionsOnboarding(user?.id);
 
           // First-time admin onboarding: redirect to Connections tab before creating chats
-          if (
-            user?.role === "admin" &&
-            existingChats.length === 0 &&
-            !hasSeenOnboarding
-          ) {
+          if (user?.role === "admin" && existingChats.length === 0 && !hasSeenOnboarding) {
             markAdminConnectionsOnboardingSeen(user.id);
             navigate({
               to: "/admin",
