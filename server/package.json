@@ -4,9 +4,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "node src/index.js",
+    "init": "bun run src/init.js",
+    "dev": "bun run src/init.js && bun run src/index.js",
     "build": "echo 'Build complete'",
-    "start": "node src/index.js"
+    "start": "bun run src/init.js && bun run src/index.js"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^3.0.56",
@@ -26,7 +27,6 @@
     "@hono/node-server": "^1.14.3",
     "@node-rs/argon2": "^2.0.2",
     "ai": "^5.0.97",
-    "better-sqlite3": "^12.4.1",
     "dotenv": "^16.4.7",
     "hono": "^4.7.12",
     "ollama-ai-provider": "^1.2.0",

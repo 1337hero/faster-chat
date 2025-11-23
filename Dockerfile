@@ -4,14 +4,6 @@
 FROM oven/bun:1.3-debian AS builder
 WORKDIR /app
 
-# Install build dependencies for native modules
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy repository contents
 COPY . .
 
@@ -19,21 +11,17 @@ COPY . .
 RUN bun install --frozen-lockfile && \
     bun run build:frontend
 
-# Production image - Node.js 22 to run the server
-FROM node:22-bookworm-slim AS runner
+# Production image - pure Bun runtime (no Node.js needed!)
+FROM oven/bun:1.3-debian AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=8787
 
-# Install runtime dependencies + build tools for rebuilding native modules
+# Install only minimal runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    openssl \
-    python3 \
-    make \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built application
@@ -43,13 +31,19 @@ COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/frontend/dist ./frontend/dist
 
-# Rebuild better-sqlite3 for Node.js 22
-RUN npm rebuild better-sqlite3 --build-from-source
+# No native module rebuild needed - bun:sqlite is built-in! 🎉
+
+# Create data directory for SQLite database
+RUN mkdir -p /app/server/data
 
 # Persist SQLite data outside the container filesystem
 VOLUME /app/server/data
 
 EXPOSE 8787
 
-# Run with Node.js for better-sqlite3 compatibility
-CMD ["node", "server/src/index.js"]
+# Set working directory to server folder
+WORKDIR /app/server
+
+# Run with Bun runtime (native SQLite support)
+# Init script generates encryption key on first run
+CMD ["sh", "-c", "bun run src/init.js && bun run src/index.js"]
