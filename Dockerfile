@@ -45,4 +45,5 @@ EXPOSE 8787
 WORKDIR /app/server
 
 # Run with Bun runtime (native SQLite support)
-CMD ["bun", "run", "src/index.js"]
+# Init script generates encryption key on first run
+CMD ["sh", "-c", "bun run src/init.js && bun run src/index.js"]
