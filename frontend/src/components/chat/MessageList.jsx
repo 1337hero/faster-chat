@@ -6,8 +6,8 @@ function sortMessagesWithUserFirst(messages) {
     const bTime = b.created_at || 0;
 
     if (aTime > 0 && bTime > 0 && Math.abs(aTime - bTime) < 5000) {
-      if (a.role === 'user' && b.role === 'assistant') return -1;
-      if (a.role === 'assistant' && b.role === 'user') return 1;
+      if (a.role === "user" && b.role === "assistant") return -1;
+      if (a.role === "assistant" && b.role === "user") return 1;
     }
 
     return aTime - bTime;

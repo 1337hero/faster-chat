@@ -23,7 +23,7 @@ export async function fetchModelsDevDatabase() {
   const now = Date.now();
 
   // Return cached if still valid
-  if (cachedDatabase && lastFetchTime && (now - lastFetchTime < CACHE_DURATION)) {
+  if (cachedDatabase && lastFetchTime && now - lastFetchTime < CACHE_DURATION) {
     return cachedDatabase;
   }
 
@@ -158,7 +158,7 @@ function getProviderDescription(id, info) {
     openai: "GPT-4, GPT-4o, and other OpenAI models",
     anthropic: "Claude 3.x and 4.x models",
     "google-vertex": "Gemini models via Google Cloud Vertex AI",
-    "google": "Gemini models via Google AI Studio",
+    google: "Gemini models via Google AI Studio",
     "amazon-bedrock": "AWS Bedrock models (Claude, Llama, etc.)",
     lmstudio: "Local models via LM Studio",
     "llama-cpp": "Local models via llama.cpp server",
@@ -211,7 +211,7 @@ let initPromise = null;
 export function initializeModelsDevCache() {
   if (initPromise) return initPromise;
 
-  initPromise = fetchModelsDevDatabase().catch(error => {
+  initPromise = fetchModelsDevDatabase().catch((error) => {
     console.error("Failed to initialize models.dev cache:", error.message);
     // Retry after 30 seconds
     setTimeout(() => {
@@ -225,7 +225,7 @@ export function initializeModelsDevCache() {
 
 // Auto-refresh every hour
 setInterval(() => {
-  fetchModelsDevDatabase().catch(error => {
+  fetchModelsDevDatabase().catch((error) => {
     console.error("Failed to refresh models.dev cache:", error.message);
   });
 }, CACHE_DURATION);

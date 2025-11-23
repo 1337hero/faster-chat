@@ -43,10 +43,9 @@ export const Avatar = ({
         borderVariants[border],
         backgroundVariants[background],
         sizeVariants[size],
-        "rounded-full inline-flex items-center justify-center relative text-latte-text dark:text-macchiato-text font-medium"
+        "text-latte-text dark:text-macchiato-text relative inline-flex items-center justify-center rounded-full font-medium"
       )}
-      {...props}
-    >
+      {...props}>
       {src ? (
         <span
           className="absolute inset-0 rounded-full bg-cover bg-center bg-no-repeat"

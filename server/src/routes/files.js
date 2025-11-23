@@ -193,7 +193,10 @@ filesRouter.delete("/:id", async (c) => {
     const deleted = dbUtils.deleteFile(fileId);
 
     if (!deleted) {
-      return c.json({ error: "Failed to delete file from database" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+      return c.json(
+        { error: "Failed to delete file from database" },
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
     }
 
     return c.json({ message: "File deleted successfully" });

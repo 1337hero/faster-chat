@@ -22,17 +22,19 @@ const PROVIDER_FACTORIES = {
 
   openai: (config) => createOpenAI({ apiKey: config.apiKey }),
 
-  azure: (config) => createAzure({
-    apiKey: config.apiKey,
-    resourceName: config.baseUrl || process.env.AZURE_RESOURCE_NAME,
-  }),
+  azure: (config) =>
+    createAzure({
+      apiKey: config.apiKey,
+      resourceName: config.baseUrl || process.env.AZURE_RESOURCE_NAME,
+    }),
 
   google: (config) => createGoogleGenerativeAI({ apiKey: config.apiKey }),
 
-  "google-vertex": (config) => createVertex({
-    project: process.env.GOOGLE_VERTEX_PROJECT,
-    location: process.env.GOOGLE_VERTEX_LOCATION || PROVIDER_DEFAULTS.GOOGLE_VERTEX_LOCATION,
-  }),
+  "google-vertex": (config) =>
+    createVertex({
+      project: process.env.GOOGLE_VERTEX_PROJECT,
+      location: process.env.GOOGLE_VERTEX_LOCATION || PROVIDER_DEFAULTS.GOOGLE_VERTEX_LOCATION,
+    }),
 
   mistral: (config) => createMistral({ apiKey: config.apiKey }),
 
@@ -40,11 +42,12 @@ const PROVIDER_FACTORIES = {
 
   cohere: (config) => createCohere({ apiKey: config.apiKey }),
 
-  "amazon-bedrock": (config) => createAmazonBedrock({
-    region: process.env.AWS_REGION || PROVIDER_DEFAULTS.AWS_REGION,
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  }),
+  "amazon-bedrock": (config) =>
+    createAmazonBedrock({
+      region: process.env.AWS_REGION || PROVIDER_DEFAULTS.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    }),
 
   xai: (config) => createXai({ apiKey: config.apiKey }),
 
@@ -54,10 +57,11 @@ const PROVIDER_FACTORIES = {
 
   fireworks: (config) => createFireworks({ apiKey: config.apiKey }),
 
-  ollama: (config) => createOpenAI({
-    baseURL: config.baseUrl || PROVIDER_DEFAULTS.OLLAMA_BASE_URL,
-    apiKey: config.apiKey || "ollama",
-  }),
+  ollama: (config) =>
+    createOpenAI({
+      baseURL: config.baseUrl || PROVIDER_DEFAULTS.OLLAMA_BASE_URL,
+      apiKey: config.apiKey || "ollama",
+    }),
 };
 
 /**

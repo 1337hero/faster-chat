@@ -1,9 +1,10 @@
 import { useRef, useState } from "preact/hooks";
 import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
-import { Paperclip, Image, Globe, Send } from "lucide-react";
+import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-react";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
 
-const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
+const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -19,10 +20,12 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     handleInputChange(e);
   };
 
+  const hasContent = () => input.trim() || selectedFiles.length > 0;
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && (input.trim() || selectedFiles.length > 0)) {
+      if (!disabled && hasContent()) {
         handleFormSubmit(e);
       }
     }
@@ -32,7 +35,6 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     e.preventDefault();
     if (disabled) return;
 
-    // Pass fileIds to parent
     const fileIds = selectedFiles.map((f) => f.id);
     handleSubmit(e, fileIds);
 
@@ -60,7 +62,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
     setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
-  const isSubmitDisabled = (!input.trim() && selectedFiles.length === 0) || disabled;
+  const isSubmitDisabled = !hasContent() || disabled;
 
   return (
     <>
@@ -72,12 +74,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
         disabled={disabled}
       />
 
-      {/* Upload Error */}
-      {uploadError && (
-        <div className="mb-2 rounded-lg bg-latte-red/10 dark:bg-macchiato-red/10 text-latte-red dark:text-macchiato-red px-3 py-2 text-sm">
-          {uploadError}
-        </div>
-      )}
+      <ErrorBanner message={uploadError} className="mb-2" />
 
       {/* File Previews */}
       <FilePreviewList files={selectedFiles} onRemove={removeFile} />
@@ -106,6 +103,30 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
           disabled={disabled}>
           <Globe size={20} />
         </button>
+
+        {/* Voice Control Button */}
+        {voiceControls && (
+          <button
+            type="button"
+            onClick={voiceControls.isSupported ? voiceControls.toggleConversation : undefined}
+            className={`rounded-xl p-2 transition-all ${
+              !voiceControls.isSupported
+                ? "text-latte-overlay0/40 dark:text-macchiato-overlay0/40 cursor-not-allowed opacity-50"
+                : voiceControls.isActive
+                  ? "bg-latte-red/20 dark:bg-macchiato-red/20 text-latte-red dark:text-macchiato-red hover:bg-latte-red/30 dark:hover:bg-macchiato-red/30 animate-pulse"
+                  : "text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-blue dark:hover:text-macchiato-blue hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50"
+            }`}
+            title={
+              !voiceControls.isSupported
+                ? "Voice not supported in this browser"
+                : voiceControls.isActive
+                  ? "Voice Active - Click to Stop"
+                  : "Click to Start Voice Chat"
+            }
+            disabled={disabled || !voiceControls.isSupported}>
+            {voiceControls.isActive ? <MicOff size={20} /> : <Mic size={20} />}
+          </button>
+        )}
       </div>
 
       {/* Textarea */}
@@ -130,11 +151,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled }) => {
             ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-overlay0 dark:text-macchiato-overlay0 cursor-not-allowed"
             : "btn-blue hover:-translate-y-0.5"
         } `}
-        style={
-          isSubmitDisabled
-            ? {}
-            : { boxShadow: "var(--shadow-depth-md)" }
-        }>
+        style={isSubmitDisabled ? {} : { boxShadow: "var(--shadow-depth-md)" }}>
         <Send size={20} />
       </button>
     </>

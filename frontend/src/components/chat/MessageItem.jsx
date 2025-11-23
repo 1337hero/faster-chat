@@ -23,7 +23,6 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
       {/* MESSAGE CONTAINER: Contains avatar + bubble, controls flex direction */}
       <div
         className={`flex max-w-[85%] gap-4 md:max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-
         {/* AVATAR SECTION */}
         <div
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10 ${
@@ -43,11 +42,10 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
         <div
           className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
-              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-tl-lg rounded-bl-lg rounded-br-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
-              : "text-latte-text dark:text-macchiato-text " // AI BUBBLE: solid background with border, left corner cut
+              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-bl-lg rounded-br-lg rounded-tl-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
+              : "text-latte-text dark:text-macchiato-text" // AI BUBBLE: solid background with border, left corner cut
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
-
           {/* AI ACCENT: Gradient lines on top and bottom (only show on AI messages) */}
           {!isUser && (
             <>
@@ -58,7 +56,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
           {/* MODEL NAME (only shows on AI messages with model info) */}
           {!isUser && modelName && (
             <div className="mb-2 flex items-center gap-1.5">
-              <Cpu className="h-3 w-3 text-latte-mauve dark:text-macchiato-mauve" />
+              <Cpu className="text-latte-mauve dark:text-macchiato-mauve h-3 w-3" />
               <span className="text-latte-subtext0 dark:text-macchiato-subtext0 text-xs font-medium">
                 {modelName}
               </span>
@@ -86,7 +84,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
                 <button
                   type="button"
                   onClick={onStop}
-                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-red dark:text-macchiato-red hover:text-latte-red hover:brightness-110 dark:hover:text-macchiato-red rounded-full border bg-latte-surface1/80 px-3 py-1 text-xs font-semibold transition-all duration-150 dark:bg-macchiato-surface1/80">
+                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-red dark:text-macchiato-red hover:text-latte-red dark:hover:text-macchiato-red bg-latte-surface1/80 dark:bg-macchiato-surface1/80 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 hover:brightness-110">
                   Stop
                 </button>
               )}
@@ -94,7 +92,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
                 <button
                   type="button"
                   onClick={onResume}
-                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-blue dark:text-macchiato-blue hover:text-latte-blue hover:brightness-110 dark:hover:text-macchiato-blue rounded-full border bg-latte-surface1/80 px-3 py-1 text-xs font-semibold transition-all duration-150 dark:bg-macchiato-surface1/80">
+                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-blue dark:text-macchiato-blue hover:text-latte-blue dark:hover:text-macchiato-blue bg-latte-surface1/80 dark:bg-macchiato-surface1/80 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 hover:brightness-110">
                   Continue
                 </button>
               )}

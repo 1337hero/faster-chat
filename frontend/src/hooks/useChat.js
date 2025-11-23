@@ -29,7 +29,10 @@ export function useChat({ id: chatId, model }) {
   async function handleSubmit(e, fileIds = []) {
     e.preventDefault();
 
-    const trimmedInput = input.trim();
+    // Support voice input passed directly (bypasses async state update issue)
+    const voiceTranscript = e.voiceTranscript;
+    const trimmedInput = voiceTranscript ? voiceTranscript.trim() : input.trim();
+
     if (!trimmedInput && fileIds.length === 0) return;
 
     setInput("");
@@ -61,6 +64,7 @@ export function useChat({ id: chatId, model }) {
   return {
     messages: stream.messages,
     input,
+    setInput,
     handleInputChange,
     handleSubmit,
     isLoading,

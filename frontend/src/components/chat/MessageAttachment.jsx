@@ -4,7 +4,11 @@ import { Download, File } from "lucide-react";
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 
 export default function MessageAttachment({ fileId }) {
-  const { data: fileMetadata, isLoading, error } = useQuery({
+  const {
+    data: fileMetadata,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["file", fileId],
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/api/files/${fileId}`, {

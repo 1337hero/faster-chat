@@ -11,6 +11,5 @@ export const RATE_LIMIT = {
  */
 export const AUTH = {
   TRUST_PROXY: process.env.TRUST_PROXY === "true",
-  REGISTRATION_LOCK_MESSAGE:
-    "Registration disabled. Ask an administrator to create an account.",
+  REGISTRATION_LOCK_MESSAGE: "Registration disabled. Ask an administrator to create an account.",
 };

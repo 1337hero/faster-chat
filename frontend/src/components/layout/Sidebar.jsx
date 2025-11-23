@@ -28,8 +28,7 @@ const Sidebar = () => {
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
   const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-72";
-  const shouldLogoStartNewChat =
-    pathname.startsWith("/admin") || pathname.startsWith("/settings");
+  const shouldLogoStartNewChat = pathname.startsWith("/admin") || pathname.startsWith("/settings");
 
   const handleSelectSession = (chatId) => {
     handleLinkClick();
@@ -109,7 +108,7 @@ const Sidebar = () => {
             className={`flex transform items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${
               sidebarCollapsed
                 ? "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text hover:text-latte-mauve dark:hover:text-macchiato-mauve mx-auto h-10 w-10 rounded-xl"
-                : "w-full rounded-xl px-4 py-2.5 font-medium btn btn-mauve"
+                : "btn btn-mauve w-full rounded-xl px-4 py-2.5 font-medium"
             } `}
             title="New Chat">
             <SquarePen size={sidebarCollapsed ? 20 : 18} />
@@ -195,9 +194,7 @@ const Sidebar = () => {
         {sidebarCollapsed && <div className="flex-1" />}
 
         {/* Footer */}
-        <div className={`mt-auto p-4 ${sidebarCollapsed ? "flex justify-center" : ""}`}>
-
-        </div>
+        <div className={`mt-auto p-4 ${sidebarCollapsed ? "flex justify-center" : ""}`}></div>
       </div>
     </>
   );
