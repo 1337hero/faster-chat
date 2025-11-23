@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import { randomBytes } from "crypto";
 import { config } from "dotenv";
 import { DB_CONSTANTS } from "@faster-chat/shared";
@@ -10,14 +10,14 @@ const dbPath = process.env.DATABASE_URL?.replace("sqlite://", "") || "./data/cha
 const db = new Database(dbPath);
 
 // Enable foreign keys
-db.pragma("foreign_keys = ON");
+db.exec("PRAGMA foreign_keys = ON");
 
 if (process.env.NODE_ENV === "production") {
-  db.pragma("journal_mode = WAL");
-  db.pragma("synchronous = NORMAL");
-  db.pragma(`cache_size = ${DB_CONSTANTS.CACHE_SIZE_PAGES}`);
-  db.pragma("temp_store = MEMORY");
-  db.pragma(`mmap_size = ${DB_CONSTANTS.MMAP_SIZE_BYTES}`);
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA synchronous = NORMAL");
+  db.exec(`PRAGMA cache_size = ${DB_CONSTANTS.CACHE_SIZE_PAGES}`);
+  db.exec("PRAGMA temp_store = MEMORY");
+  db.exec(`PRAGMA mmap_size = ${DB_CONSTANTS.MMAP_SIZE_BYTES}`);
 }
 
 // Create tables
