@@ -4,9 +4,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "bun run src/index.js",
+    "init": "bun run src/init.js",
+    "dev": "bun run src/init.js && bun run src/index.js",
     "build": "echo 'Build complete'",
-    "start": "bun run src/index.js"
+    "start": "bun run src/init.js && bun run src/index.js"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^3.0.56",

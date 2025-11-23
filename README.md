@@ -73,13 +73,20 @@ git clone https://github.com/1337hero/faster-next-chat.git
 cd faster-next-chat
 bun install
 
-# Start development servers
+# Start development servers (auto-generates encryption key on first run)
 bun run dev
 ```
+
+**On first run**, the server will automatically:
+- ✅ Generate a secure encryption key for API key storage (`server/.env`)
+- ✅ Create required data directories
+- ✅ Initialize the SQLite database
 
 The app will be available at:
 - **Frontend**: http://localhost:3000
 - **API Server**: http://localhost:3001
+
+> **Important**: Backup `server/.env` - this file contains the encryption key needed to decrypt stored API keys. Don't commit it to git (already in .gitignore).
 
 ### First-Time Setup
 
