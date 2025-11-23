@@ -46,15 +46,15 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       try {
         const customEvent = {
           preventDefault: () => {},
-          voiceTranscript: transcript
+          voiceTranscript: transcript,
         };
         await handleSubmit(customEvent);
       } catch (err) {
-        console.error('[ChatInterface] Voice submission failed:', err);
+        console.error("[ChatInterface] Voice submission failed:", err);
       }
     },
     onError: (error) => {
-      console.error('Voice error:', error);
+      console.error("Voice error:", error);
       setVoiceError(error);
       setTimeout(() => setVoiceError(null), VOICE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
     },
@@ -69,17 +69,19 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
   const shouldSpeakMessage = (message) => {
     if (!message) return false;
-    const isAssistantMessage = message.role === 'assistant';
-    const hasTextContent = message.parts?.some(part => part.type === 'text' && part.text?.trim());
+    const isAssistantMessage = message.role === "assistant";
+    const hasTextContent = message.parts?.some((part) => part.type === "text" && part.text?.trim());
     const notAlreadySpoken = lastSpokenMessageRef.current !== message.id;
     return isAssistantMessage && hasTextContent && notAlreadySpoken;
   };
 
   const extractTextContent = (message) => {
-    return message.parts
-      ?.filter(part => part.type === 'text')
-      .map(part => part.text)
-      .join('') || '';
+    return (
+      message.parts
+        ?.filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join("") || ""
+    );
   };
 
   useLayoutEffect(() => {
@@ -109,8 +111,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
               <button
                 onClick={onMenuClick}
                 className="hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 text-latte-text dark:text-macchiato-text rounded-lg p-2 md:hidden"
-                aria-label="Open menu">
-              </button>
+                aria-label="Open menu"></button>
             )}
             <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
           </div>
@@ -124,7 +125,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
           ref={scrollContainerRef}
-          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
+          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pb-[180px] pt-12 md:px-20">
           <div className="mx-auto max-w-4xl">
             <MessageList
               messages={messages}
@@ -167,10 +168,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
       {/* Voice Settings Modal */}
       {showVoiceSettings && (
-        <VoiceSettings
-          voiceControls={voice}
-          onClose={() => setShowVoiceSettings(false)}
-        />
+        <VoiceSettings voiceControls={voice} onClose={() => setShowVoiceSettings(false)} />
       )}
     </div>
   );

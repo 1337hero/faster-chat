@@ -32,25 +32,24 @@ const EditUserRoleModal = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={`Change Role: ${user?.username}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-latte-text dark:text-macchiato-text">
+          <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
             Role
           </label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-latte-surface1 bg-latte-base px-4 py-2 text-latte-text focus:border-latte-blue focus:outline-none dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue"
-          >
+            className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none">
             <option value="member">Member</option>
             <option value="admin">Admin</option>
             <option value="readonly">Read Only</option>
           </select>
-          <p className="mt-2 text-sm text-latte-subtext0 dark:text-macchiato-subtext0">
+          <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-2 text-sm">
             Changing role will invalidate all active sessions for this user.
           </p>
         </div>
 
         {error && (
-          <div className="rounded-lg bg-latte-red/10 px-4 py-3 text-sm text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red">
+          <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
             {error}
           </div>
         )}
@@ -59,11 +58,7 @@ const EditUserRoleModal = ({ user, isOpen, onClose }) => {
           <Button type="button" plain onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            color="blue"
-            disabled={updateMutation.isPending}
-          >
+          <Button type="submit" color="blue" disabled={updateMutation.isPending}>
             {updateMutation.isPending ? "Updating..." : "Update Role"}
           </Button>
         </div>

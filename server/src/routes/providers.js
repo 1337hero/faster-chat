@@ -52,11 +52,11 @@ providersRouter.get("/available", async (c) => {
     const nativeProviderIds = new Set(Object.keys(PROVIDERS));
 
     // Filter community providers to exclude ones with native SDK support
-    const filteredCommunity = communityProviders.filter(p => !nativeProviderIds.has(p.id));
+    const filteredCommunity = communityProviders.filter((p) => !nativeProviderIds.has(p.id));
 
     // Split native into local and official
-    const localProviders = nativeProviders.filter(p => p.type === "openai-compatible");
-    const officialProviders = nativeProviders.filter(p => p.type === "official");
+    const localProviders = nativeProviders.filter((p) => p.type === "openai-compatible");
+    const officialProviders = nativeProviders.filter((p) => p.type === "official");
 
     // Combine: LOCAL → NATIVE → COMMUNITY
     const allProviders = [...localProviders, ...officialProviders, ...filteredCommunity];
@@ -64,7 +64,10 @@ providersRouter.get("/available", async (c) => {
     return c.json({ providers: allProviders });
   } catch (error) {
     console.error("Get available providers error:", error);
-    return c.json({ error: "Failed to fetch available providers" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    return c.json(
+      { error: "Failed to fetch available providers" },
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
   }
 });
 
@@ -87,7 +90,9 @@ providersRouter.get("/", async (c) => {
         base_url: provider.base_url,
         enabled: provider.enabled === 1,
         has_key: !!provider.encrypted_key,
-        masked_key: provider.encrypted_key ? maskApiKey(decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag)) : null,
+        masked_key: provider.encrypted_key
+          ? maskApiKey(decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag))
+          : null,
         model_count: models.length,
         created_at: provider.created_at,
       };
@@ -166,14 +171,17 @@ providersRouter.post("/", async (c) => {
       // Provider was created but models failed - that's okay
     }
 
-    return c.json({
-      provider: {
-        id: providerId,
-        name,
-        display_name: displayName,
-        model_count: models.length,
+    return c.json(
+      {
+        provider: {
+          id: providerId,
+          name,
+          display_name: displayName,
+          model_count: models.length,
+        },
       },
-    }, 201);
+      201
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Validation error:", error.errors);
@@ -270,7 +278,10 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     });
   } catch (error) {
     console.error("Refresh models error:", error);
-    return c.json({ error: "Failed to refresh models: " + error.message }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    return c.json(
+      { error: "Failed to refresh models: " + error.message },
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
   }
 });
 
@@ -310,7 +321,7 @@ providersRouter.delete("/:id", async (c) => {
 async function fetchOllamaModels(baseUrl) {
   try {
     // Try the proper Ollama API endpoint first
-    const response = await fetch(`${baseUrl.replace('/v1', '')}/api/tags`, {
+    const response = await fetch(`${baseUrl.replace("/v1", "")}/api/tags`, {
       signal: AbortSignal.timeout(5000),
     });
 

@@ -102,7 +102,7 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
       />
 
       {uploading && currentFile && (
-        <div className="mb-2 text-xs text-latte-subtext0 dark:text-macchiato-subtext0">
+        <div className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs">
           Uploading {currentFile}...
         </div>
       )}

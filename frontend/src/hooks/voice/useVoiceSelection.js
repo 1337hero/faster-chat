@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'preact/hooks';
-import { VOICE_CONSTANTS } from '@faster-chat/shared';
+import { useEffect, useState } from "preact/hooks";
+import { VOICE_CONSTANTS } from "@faster-chat/shared";
 
 export function useVoiceSelection() {
   const [availableVoices, setAvailableVoices] = useState([]);
@@ -13,9 +13,10 @@ export function useVoiceSelection() {
       setAvailableVoices(voices);
 
       const savedVoiceName = localStorage.getItem(VOICE_CONSTANTS.STORAGE_KEY_VOICE);
-      const voice = voices.find(v => v.name === savedVoiceName) ||
-                   voices.find(v => v.lang.startsWith('en')) ||
-                   voices[0];
+      const voice =
+        voices.find((v) => v.name === savedVoiceName) ||
+        voices.find((v) => v.lang.startsWith("en")) ||
+        voices[0];
       setSelectedVoice(voice);
     };
 

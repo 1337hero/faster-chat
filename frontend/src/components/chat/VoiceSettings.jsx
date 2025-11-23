@@ -1,15 +1,13 @@
-import { useState } from 'preact/hooks';
-import { Volume2, X } from 'lucide-react';
-import { getLanguageName } from '@faster-chat/shared';
+import { useState } from "preact/hooks";
+import { Volume2, X } from "lucide-react";
+import { getLanguageName } from "@faster-chat/shared";
 
 const VoiceSettings = ({ voiceControls, onClose }) => {
-  const [selectedVoice, setSelectedVoice] = useState(
-    voiceControls.selectedVoice?.name || ''
-  );
+  const [selectedVoice, setSelectedVoice] = useState(voiceControls.selectedVoice?.name || "");
 
   const handleVoiceChange = (e) => {
     const voiceName = e.target.value;
-    const voice = voiceControls.availableVoices.find(v => v.name === voiceName);
+    const voice = voiceControls.availableVoices.find((v) => v.name === voiceName);
 
     if (voice) {
       voiceControls.changeVoice(voice);
@@ -55,13 +53,13 @@ const VoiceSettings = ({ voiceControls, onClose }) => {
           <select
             value={selectedVoice}
             onChange={handleVoiceChange}
-            className="bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text border-latte-overlay0/20 dark:border-macchiato-overlay0/20 w-full rounded-lg border px-4 py-2 focus:border-latte-blue dark:focus:border-macchiato-blue focus:outline-none focus:ring-2 focus:ring-latte-blue/20 dark:focus:ring-macchiato-blue/20">
+            className="bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text border-latte-overlay0/20 dark:border-macchiato-overlay0/20 focus:border-latte-blue dark:focus:border-macchiato-blue focus:ring-latte-blue/20 dark:focus:ring-macchiato-blue/20 w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2">
             <option value="">Select a voice...</option>
             {Object.entries(voicesByLanguage).map(([lang, voices]) => (
               <optgroup key={lang} label={getLanguageName(lang)}>
                 {voices.map((voice) => (
                   <option key={voice.name} value={voice.name}>
-                    {voice.name} {voice.localService ? '(Local)' : '(Online)'}
+                    {voice.name} {voice.localService ? "(Local)" : "(Online)"}
                   </option>
                 ))}
               </optgroup>
@@ -72,12 +70,12 @@ const VoiceSettings = ({ voiceControls, onClose }) => {
           {voiceControls.selectedVoice && (
             <div className="bg-latte-surface0/50 dark:bg-macchiato-surface0/50 rounded-lg p-3">
               <p className="text-latte-subtext1 dark:text-macchiato-subtext1 text-sm">
-                <span className="font-medium">Language:</span>{' '}
+                <span className="font-medium">Language:</span>{" "}
                 {getLanguageName(voiceControls.selectedVoice.lang)}
               </p>
               <p className="text-latte-subtext1 dark:text-macchiato-subtext1 text-sm">
-                <span className="font-medium">Type:</span>{' '}
-                {voiceControls.selectedVoice.localService ? 'Local' : 'Online'}
+                <span className="font-medium">Type:</span>{" "}
+                {voiceControls.selectedVoice.localService ? "Local" : "Online"}
               </p>
             </div>
           )}
@@ -92,9 +90,7 @@ const VoiceSettings = ({ voiceControls, onClose }) => {
 
         {/* Close Button */}
         <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="btn-blue px-4 py-2 text-sm">
+          <button onClick={onClose} className="btn-blue px-4 py-2 text-sm">
             Done
           </button>
         </div>

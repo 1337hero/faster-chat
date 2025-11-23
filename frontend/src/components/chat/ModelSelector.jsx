@@ -15,8 +15,12 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
   });
 
   const models = data?.models || [];
-  const currentModelData = models.find((m) => m.model_id === currentModel) || models.find((m) => m.is_default) || models[0];
-  const currentProviderId = currentModelData?.provider_name || currentModelData?.provider?.toLowerCase();
+  const currentModelData =
+    models.find((m) => m.model_id === currentModel) ||
+    models.find((m) => m.is_default) ||
+    models[0];
+  const currentProviderId =
+    currentModelData?.provider_name || currentModelData?.provider?.toLowerCase();
   const currentBranding = getProviderBranding(currentProviderId);
 
   useEffect(() => {
@@ -47,16 +51,15 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
           <div
             className={`flex h-5 w-5 items-center justify-center rounded-md ${
               currentBranding.className ||
-              "bg-gradient-to-br from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20"
+              "from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20 bg-gradient-to-br"
             }`}
-            style={currentBranding.style}
-          >
+            style={currentBranding.style}>
             <img
               src={getProviderLogoUrl(currentProviderId)}
               alt={`${currentModelData.provider_display_name} logo`}
-              className="h-3 w-3 dark:invert dark:brightness-90"
+              className="h-3 w-3 dark:brightness-90 dark:invert"
               onError={(e) => {
-                e.target.parentElement.style.display = 'none';
+                e.target.parentElement.style.display = "none";
               }}
             />
           </div>
@@ -92,20 +95,19 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
                     <div className="text-latte-text dark:text-macchiato-text font-medium">
                       {model.display_name}
                     </div>
-                    <div className="text-xs text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-1.5">
+                    <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-1.5 text-xs">
                       <div
                         className={`flex h-4 w-4 items-center justify-center rounded-md ${
                           branding.className ||
-                          "bg-gradient-to-br from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20"
+                          "from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20 bg-gradient-to-br"
                         }`}
-                        style={branding.style}
-                      >
+                        style={branding.style}>
                         <img
                           src={getProviderLogoUrl(providerId)}
                           alt={`${model.provider_display_name} logo`}
-                          className="h-2.5 w-2.5 dark:invert dark:brightness-90"
+                          className="h-2.5 w-2.5 dark:brightness-90 dark:invert"
                           onError={(e) => {
-                            e.target.parentElement.style.display = 'none';
+                            e.target.parentElement.style.display = "none";
                           }}
                         />
                       </div>
@@ -113,7 +115,7 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
                     </div>
                   </div>
                   {model.is_default && (
-                    <span className="rounded bg-latte-blue/20 dark:bg-macchiato-blue/20 text-latte-blue dark:text-macchiato-blue px-1.5 py-0.5 text-[10px] font-semibold uppercase">
+                    <span className="bg-latte-blue/20 dark:bg-macchiato-blue/20 text-latte-blue dark:text-macchiato-blue rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase">
                       Default
                     </span>
                   )}

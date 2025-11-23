@@ -53,10 +53,7 @@ function getClientIP(c) {
 
   const incoming = c.env?.incoming;
   const socket =
-    incoming?.socket ||
-    incoming?.connection ||
-    incoming?.req?.socket ||
-    incoming?.req?.connection;
+    incoming?.socket || incoming?.connection || incoming?.req?.socket || incoming?.req?.connection;
 
   return socket?.remoteAddress || "local";
 }
@@ -79,14 +76,20 @@ authRouter.post("/register", async (c) => {
   try {
     const ip = getClientIP(c);
     if (!checkRateLimit(`register:ip:${ip}`)) {
-      return c.json({ error: "Too many attempts. Please try again later." }, HTTP_STATUS.TOO_MANY_REQUESTS);
+      return c.json(
+        { error: "Too many attempts. Please try again later." },
+        HTTP_STATUS.TOO_MANY_REQUESTS
+      );
     }
 
     const body = await c.req.json();
     const { username, password } = RegisterSchema.parse(body);
 
     if (!checkRateLimit(`register:user:${username.toLowerCase()}`)) {
-      return c.json({ error: "Too many attempts for this username." }, HTTP_STATUS.TOO_MANY_REQUESTS);
+      return c.json(
+        { error: "Too many attempts for this username." },
+        HTTP_STATUS.TOO_MANY_REQUESTS
+      );
     }
 
     const userCount = dbUtils.getUserCount();
@@ -147,8 +150,14 @@ authRouter.post("/login", async (c) => {
     const body = await c.req.json();
     const { username, password } = LoginSchema.parse(body);
 
-    if (!checkRateLimit(`login:ip:${ip}`) || !checkRateLimit(`login:user:${username.toLowerCase()}`)) {
-      return c.json({ error: "Too many attempts. Please try again later." }, HTTP_STATUS.TOO_MANY_REQUESTS);
+    if (
+      !checkRateLimit(`login:ip:${ip}`) ||
+      !checkRateLimit(`login:user:${username.toLowerCase()}`)
+    ) {
+      return c.json(
+        { error: "Too many attempts. Please try again later." },
+        HTTP_STATUS.TOO_MANY_REQUESTS
+      );
     }
 
     // Get user

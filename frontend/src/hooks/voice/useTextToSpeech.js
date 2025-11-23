@@ -1,12 +1,7 @@
-import { useRef } from 'preact/hooks';
-import { VOICE_CONSTANTS, CHAT_STATES } from '@faster-chat/shared';
+import { useRef } from "preact/hooks";
+import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
 
-export function useTextToSpeech({
-  selectedVoice,
-  onSpeakStart,
-  onSpeakEnd,
-  currentStateRef
-}) {
+export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, currentStateRef }) {
   const ttsQueueRef = useRef([]);
   const isSpeakingRef = useRef(false);
   const cooldownTimerRef = useRef(null);
@@ -60,7 +55,7 @@ export function useTextToSpeech({
 
     const sentences = text.match(VOICE_CONSTANTS.SENTENCE_SPLIT_PATTERN) || [text];
 
-    sentences.forEach(sentence => {
+    sentences.forEach((sentence) => {
       if (sentence.trim()) {
         ttsQueueRef.current.push(sentence.trim());
       }

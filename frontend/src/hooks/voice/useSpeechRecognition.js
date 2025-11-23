@@ -1,12 +1,7 @@
-import { useRef } from 'preact/hooks';
-import { VOICE_CONSTANTS, CHAT_STATES } from '@faster-chat/shared';
+import { useRef } from "preact/hooks";
+import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
 
-export function useSpeechRecognition({
-  onResult,
-  onError,
-  language,
-  currentStateRef
-}) {
+export function useSpeechRecognition({ onResult, onError, language, currentStateRef }) {
   const recognitionRef = useRef(null);
 
   const initRecognition = () => {
@@ -20,8 +15,8 @@ export function useSpeechRecognition({
     recognition.lang = language || VOICE_CONSTANTS.DEFAULT_LANGUAGE;
 
     recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
+      let interimTranscript = "";
+      let finalTranscript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
@@ -36,15 +31,15 @@ export function useSpeechRecognition({
       if (onResult) {
         onResult({
           interim: interimTranscript,
-          final: finalTranscript
+          final: finalTranscript,
         });
       }
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
+      console.error("Speech recognition error:", event.error);
 
-      if (onError && event.error !== 'aborted') {
+      if (onError && event.error !== "aborted") {
         onError(`Microphone error: ${event.error}`);
       }
     };
@@ -56,7 +51,7 @@ export function useSpeechRecognition({
             try {
               recognitionRef.current.start();
             } catch (err) {
-              console.error('[useSpeechRecognition] Failed to restart:', err);
+              console.error("[useSpeechRecognition] Failed to restart:", err);
             }
           }
         }, VOICE_CONSTANTS.RECOGNITION_RESTART_DELAY_MS);
@@ -72,8 +67,8 @@ export function useSpeechRecognition({
     try {
       recognition.start();
     } catch (err) {
-      console.error('[useSpeechRecognition] Failed to start:', err);
-      if (onError) onError('Failed to start microphone');
+      console.error("[useSpeechRecognition] Failed to start:", err);
+      if (onError) onError("Failed to start microphone");
     }
   };
 
