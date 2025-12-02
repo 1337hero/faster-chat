@@ -193,6 +193,20 @@ export const PROVIDERS = {
     website: "https://ollama.ai/",
     docs: "https://github.com/ollama/ollama/blob/main/docs/api.md",
   },
+  lmstudio: {
+    id: "lmstudio",
+    name: "LM Studio",
+    displayName: "LM Studio (Local)",
+    type: "openai-compatible",
+    requiresApiKey: false,
+    requiresBaseUrl: true,
+    baseUrlPlaceholder: "http://127.0.0.1:1234/v1",
+    supportsVision: true,
+    supportsTools: true,
+    supportsStreaming: true,
+    website: "https://lmstudio.ai/",
+    docs: "https://lmstudio.ai/docs",
+  },
 };
 
 /**
