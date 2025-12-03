@@ -10,6 +10,7 @@ config();
 
 // Import routes
 import { chatRouter } from "./routes/chat.js";
+import { chatsRouter } from "./routes/chats.js";
 import { authRouter } from "./routes/auth.js";
 import { adminRouter } from "./routes/admin.js";
 import { providersRouter } from "./routes/providers.js";
@@ -54,6 +55,9 @@ app.route("/api", chatRouter);
 
 // Files routes (authentication handled in router)
 app.route("/api/files", filesRouter);
+
+// Chats routes (authentication handled in router)
+app.route("/api/chats", chatsRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

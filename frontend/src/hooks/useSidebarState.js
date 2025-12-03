@@ -1,19 +1,15 @@
 import { UI_CONSTANTS } from "@faster-chat/shared";
-import { db } from "@/lib/db";
+import { useChatsQuery, useDeleteChatMutation, useCreateChatMutation } from "./useChatsQuery";
 import { useUiState } from "@/state/useUiState";
-import { useAuthState } from "@/state/useAuthState";
-import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "preact/hooks";
 
 export function useSidebarState() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const userId = useAuthState((state) => state.user?.id ?? null);
-  const chats = useLiveQuery(() => {
-    if (userId === null) return [];
-    return db.getChats();
-  }, [userId]);
+  const { data: chats } = useChatsQuery();
+  const deleteChatMutation = useDeleteChatMutation();
+  const createChatMutation = useCreateChatMutation();
   const isSidebarOpen = useUiState((state) => state.sidebarOpen);
   const setIsSidebarOpen = useUiState((state) => state.setSidebarOpen);
   const toggleSidebar = useUiState((state) => state.toggleSidebar);
@@ -40,23 +36,23 @@ export function useSidebarState() {
     e.preventDefault();
     e.stopPropagation();
 
-    await db.deleteChat(chatId);
+    await deleteChatMutation.mutateAsync(chatId);
 
     if (pathname === `/chat/${chatId}`) {
-      const remainingChats = await db.getChats();
-      const nextChat = remainingChats?.[0];
+      const remainingChats = chats?.filter((c) => c.id !== chatId) ?? [];
+      const nextChat = remainingChats[0];
 
       if (nextChat) {
         navigateToChat(nextChat.id, true);
       } else {
-        const newChat = await db.createChat();
+        const newChat = await createChatMutation.mutateAsync({});
         navigateToChat(newChat.id, true);
       }
     }
   }
 
   async function handleNewChat() {
-    const newChat = await db.createChat();
+    const newChat = await createChatMutation.mutateAsync({});
     navigateToChat(newChat.id);
     if (isMobile) setIsSidebarOpen(false);
   }

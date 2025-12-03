@@ -104,6 +104,39 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_files_user_id ON files(user_id);
   CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
   CREATE INDEX IF NOT EXISTS idx_files_hash ON files(hash);
+
+  -- Chats table for conversation persistence
+  CREATE TABLE IF NOT EXISTS chats (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    title TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats(user_id);
+  CREATE INDEX IF NOT EXISTS idx_chats_user_updated ON chats(user_id, updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_chats_deleted ON chats(deleted_at);
+
+  -- Messages table for chat messages
+  CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    model TEXT,
+    file_ids TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
 `);
 
 function parseFileMeta(file) {
@@ -115,6 +148,17 @@ function parseFileMeta(file) {
     }
   }
   return file;
+}
+
+function parseMessageFileIds(message) {
+  if (message && message.file_ids) {
+    try {
+      message.file_ids = JSON.parse(message.file_ids);
+    } catch (e) {
+      message.file_ids = null;
+    }
+  }
+  return message;
 }
 
 function buildUpdateFields(updates, fieldMap) {
@@ -703,6 +747,134 @@ export const dbUtils = {
     const stmt = db.prepare("SELECT SUM(size) as total FROM files WHERE user_id = ?");
     const result = stmt.get(userId);
     return result.total || 0;
+  },
+
+  // ========================================
+  // CHAT UTILITIES
+  // ========================================
+
+  createChat(id, userId, title = null) {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      INSERT INTO chats (id, user_id, title, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(id, userId, title, now, now);
+    return { id, user_id: userId, title, created_at: now, updated_at: now, deleted_at: null };
+  },
+
+  getChatById(chatId) {
+    const stmt = db.prepare("SELECT * FROM chats WHERE id = ? AND deleted_at IS NULL");
+    return stmt.get(chatId);
+  },
+
+  getChatByIdAndUser(chatId, userId) {
+    const stmt = db.prepare("SELECT * FROM chats WHERE id = ? AND user_id = ? AND deleted_at IS NULL");
+    return stmt.get(chatId, userId);
+  },
+
+  getChatsByUserId(userId) {
+    const stmt = db.prepare(`
+      SELECT * FROM chats
+      WHERE user_id = ? AND deleted_at IS NULL
+      ORDER BY updated_at DESC
+    `);
+    return stmt.all(userId);
+  },
+
+  updateChatTitle(chatId, title) {
+    const now = Date.now();
+    const stmt = db.prepare("UPDATE chats SET title = ?, updated_at = ? WHERE id = ?");
+    stmt.run(title, now, chatId);
+  },
+
+  updateChatTimestamp(chatId) {
+    const now = Date.now();
+    const stmt = db.prepare("UPDATE chats SET updated_at = ? WHERE id = ?");
+    stmt.run(now, chatId);
+  },
+
+  softDeleteChat(chatId) {
+    const now = Date.now();
+    const stmt = db.prepare("UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ?");
+    const result = stmt.run(now, now, chatId);
+    return result.changes > 0;
+  },
+
+  softDeleteChatByUser(chatId, userId) {
+    const now = Date.now();
+    const stmt = db.prepare("UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ?");
+    const result = stmt.run(now, now, chatId, userId);
+    return result.changes > 0;
+  },
+
+  hardDeleteChat(chatId) {
+    const stmt = db.prepare("DELETE FROM chats WHERE id = ?");
+    const result = stmt.run(chatId);
+    return result.changes > 0;
+  },
+
+  // ========================================
+  // MESSAGE UTILITIES
+  // ========================================
+
+  createMessage(id, chatId, userId, role, content, model = null, fileIds = null) {
+    const now = Date.now();
+    const fileIdsJson = fileIds ? JSON.stringify(fileIds) : null;
+    const stmt = db.prepare(`
+      INSERT INTO messages (id, chat_id, user_id, role, content, model, file_ids, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(id, chatId, userId, role, content, model, fileIdsJson, now);
+    return { id, chat_id: chatId, user_id: userId, role, content, model, file_ids: fileIds, created_at: now };
+  },
+
+  getMessageById(messageId) {
+    const stmt = db.prepare("SELECT * FROM messages WHERE id = ?");
+    const msg = stmt.get(messageId);
+    return parseMessageFileIds(msg);
+  },
+
+  getMessagesByChat(chatId) {
+    const stmt = db.prepare(`
+      SELECT * FROM messages
+      WHERE chat_id = ?
+      ORDER BY created_at ASC
+    `);
+    return stmt.all(chatId).map(parseMessageFileIds);
+  },
+
+  getMessagesByChatAndUser(chatId, userId) {
+    const stmt = db.prepare(`
+      SELECT * FROM messages
+      WHERE chat_id = ? AND user_id = ?
+      ORDER BY created_at ASC
+    `);
+    return stmt.all(chatId, userId).map(parseMessageFileIds);
+  },
+
+  deleteMessage(messageId) {
+    const stmt = db.prepare("DELETE FROM messages WHERE id = ?");
+    const result = stmt.run(messageId);
+    return result.changes > 0;
+  },
+
+  deleteMessageByUser(messageId, userId) {
+    const stmt = db.prepare("DELETE FROM messages WHERE id = ? AND user_id = ?");
+    const result = stmt.run(messageId, userId);
+    return result.changes > 0;
+  },
+
+  deleteMessagesByChat(chatId) {
+    const stmt = db.prepare("DELETE FROM messages WHERE chat_id = ?");
+    const result = stmt.run(chatId);
+    return result.changes;
+  },
+
+  getMessageCountByChat(chatId) {
+    const stmt = db.prepare("SELECT COUNT(*) as count FROM messages WHERE chat_id = ?");
+    const result = stmt.get(chatId);
+    return result.count;
   },
 };
 
