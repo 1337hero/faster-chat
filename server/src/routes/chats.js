@@ -188,6 +188,12 @@ chatsRouter.post("/:chatId/messages", async (c) => {
     let chat = dbUtils.getChatByIdAndUser(chatId, user.id);
 
     if (!chat) {
+      // Check if this chat exists but belongs to someone else
+      const existingChat = dbUtils.getChatById(chatId);
+      if (existingChat) {
+        return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+      }
+      // Chat doesn't exist at all, safe to create for this user
       chat = dbUtils.createChat(chatId, user.id, null);
     }
 

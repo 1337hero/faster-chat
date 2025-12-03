@@ -40,12 +40,15 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
   const modelRef = useRef(model);
   modelRef.current = model;
 
+  const persistedMessagesRef = useRef(persistedMessages);
+  persistedMessagesRef.current = persistedMessages;
+
   const formattedMessages = (persistedMessages ?? []).map((msg) => ({
     id: msg.id,
     role: msg.role,
     parts: [{ type: "text", text: msg.content }],
-    fileIds: msg.fileIds || [], // Preserve fileIds from Dexie
-    model: msg.model || null, // Preserve model from Dexie
+    fileIds: msg.fileIds || [],
+    model: msg.model || null,
   }));
 
   const transport = useMemo(
@@ -53,7 +56,20 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
       new DefaultChatTransport({
         api: "/api/chat",
         prepareSendMessagesRequest: ({ messages: outgoingMessages }) => {
-          const normalized = formatMessagesForTransport(outgoingMessages ?? []);
+          // Convert persisted messages to transport format
+          const persistedForTransport = (persistedMessagesRef.current ?? []).map((msg) => ({
+            id: msg.id,
+            role: msg.role,
+            parts: [{ type: "text", text: msg.content ?? "" }],
+          }));
+
+          // Merge persisted history with new messages from SDK
+          // SDK messages that aren't in persisted are the new ones being sent
+          const persistedIds = new Set(persistedForTransport.map((m) => m.id));
+          const newMessages = (outgoingMessages ?? []).filter((m) => !persistedIds.has(m.id));
+          const allMessages = [...persistedForTransport, ...newMessages];
+
+          const normalized = formatMessagesForTransport(allMessages);
 
           // Extract fileIds from the last message (user message)
           const lastMessage = outgoingMessages?.[outgoingMessages.length - 1];
@@ -64,7 +80,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
               model: modelRef.current,
               systemPromptId: "default",
               messages: normalized,
-              fileIds, // Include fileIds in request
+              fileIds,
             },
           };
         },
@@ -81,7 +97,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     resumeStream,
   } = useAIChat({
     id: chatId,
-    messages: [], // Don't pass persisted messages - let Dexie handle display
+    messages: [], // SDK state starts empty; persisted messages are merged in prepareSendMessagesRequest
     transport,
     resume: true,
     onFinish: async ({ message }) => {
@@ -104,7 +120,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     model: msg.role === "assistant" ? modelRef.current : msg.model,
   }));
 
-  // Merge persisted messages from Dexie with any actively streaming message
+  // Merge persisted messages from server with any actively streaming message
   const messages = isStreaming
     ? deduplicateMessages([...formattedMessages, ...streamingMessagesWithModel])
     : formattedMessages;

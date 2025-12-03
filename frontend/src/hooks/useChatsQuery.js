@@ -4,8 +4,7 @@ import { useAuthState } from "@/state/useAuthState";
 
 export const chatKeys = {
   all: ["chats"],
-  lists: () => [...chatKeys.all, "list"],
-  list: () => chatKeys.lists(),
+  list: () => [...chatKeys.all, "list"],
   details: () => [...chatKeys.all, "detail"],
   detail: (id) => [...chatKeys.details(), id],
   messages: (chatId) => [...chatKeys.detail(chatId), "messages"],
