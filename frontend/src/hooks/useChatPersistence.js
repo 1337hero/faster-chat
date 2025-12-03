@@ -1,7 +1,7 @@
 import { useChatQuery, useMessagesQuery, useCreateMessageMutation } from "./useChatsQuery";
 
 export function useChatPersistence(chatId) {
-  const { data: chat } = useChatQuery(chatId);
+  const { data: chat, isLoading: isChatLoading, isError: isChatError } = useChatQuery(chatId);
   const { data: messages } = useMessagesQuery(chatId);
   const createMessageMutation = useCreateMessageMutation();
 
@@ -9,7 +9,7 @@ export function useChatPersistence(chatId) {
     const message = {
       role: "user",
       content,
-      fileIds: fileIds.length > 0 ? fileIds : null,
+      fileIds,
     };
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
@@ -28,6 +28,8 @@ export function useChatPersistence(chatId) {
   return {
     chat,
     messages: messages ?? [],
+    isChatLoading,
+    isChatError,
     saveUserMessage,
     saveAssistantMessage,
   };
