@@ -28,8 +28,8 @@
   "license": "MIT",
   "author": "1337 Hero, LLC",
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "prettier": "^3.6.2",
-    "prettier-plugin-tailwindcss": "^0.6.14"
+    "concurrently": "^9.2.1",
+    "prettier": "^3.7.4",
+    "prettier-plugin-tailwindcss": "^0.7.2"
   }
 }
