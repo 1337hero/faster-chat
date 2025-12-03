@@ -4,7 +4,7 @@ import {
   hasSeenAdminConnectionsOnboarding,
   markAdminConnectionsOnboardingSeen,
 } from "@/lib/adminOnboarding";
-import { db } from "@/lib/db";
+import { chatsClient } from "@/lib/chatsClient";
 import { useAuthState } from "@/state/useAuthState";
 import {
   createRootRoute,
@@ -14,7 +14,6 @@ import {
   Outlet,
   useNavigate,
 } from "@tanstack/react-router";
-import { nanoid } from "nanoid";
 import { lazy, Suspense, useEffect, useRef, useState } from "preact/compat";
 
 // Lazy load page components
@@ -96,7 +95,7 @@ const indexRoute = createRoute({
 
       async function loadChatOrCreateNew() {
         try {
-          const existingChats = await db.getChats();
+          const existingChats = await chatsClient.getChats();
           const hasSeenOnboarding = hasSeenAdminConnectionsOnboarding(user?.id);
 
           // First-time admin onboarding: redirect to Connections tab before creating chats
@@ -119,20 +118,20 @@ const indexRoute = createRoute({
             });
           } else {
             // Create new chat
-            const newChatId = nanoid();
+            const newChat = await chatsClient.createChat();
             navigate({
               to: "/chat/$chatId",
-              params: { chatId: newChatId },
+              params: { chatId: newChat.id },
               replace: true,
             });
           }
         } catch (error) {
           console.error("Error loading chats:", error);
           // Fallback to new chat on error
-          const newChatId = nanoid();
+          const newChat = await chatsClient.createChat();
           navigate({
             to: "/chat/$chatId",
-            params: { chatId: newChatId },
+            params: { chatId: newChat.id },
             replace: true,
           });
         } finally {

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { chatsClient } from "@/lib/chatsClient";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
@@ -37,7 +37,11 @@ export function useChat({ id: chatId, model }) {
 
     setInput("");
 
-    const currentChatId = chatId || (await db.createChat()).id;
+    let currentChatId = chatId;
+    if (!currentChatId) {
+      const newChat = await chatsClient.createChat();
+      currentChatId = newChat.id;
+    }
 
     if (!chatId) {
       navigate({

@@ -1,52 +1,33 @@
-import { db } from "@/lib/db";
-import { useAuthState } from "@/state/useAuthState";
-import { useLiveQuery } from "dexie-react-hooks";
-import { UI_CONSTANTS } from "@faster-chat/shared";
+import { useChatQuery, useMessagesQuery, useCreateMessageMutation } from "./useChatsQuery";
 
 export function useChatPersistence(chatId) {
-  const userId = useAuthState((state) => state.user?.id ?? null);
-
-  const chat = useLiveQuery(async () => {
-    if (!chatId || userId === null) return null;
-    return await db.chats.get(chatId);
-  }, [chatId, userId]);
-
-  const messages = useLiveQuery(async () => {
-    if (!chatId || userId === null) return [];
-    return await db.getChatMessages(chatId);
-  }, [chatId, userId]);
+  const { data: chat } = useChatQuery(chatId);
+  const { data: messages } = useMessagesQuery(chatId);
+  const createMessageMutation = useCreateMessageMutation();
 
   async function saveUserMessage(content, currentChatId, fileIds = []) {
-    await db.addMessage({
-      chatId: currentChatId,
-      content,
+    const message = {
       role: "user",
-      fileIds,
-    });
+      content,
+      fileIds: fileIds.length > 0 ? fileIds : null,
+    };
 
-    const isFirstMessage = messages?.length === 0;
-    if (isFirstMessage) {
-      const title =
-        content.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-        (content.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
-          ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
-          : "");
-      await db.updateChatTitle(currentChatId, title);
-    }
+    return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }
 
   async function saveAssistantMessage(content, currentChatId, model = null) {
-    await db.addMessage({
-      chatId: currentChatId,
-      content,
+    const message = {
       role: "assistant",
+      content,
       model,
-    });
+    };
+
+    return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }
 
   return {
     chat,
-    messages,
+    messages: messages ?? [],
     saveUserMessage,
     saveAssistantMessage,
   };
