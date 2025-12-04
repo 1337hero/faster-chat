@@ -26,9 +26,6 @@ function formatMessagesForTransport(messages) {
 }
 
 export function useChatStream({ chatId, model, persistedMessages, onMessageComplete }) {
-  const chatIdRef = useRef(chatId);
-  chatIdRef.current = chatId;
-
   const modelRef = useRef(model);
   modelRef.current = model;
 
@@ -54,7 +51,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: () => `/api/chats/${chatIdRef.current}/completion`,
+        api: `/api/chats/${chatId}/completion`,
         prepareSendMessagesRequest: ({ messages: outgoingMessages }) => {
           // Convert persisted messages to transport format
           const persistedForTransport = (persistedMessagesRef.current ?? []).map((msg) => ({
@@ -85,7 +82,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
           };
         },
       }),
-    []
+    [chatId]
   );
 
   const {
@@ -94,12 +91,10 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     status,
     error,
     stop,
-    resumeStream,
   } = useAIChat({
     id: chatId,
     messages: [], // SDK state starts empty; persisted messages are merged in prepareSendMessagesRequest
     transport,
-    resume: true,
     onFinish: async ({ message }) => {
       const content = message.parts
         .filter((part) => part.type === "text")
@@ -152,7 +147,6 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     messages,
     send,
     stop,
-    resumeStream,
     status,
     error,
     isStreaming,
