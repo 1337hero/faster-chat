@@ -1,10 +1,13 @@
+import SidebarToolbar from "@/components/layout/SidebarToolbar";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
 import { useChat } from "@/hooks/useChat";
+import { useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { useVoice } from "@/hooks/useVoice";
 import { useUiState } from "@/state/useUiState";
 import { VOICE_CONSTANTS } from "@faster-chat/shared";
+import { useNavigate } from "@tanstack/react-router";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
@@ -13,8 +16,15 @@ import VoiceSettings from "./VoiceSettings";
 import VoiceStatusIndicator from "./VoiceStatusIndicator";
 
 const ChatInterface = ({ chatId, onMenuClick }) => {
+  const navigate = useNavigate();
+  const createChatMutation = useCreateChatMutation();
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
+
+  const handleNewChat = async () => {
+    const newChat = await createChatMutation.mutateAsync();
+    navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
+  };
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollContainerRef = useRef(null);
   const [voiceError, setVoiceError] = useState(null);
@@ -97,16 +107,21 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       <div className="relative flex-1">
         {/* Navbar - Elevated Layer */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:px-8 md:py-6">
+          {/* Left: Toolbar with negative margin to hide behind sidebar */}
           <div className="flex items-center gap-3">
+            <SidebarToolbar onNewChat={handleNewChat} onSearch={() => {}} />
             {onMenuClick && (
               <button
                 onClick={onMenuClick}
                 className="hover:bg-theme-surface/50 text-theme-text rounded-lg p-2 md:hidden"
                 aria-label="Open menu"></button>
             )}
-            <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
           </div>
 
+          {/* Center: Model Selector */}
+          <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
+
+          {/* Right: Controls */}
           <div className="flex items-center gap-3">
             <VoiceStatusIndicator voiceControls={voice} />
             <ThemeToggle />

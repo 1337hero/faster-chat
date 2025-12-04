@@ -1,10 +1,9 @@
-import * as LucideIcons from "lucide-react";
-import { Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 import { useSidebarState } from "@/hooks/useSidebarState";
-import { useUiState } from "@/state/useUiState";
 import { useAppSettings } from "@/state/useAppSettings";
+import { useUiState } from "@/state/useUiState";
 import { LOGO_ICON_NAMES } from "@faster-chat/shared";
-import SidebarToolbar from "./SidebarToolbar";
+import * as LucideIcons from "lucide-react";
+import { PanelLeftClose, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 
 // Build icon map from shared names
 const LOGO_ICONS = LOGO_ICON_NAMES.reduce((acc, name) => {
@@ -25,9 +24,13 @@ const Sidebar = () => {
   } = useSidebarState();
 
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
+  const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
   const appName = useAppSettings((state) => state.appName);
   const logoIcon = useAppSettings((state) => state.logoIcon);
   const LogoIcon = LOGO_ICONS[logoIcon] || Zap;
+  const isUtilityRoute = pathname === "/admin" || pathname === "/settings";
+  const forceExpanded = isUtilityRoute && !isMobile;
+  const effectiveCollapsed = forceExpanded ? false : sidebarCollapsed;
 
   // On desktop: slide off-screen when collapsed
   // On mobile: use translate for open/close
@@ -35,14 +38,20 @@ const Sidebar = () => {
     if (isMobile) {
       return isSidebarOpen ? "translate-x-0" : "-translate-x-full";
     }
-    return sidebarCollapsed ? "-translate-x-full" : "translate-x-0";
+    return effectiveCollapsed ? "-translate-x-full" : "translate-x-0";
+  };
+
+  const handleLogoClick = async () => {
+    if (isUtilityRoute || effectiveCollapsed) {
+      await handleNewChat();
+      if (!isMobile && sidebarCollapsed) {
+        toggleSidebarCollapse();
+      }
+    }
   };
 
   return (
     <>
-      {/* Floating toolbar - always visible on desktop, buttons slide in when collapsed */}
-      {!isMobile && <SidebarToolbar onNewChat={handleNewChat} onSearch={() => {}} />}
-
       {/* Overlay for mobile */}
       {isSidebarOpen && isMobile && (
         <div
@@ -56,7 +65,10 @@ const Sidebar = () => {
         className={`bg-theme-canvas-alt border-theme-surface-strong fixed inset-y-0 left-0 z-50 flex w-72 transform-gpu flex-col border-r transition-transform duration-300 ease-snappy ${getSidebarTransform()}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-2">
+          <div
+            className="flex cursor-pointer items-center gap-2"
+            onClick={handleLogoClick}
+            title={isUtilityRoute ? "Return to chat" : effectiveCollapsed ? "Expand sidebar" : undefined}>
             <div className="bg-theme-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg shadow-lg">
               <LogoIcon className="h-5 w-5 text-white" />
             </div>
@@ -73,6 +85,16 @@ const Sidebar = () => {
               <X size={20} />
             </button>
           )}
+
+          {/* Desktop Collapse Toggle */}
+          {!forceExpanded && !effectiveCollapsed && !isMobile && (
+            <button
+              onClick={toggleSidebarCollapse}
+              className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 hidden rounded-md p-1 transition-colors md:block">
+              <PanelLeftClose size={18} />
+            </button>
+          )}
+        
         </div>
 
         {/* Primary Actions */}

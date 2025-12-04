@@ -1,18 +1,33 @@
 import { useAuthState } from "@/state/useAuthState";
+import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
+import { LayoutGrid } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuthState();
+  const { returnToChat, isReturning } = useReturnToChat();
 
   return (
     <div className="bg-theme-canvas flex h-full flex-col">
       {/* Header */}
       <div className="border-theme-surface border-b px-6 py-4">
-        <h1 className="text-theme-text text-2xl font-semibold">Settings</h1>
-        <p className="text-theme-text-muted mt-1 text-sm">
-          Manage your personal preferences and account settings
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-theme-text text-2xl font-semibold">Settings</h1>
+            <p className="text-theme-text-muted mt-1 text-sm">
+              Manage your personal preferences and account settings
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={returnToChat}
+            disabled={isReturning}
+            className="text-theme-text hover:text-theme-text mt-1 flex items-center gap-2 rounded-lg border border-theme-surface px-3 py-1.5 text-sm font-medium transition-colors hover:border-theme-surface-strong hover:bg-theme-surface disabled:opacity-60">
+            <LayoutGrid size={16} />
+            <span>Return to chat</span>
+          </button>
+        </div>
       </div>
 
       {/* Content */}
