@@ -17,6 +17,10 @@ export default defineConfig({
               mono: ["JetBrains Mono", "monospace"],
               sans: ["Sora", "sans-serif"],
             },
+            transitionTimingFunction: {
+              // T3 Chat's snappy easing - fast start, quick settle
+              snappy: "cubic-bezier(.2, .4, .1, .95)",
+            },
           },
         },
       },

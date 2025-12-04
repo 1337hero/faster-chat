@@ -133,3 +133,32 @@ When adding state or effects, ask yourself:
 6. Am I using useCallback? (If yes, reconsider your approach)
 7. Does this code follow patterns already in this codebase?
 8. Would this be obvious to a new developer without explanation?
+
+## CSS/Animation Performance Patterns
+
+### Snappy Transitions
+- Use `ease-snappy` timing function for UI interactions (defined in vite.config.js as `cubic-bezier(.2, .4, .1, .95)`)
+- Fast start, quick settle - makes interfaces feel responsive
+- Apply to hover states, toggles, slide-ins, and other micro-interactions
+
+### Transition Best Practices
+- Use specific transition properties (`transition-colors`, `transition-transform`) instead of `transition-all`
+- Keep durations short: 75ms for hovers, 150ms max for most UI transitions
+- Combine: `transition-colors duration-75 ease-snappy`
+
+### GPU Acceleration
+- Add `transform-gpu` to elements with:
+  - `animate-*` classes (ping, pulse, spin, bounce)
+  - `transition-transform`
+  - Transform classes (`translate-*`, `rotate-*`, `scale-*`)
+- This forces GPU compositing via `translateZ(0)` for smoother animations
+
+### Scroll Containers
+- Use `overflow-y-scroll` with `scrollbar-gutter: stable both-edges` to prevent content shift
+- Avoid JS scroll handlers when native scrolling suffices
+- Keep fixed/absolute overlays (headers, input areas) outside the scroll container
+
+### Transform-Based Animations
+- Prefer `translate-x/y` transforms over `left/top/opacity` for slide animations
+- Transforms are GPU-accelerated and don't trigger layout recalculations
+- Example: Slide-in delete button uses `translate-x-2 group-hover:translate-x-0` instead of opacity

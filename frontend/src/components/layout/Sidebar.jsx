@@ -159,24 +159,28 @@ const Sidebar = () => {
                   tabIndex={0}
                   onClick={() => handleSelectChat(chat.id)}
                   onKeyDown={(e) => e.key === "Enter" && handleSelectChat(chat.id)}
-                  className={`group relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-all duration-150 ${
+                  className={`group relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-75 ease-snappy ${
                     isActive
                       ? "bg-theme-primary/10 text-theme-primary font-medium"
                       : "text-theme-text-muted hover:text-theme-text hover:bg-white/5"
                   } `}>
                   <span className="flex-1 truncate pr-6 text-sm">{chat.title || "New Chat"}</span>
 
-                  <button
-                    type="button"
-                    onClick={(e) => handleDeleteChat(e, chat.id)}
-                    className={`absolute right-2 rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
-                      isActive
-                        ? "hover:bg-theme-primary/10 text-theme-primary"
-                        : "hover:bg-theme-red/10 hover:text-theme-red"
-                    }`}
-                    title="Delete Chat">
-                    <Trash2 size={14} />
-                  </button>
+                  {/* Delete button - GPU-accelerated slide-in from right */}
+                  <div className="absolute right-0 top-0 bottom-0 flex items-center pr-2">
+                    <div className="bg-theme-canvas-alt pointer-events-none absolute inset-y-0 -left-6 w-6 bg-gradient-to-l from-current to-transparent opacity-0 transition-opacity duration-75 ease-snappy group-hover:opacity-100" />
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteChat(e, chat.id)}
+                      className={`translate-x-2 transform-gpu rounded-md p-1 transition-transform duration-75 ease-snappy group-hover:translate-x-0 ${
+                        isActive
+                          ? "hover:bg-theme-primary/10 text-theme-primary"
+                          : "text-theme-text-muted hover:bg-theme-red/10 hover:text-theme-red"
+                      }`}
+                      title="Delete Chat">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               );
             })}

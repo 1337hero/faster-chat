@@ -1,13 +1,25 @@
 import ChatInterface from "@/components/chat/ChatInterface";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useChatQuery, useCreateChatMutation } from "@/hooks/useChatsQuery";
+import { useAppSettings } from "@/state/useAppSettings";
 import { useNavigate } from "@tanstack/react-router";
-import { useRef } from "preact/hooks";
+import { useLayoutEffect, useRef } from "preact/hooks";
 
 const Chat = ({ chatId }) => {
   const navigate = useNavigate();
-  const { isLoading, isError, error } = useChatQuery(chatId);
+  const { data: chat, isLoading, isError, error } = useChatQuery(chatId);
   const createChatMutation = useCreateChatMutation();
+  const appName = useAppSettings((state) => state.appName);
+
+  // Update document title when chat changes
+  useLayoutEffect(() => {
+    const chatTitle = chat?.title || "New Chat";
+    document.title = `${chatTitle} | ${appName}`;
+
+    return () => {
+      document.title = appName;
+    };
+  }, [chat?.title, appName]);
   const hasAttemptedRedirect = useRef(false);
 
   // Auto-redirect to new chat if current chat is missing/deleted
