@@ -1,6 +1,47 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+// Font presets for chat
+export const FONT_PRESETS = [
+  {
+    id: "default",
+    name: "Default",
+    family: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    preview: "Inter",
+  },
+  {
+    id: "system",
+    name: "System",
+    family: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    preview: "System",
+  },
+  {
+    id: "serif",
+    name: "Serif",
+    family: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+    preview: "Georgia",
+  },
+  {
+    id: "mono",
+    name: "Mono",
+    family: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    preview: "JetBrains",
+  },
+  {
+    id: "dyslexic",
+    name: "Dyslexic",
+    family: '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif',
+    preview: "OpenDyslexic",
+  },
+];
+
+// Font size presets
+export const FONT_SIZE_PRESETS = [
+  { id: "small", name: "Small", size: "14px" },
+  { id: "medium", name: "Medium", size: "16px" },
+  { id: "large", name: "Large", size: "18px" },
+];
+
 // Theme manifest - maps theme IDs to their JSON file paths
 const BUNDLED_THEMES = [
   { id: "default", name: "Default", path: "/themes/default.json" },
@@ -77,6 +118,16 @@ const hexToRgb = (hex) => {
     : null;
 };
 
+// Apply font settings to document root
+const applyFontSettings = (fontId, fontSizeId) => {
+  const root = document.documentElement;
+  const fontPreset = FONT_PRESETS.find((f) => f.id === fontId) || FONT_PRESETS[0];
+  const sizePreset = FONT_SIZE_PRESETS.find((s) => s.id === fontSizeId) || FONT_SIZE_PRESETS[1];
+
+  root.style.setProperty("--theme-font-chat", fontPreset.family);
+  root.style.setProperty("--theme-font-size-chat", sizePreset.size);
+};
+
 export const useThemeStore = create(
   persist(
     (set, get) => ({
@@ -90,10 +141,13 @@ export const useThemeStore = create(
       availableThemes: BUNDLED_THEMES,
       // Loading state
       isLoading: false,
+      // Font settings
+      chatFont: "default",
+      chatFontSize: "medium",
 
       // Initialize theme on app start
       initializeTheme: async () => {
-        const { themeId, mode } = get();
+        const { themeId, mode, chatFont, chatFontSize } = get();
         const themeMeta = BUNDLED_THEMES.find((t) => t.id === themeId) || BUNDLED_THEMES[0];
 
         set({ isLoading: true });
@@ -102,6 +156,7 @@ export const useThemeStore = create(
           const theme = await loadTheme(themeMeta.path);
           set({ currentTheme: theme, isLoading: false });
           applyThemeColors(theme.colors, mode);
+          applyFontSettings(chatFont, chatFontSize);
 
           // Apply dark class for Tailwind
           document.documentElement.classList.toggle("dark", mode === "dark");
@@ -159,13 +214,29 @@ export const useThemeStore = create(
           applyThemeColors(currentTheme.colors, newMode);
         }
       },
+
+      // Set chat font
+      setChatFont: (fontId) => {
+        const { chatFontSize } = get();
+        set({ chatFont: fontId });
+        applyFontSettings(fontId, chatFontSize);
+      },
+
+      // Set chat font size
+      setChatFontSize: (sizeId) => {
+        const { chatFont } = get();
+        set({ chatFontSize: sizeId });
+        applyFontSettings(chatFont, sizeId);
+      },
     }),
     {
-      name: "theme-store-v2",
+      name: "theme-store-v3",
       // Only persist these keys
       partialize: (state) => ({
         themeId: state.themeId,
         mode: state.mode,
+        chatFont: state.chatFont,
+        chatFontSize: state.chatFontSize,
       }),
     }
   )

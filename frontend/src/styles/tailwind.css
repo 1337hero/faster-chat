@@ -57,6 +57,9 @@
     --border-radius-normal: 12px;
     --shadow-color: 9 9 11;
     --inverted-text: #fafafa;
+    /* Font defaults - overridden by useThemeStore */
+    --theme-font-chat: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --theme-font-size-chat: 16px;
   }
 
   /* Set default background and text colors */
