@@ -45,7 +45,7 @@ const Chat = ({ chatId }) => {
   if (isLoading || createChatMutation.isPending) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0">
+        <div className="text-theme-text-muted">
           {createChatMutation.isPending ? "Redirecting to a new chat..." : "Loading chat..."}
         </div>
       </div>
@@ -64,13 +64,13 @@ const Chat = ({ chatId }) => {
           <button
             type="button"
             onClick={handleCreateNewChat}
-            className="btn-blue rounded-xl px-4 py-2 text-sm font-semibold text-white">
+            className="btn btn-primary rounded-xl px-4 py-2 text-sm font-semibold">
             Create new chat
           </button>
           <button
             type="button"
             onClick={() => navigate({ to: "/", replace: true })}
-            className="text-latte-text dark:text-macchiato-text bg-latte-surface1 dark:bg-macchiato-surface1 hover:bg-latte-surface2 dark:hover:bg-macchiato-surface2 rounded-xl px-4 py-2 text-sm font-semibold transition">
+            className="text-theme-text bg-theme-surface-strong hover:bg-theme-surface-stronger rounded-xl px-4 py-2 text-sm font-semibold transition">
             Go home
           </button>
         </div>

@@ -15,16 +15,16 @@ const VoiceStatusIndicator = ({ voiceControls }) => {
         return {
           icon: Mic,
           text: "Listening...",
-          color: "text-latte-green dark:text-macchiato-green",
-          bgColor: "bg-latte-green/10 dark:bg-macchiato-green/10",
+          color: "text-theme-green",
+          bgColor: "bg-theme-green/10",
           animate: true,
         };
       case CHAT_STATES.PROCESSING:
         return {
           icon: Loader2,
           text: "Processing...",
-          color: "text-latte-blue dark:text-macchiato-blue",
-          bgColor: "bg-latte-blue/10 dark:bg-macchiato-blue/10",
+          color: "text-theme-blue",
+          bgColor: "bg-theme-blue/10",
           animate: true,
           spin: true,
         };
@@ -32,16 +32,16 @@ const VoiceStatusIndicator = ({ voiceControls }) => {
         return {
           icon: Volume2,
           text: "Speaking...",
-          color: "text-latte-mauve dark:text-macchiato-mauve",
-          bgColor: "bg-latte-mauve/10 dark:bg-macchiato-mauve/10",
+          color: "text-theme-mauve",
+          bgColor: "bg-theme-mauve/10",
           animate: true,
         };
       case CHAT_STATES.COOLDOWN:
         return {
           icon: Loader2,
           text: "Ready...",
-          color: "text-latte-overlay0 dark:text-macchiato-overlay0",
-          bgColor: "bg-latte-overlay0/10 dark:bg-macchiato-overlay0/10",
+          color: "text-theme-overlay",
+          bgColor: "bg-theme-overlay/10",
           animate: false,
         };
       default:
@@ -64,7 +64,7 @@ const VoiceStatusIndicator = ({ voiceControls }) => {
 
       {/* Transcript Display */}
       {voiceControls.transcript && voiceControls.isListening && (
-        <span className="text-latte-subtext0 dark:text-macchiato-subtext0 ml-1 text-xs italic">
+        <span className="text-theme-text-muted ml-1 text-xs italic">
           "{voiceControls.transcript}"
         </span>
       )}

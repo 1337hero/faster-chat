@@ -5,109 +5,64 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Catppuccin Macchiato palette (dark mode) */
-  --color-macchiato-rosewater: #f4dbd6;
-  --color-macchiato-flamingo: #f0c6c6;
-  --color-macchiato-pink: #f5bde6;
-  --color-macchiato-mauve: #c6a0f6;
-  --color-macchiato-red: #ed8796;
-  --color-macchiato-maroon: #ee99a0;
-  --color-macchiato-peach: #f5a97f;
-  --color-macchiato-yellow: #eed49f;
-  --color-macchiato-green: #a6da95;
-  --color-macchiato-teal: #8bd5ca;
-  --color-macchiato-sky: #91d7e3;
-  --color-macchiato-sapphire: #7dc4e4;
-  --color-macchiato-blue: #8aadf4;
-  --color-macchiato-lavender: #b7bdf8;
-  --color-macchiato-text: #cad3f5;
-  --color-macchiato-subtext1: #b8c0e0;
-  --color-macchiato-subtext0: #a5adcb;
-  --color-macchiato-overlay2: #939ab7;
-  --color-macchiato-overlay1: #8087a2;
-  --color-macchiato-overlay0: #6e738d;
-  --color-macchiato-surface2: #5b6078;
-  --color-macchiato-surface1: #494d64;
-  --color-macchiato-surface0: #363a4f;
-  --color-macchiato-base: #24273a;
-  --color-macchiato-mantle: #1e2030;
-  --color-macchiato-crust: #181926;
+  /*
+   * Theme-aware color system
+   * These pull from CSS variables set by useThemeStore at runtime.
+   * Fallback values are Default theme (dark mode) for initial load.
+   */
 
-  /* Catppuccin Latte palette (light mode) */
-  --color-latte-rosewater: #dc8a78;
-  --color-latte-flamingo: #dd7878;
-  --color-latte-pink: #ea76cb;
-  --color-latte-mauve: #8839ef;
-  --color-latte-red: #d20f39;
-  --color-latte-maroon: #e64553;
-  --color-latte-peach: #fe640b;
-  --color-latte-yellow: #df8e1d;
-  --color-latte-green: #40a02b;
-  --color-latte-teal: #179299;
-  --color-latte-sky: #04a5e5;
-  --color-latte-sapphire: #209fb5;
-  --color-latte-blue: #1e66f5;
-  --color-latte-lavender: #7287fd;
-  --color-latte-text: #4c4f69;
-  --color-latte-subtext1: #5c5f77;
-  --color-latte-subtext0: #6c6f85;
-  --color-latte-overlay2: #7c7f93;
-  --color-latte-overlay1: #8c8fa1;
-  --color-latte-overlay0: #9ca0b0;
-  --color-latte-surface2: #acb0be;
-  --color-latte-surface1: #bcc0cc;
-  --color-latte-surface0: #ccd0da;
-  --color-latte-base: #eff1f5;
-  --color-latte-mantle: #e6e9ef;
-  --color-latte-crust: #dce0e8;
+  /* Semantic theme colors - used by components */
+  --color-theme-background: var(--theme-background, #09090b);
+  --color-theme-foreground: var(--theme-foreground, #fafafa);
+  --color-theme-primary: var(--theme-primary, #6366f1);
+  --color-theme-secondary: var(--theme-secondary, #18181b);
+  --color-theme-accent: var(--theme-accent, #818cf8);
+  --color-theme-muted: var(--theme-muted, #52525b);
+  --color-theme-border: var(--theme-border, #27272a);
 
-  /* Custom Shadow System from Mockup */
-  --shadow-depth-sm: 0 1px 2px 0 rgba(var(--shadow-color), 0.5);
-  --shadow-depth-md:
-    0 4px 6px -1px rgba(var(--shadow-color), 0.5), 0 2px 4px -1px rgba(var(--shadow-color), 0.3);
-  --shadow-depth-lg:
-    0 10px 15px -3px rgba(var(--shadow-color), 0.5), 0 4px 6px -2px rgba(var(--shadow-color), 0.3);
-  --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  /* Surface colors for layered UI elements */
+  --color-theme-canvas: var(--theme-canvas, #09090b);
+  --color-theme-canvas-alt: var(--theme-canvas-alt, #18181b);
+  --color-theme-canvas-strong: var(--theme-canvas-strong, #09090b);
+  --color-theme-surface: var(--theme-surface, #18181b);
+  --color-theme-surface-strong: var(--theme-surface-strong, #27272a);
+  --color-theme-surface-stronger: var(--theme-surface-stronger, #3f3f46);
+
+  /* Overlay colors for popups, modals, etc */
+  --color-theme-overlay: var(--theme-overlay, #52525b);
+  --color-theme-overlay-strong: var(--theme-overlay-strong, #71717a);
+
+  /* Text colors */
+  --color-theme-text: var(--theme-text, #fafafa);
+  --color-theme-text-muted: var(--theme-text-muted, #a1a1aa);
+  --color-theme-text-subtle: var(--theme-text-subtle, #d4d4d8);
+
+  /* Status/accent colors */
+  --color-theme-red: var(--theme-red, #f87171);
+  --color-theme-green: var(--theme-green, #4ade80);
+  --color-theme-yellow: var(--theme-yellow, #facc15);
+  --color-theme-blue: var(--theme-blue, #60a5fa);
+  --color-theme-pink: var(--theme-pink, #f472b6);
+  --color-theme-teal: var(--theme-teal, #2dd4bf);
+  --color-theme-mauve: var(--theme-mauve, #a78bfa);
+  --color-theme-peach: var(--theme-peach, #fb923c);
+  --color-theme-sky: var(--theme-sky, #38bdf8);
+  --color-theme-lavender: var(--theme-lavender, #a5b4fc);
 }
 
 @layer base {
-  /* Light mode (Catppuccin Latte) - Default */
+  /* Base design tokens - these are overridden by useThemeStore at runtime */
   :root {
-    --color-background: #eff1f5;
-    --color-foreground: #4c4f69;
-    --color-primary: #8839ef;
-    --color-secondary: #ccd0da;
-    --color-accent: #ea76cb;
-    --color-muted: #9ca0b0;
-    --color-border: #acb0be;
-    color-scheme: light;
-
-    /* Design System Variables */
-    --border-radius-normal: 12px;
-    --shadow-color: 220 224 232; /* RGB for Latte Crust */
-    --inverted-text: #eff1f5; /* base color for button text */
-  }
-
-  /* Dark mode (Catppuccin Macchiato) */
-  .dark {
-    --color-background: #24273a;
-    --color-foreground: #cad3f5;
-    --color-primary: #c6a0f6;
-    --color-secondary: #363a4f;
-    --color-accent: #f5bde6;
-    --color-muted: #6e738d;
-    --color-border: #5b6078;
     color-scheme: dark;
-
-    /* Design System Variables */
-    --shadow-color: 24 25 38; /* RGB for Macchiato Crust */
-    --inverted-text: #181926; /* crust color for button text */
+    --border-radius-normal: 12px;
+    --shadow-color: 9 9 11;
+    --inverted-text: #fafafa;
   }
 
   /* Set default background and text colors */
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--theme-background, #09090b);
+    color: var(--theme-foreground, #fafafa);
     font-family:
       "Inter",
       -apple-system,
@@ -119,7 +74,7 @@
       color 0.3s ease;
   }
 
-  /* Scrollbar Styling */
+  /* Scrollbar Styling - now theme-aware */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -128,17 +83,17 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-latte-surface1);
+    background: var(--theme-surface-strong, #bcc0cc);
     border-radius: 99px;
   }
   .dark ::-webkit-scrollbar-thumb {
-    background: var(--color-macchiato-surface1);
+    background: var(--theme-surface-strong, #494d64);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-latte-overlay0);
+    background: var(--theme-overlay, #9ca0b0);
   }
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-macchiato-overlay0);
+    background: var(--theme-overlay, #6e738d);
   }
 }
 
@@ -159,60 +114,12 @@
   overflow: hidden;
 }
 
-/* Gradient Buttons */
-.btn-blue {
-  background-color: var(--color-latte-blue);
-  background-image: linear-gradient(120deg, var(--color-latte-blue), var(--color-latte-sky));
-  background-size: 150% 100%;
-  background-position: top left;
+/* Primary Button */
+.btn-primary {
+  background-color: var(--theme-primary, #6366f1);
+  color: white;
 }
-.dark .btn-blue {
-  background-color: var(--color-macchiato-blue);
-  background-image: linear-gradient(
-    120deg,
-    var(--color-macchiato-blue),
-    var(--color-macchiato-sky)
-  );
-}
-.btn-blue:hover {
-  background-position: top right;
-  box-shadow: 0 4px 15px -3px rgba(var(--shadow-color), 0.5);
-}
-
-.btn-mauve {
-  background-color: var(--color-latte-mauve);
-  background-image: linear-gradient(120deg, var(--color-latte-pink), var(--color-latte-mauve));
-  background-size: 150% 100%;
-  background-position: top left;
-}
-.dark .btn-mauve {
-  background-color: var(--color-macchiato-mauve);
-  background-image: linear-gradient(
-    120deg,
-    var(--color-macchiato-pink),
-    var(--color-macchiato-mauve)
-  );
-}
-.btn-mauve:hover {
-  background-position: top right;
-  box-shadow: 0 4px 15px -3px rgba(var(--shadow-color), 0.5);
-}
-
-.btn-peach {
-  background-color: var(--color-latte-peach);
-  background-image: linear-gradient(120deg, var(--color-latte-peach), var(--color-latte-red));
-  background-size: 150% 100%;
-  background-position: top left;
-}
-.dark .btn-peach {
-  background-color: var(--color-macchiato-peach);
-  background-image: linear-gradient(
-    120deg,
-    var(--color-macchiato-peach),
-    var(--color-macchiato-red)
-  );
-}
-.btn-peach:hover {
-  background-position: top right;
+.btn-primary:hover {
+  background-color: var(--theme-accent, #818cf8);
   box-shadow: 0 4px 15px -3px rgba(var(--shadow-color), 0.5);
 }

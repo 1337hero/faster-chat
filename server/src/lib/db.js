@@ -137,6 +137,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
   CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON messages(chat_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
+
+  -- App settings (key-value store for customization)
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `);
 
 function parseFileMeta(file) {
@@ -895,6 +902,54 @@ export const dbUtils = {
     const stmt = db.prepare("SELECT COUNT(*) as count FROM messages WHERE chat_id = ?");
     const result = stmt.get(chatId);
     return result.count;
+  },
+
+  // ========================================
+  // SETTINGS UTILITIES
+  // ========================================
+
+  getSetting(key) {
+    const stmt = db.prepare("SELECT value FROM settings WHERE key = ?");
+    const result = stmt.get(key);
+    return result ? result.value : null;
+  },
+
+  getAllSettings() {
+    const stmt = db.prepare("SELECT key, value FROM settings");
+    const rows = stmt.all();
+    const settings = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
+  },
+
+  setSetting(key, value) {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    `);
+    stmt.run(key, value, now);
+  },
+
+  setSettings(settings) {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    `);
+    for (const [key, value] of Object.entries(settings)) {
+      stmt.run(key, value, now);
+    }
+  },
+
+  deleteSetting(key) {
+    const stmt = db.prepare("DELETE FROM settings WHERE key = ?");
+    const result = stmt.run(key);
+    return result.changes > 0;
   },
 };
 

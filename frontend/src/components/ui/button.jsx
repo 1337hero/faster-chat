@@ -42,21 +42,22 @@ const styles = {
   ],
   outline: [
     // Base
-    "border-zinc-950/10 text-zinc-950 data-[active]:bg-zinc-950/[2.5%] data-[hover]:bg-zinc-950/[2.5%]",
-    // Dark mode
-    "dark:border-white/15 dark:text-white dark:[--btn-bg:transparent] dark:data-[active]:bg-white/5 dark:data-[hover]:bg-white/5",
+    "border-theme-border text-theme-text data-[active]:bg-theme-surface data-[hover]:bg-theme-surface",
+    "dark:[--btn-bg:transparent]",
     // Icon
-    "[--btn-icon:theme(colors.zinc.500)] data-[active]:[--btn-icon:theme(colors.zinc.700)] data-[hover]:[--btn-icon:theme(colors.zinc.700)] dark:data-[active]:[--btn-icon:theme(colors.zinc.400)] dark:data-[hover]:[--btn-icon:theme(colors.zinc.400)]",
+    "[--btn-icon:var(--theme-text-muted)] data-[active]:[--btn-icon:var(--theme-text)] data-[hover]:[--btn-icon:var(--theme-text)]",
   ],
   plain: [
     // Base
-    "border-transparent text-zinc-950 data-[active]:bg-zinc-950/5 data-[hover]:bg-zinc-950/5",
-    // Dark mode
-    "dark:text-white dark:data-[active]:bg-white/10 dark:data-[hover]:bg-white/10",
+    "border-transparent text-theme-text data-[active]:bg-theme-surface data-[hover]:bg-theme-surface",
     // Icon
-    "[--btn-icon:theme(colors.zinc.500)] data-[active]:[--btn-icon:theme(colors.zinc.700)] data-[hover]:[--btn-icon:theme(colors.zinc.700)] dark:[--btn-icon:theme(colors.zinc.500)] dark:data-[active]:[--btn-icon:theme(colors.zinc.400)] dark:data-[hover]:[--btn-icon:theme(colors.zinc.400)]",
+    "[--btn-icon:var(--theme-text-muted)] data-[active]:[--btn-icon:var(--theme-text)] data-[hover]:[--btn-icon:var(--theme-text)]",
   ],
   colors: {
+    theme: [
+      "text-[var(--inverted-text)] [--btn-bg:var(--theme-primary)] [--btn-border:color-mix(in srgb,var(--theme-primary) 92%, var(--theme-overlay) 8%)] [--btn-hover-overlay:color-mix(in srgb,var(--theme-overlay) 25%, transparent)]",
+      "[--btn-icon:var(--inverted-text)] data-[active]:[--btn-icon:var(--inverted-text)] data-[hover]:[--btn-icon:var(--inverted-text)]",
+    ],
     "dark/zinc": [
       "text-white [--btn-bg:theme(colors.zinc.900)] [--btn-border:theme(colors.zinc.950/90%)] [--btn-hover-overlay:theme(colors.white/10%)]",
       "dark:text-white dark:[--btn-bg:theme(colors.zinc.600)] dark:[--btn-hover-overlay:theme(colors.white/5%)]",
@@ -169,7 +170,7 @@ export const Button = forwardRef(function Button(
       ? styles.outline
       : plain
         ? styles.plain
-        : clsx(styles.solid, styles.colors[color ?? "dark/zinc"])
+        : clsx(styles.solid, styles.colors[color ?? "theme"])
   );
 
   return "href" in props ? (

@@ -6,7 +6,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Faster Chat</title>
   </head>
-  <body class="bg-white dark:bg-gray-900">
+  <body>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const defaultDark = {
+          background: "#09090b",
+          foreground: "#FAFAFA",
+          primary: "#6366F1",
+          secondary: "#18181b",
+          accent: "#818CF8",
+          muted: "#52525B",
+          border: "#27272a",
+          surface: "#18181b",
+          "surface-strong": "#121215",
+          "surface-stronger": "#1E1B4B",
+          overlay: "#27272a",
+          "overlay-strong": "#3f3f46",
+          text: "#FAFAFA",
+          "text-muted": "#A1A1AA",
+          "text-subtle": "#D4D4D8",
+          red: "#F87171",
+          green: "#4ADE80",
+          yellow: "#FACC15",
+          blue: "#60A5FA",
+          pink: "#F472B6",
+          teal: "#2DD4BF",
+          mauve: "#A78BFA",
+          peach: "#FB923C",
+          sky: "#38BDF8",
+          lavender: "#A5B4FC",
+          canvas: "#121215",
+          "canvas-alt": "#18181b",
+          "canvas-strong": "#09090b",
+        };
+
+        let mode = "dark";
+        try {
+          const raw = localStorage.getItem("theme-store-v2");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            mode = parsed?.state?.mode || mode;
+          }
+        } catch {
+          /* ignore */
+        }
+
+        root.classList.toggle("dark", mode === "dark");
+        root.style.colorScheme = mode;
+        Object.entries(defaultDark).forEach(([key, value]) => {
+          root.style.setProperty(`--theme-${key}`, value);
+        });
+        root.style.setProperty("--shadow-color", "9 9 11");
+        root.style.setProperty("--inverted-text", defaultDark.text);
+      })();
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

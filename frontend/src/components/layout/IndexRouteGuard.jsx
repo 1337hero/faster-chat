@@ -56,9 +56,7 @@ export function IndexRouteGuard() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="text-latte-subtext0 dark:text-macchiato-subtext0">
-        {isLoading ? "Loading..." : "Redirecting..."}
-      </div>
+      <div className="text-theme-text-muted">{isLoading ? "Loading..." : "Redirecting..."}</div>
     </div>
   );
 }

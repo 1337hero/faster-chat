@@ -60,9 +60,7 @@ const ConnectionsTab = () => {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0">
-          Loading connections...
-        </div>
+        <div className="text-theme-text-muted">Loading connections...</div>
       </div>
     );
   }
@@ -70,9 +68,7 @@ const ConnectionsTab = () => {
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-red dark:text-macchiato-red">
-          Error loading connections: {error.message}
-        </div>
+        <div className="text-theme-red">Error loading connections: {error.message}</div>
       </div>
     );
   }
@@ -80,12 +76,10 @@ const ConnectionsTab = () => {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-latte-surface0 dark:border-macchiato-surface0 flex items-center justify-between border-b px-6 py-4">
+      <div className="border-theme-surface flex items-center justify-between border-b px-6 py-4">
         <div>
-          <h2 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
-            API Connections
-          </h2>
-          <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-sm">
+          <h2 className="text-theme-text text-lg font-semibold">API Connections</h2>
+          <p className="text-theme-text-muted mt-1 text-sm">
             Manage AI provider connections and API keys
           </p>
         </div>
@@ -99,12 +93,10 @@ const ConnectionsTab = () => {
       <div className="flex-1 overflow-auto p-6">
         <div className="space-y-4">
           {providers.length === 0 && (
-            <div className="border-latte-surface1 dark:border-macchiato-surface1 rounded-lg border-2 border-dashed p-12 text-center">
-              <Zap className="text-latte-subtext0 dark:text-macchiato-subtext0 mx-auto h-12 w-12" />
-              <h3 className="text-latte-text dark:text-macchiato-text mt-4 text-lg font-medium">
-                No connections yet
-              </h3>
-              <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-2 text-sm">
+            <div className="border-theme-surface-strong rounded-lg border-2 border-dashed p-12 text-center">
+              <Zap className="text-theme-text-muted mx-auto h-12 w-12" />
+              <h3 className="text-theme-text mt-4 text-lg font-medium">No connections yet</h3>
+              <p className="text-theme-text-muted mt-2 text-sm">
                 Add your first AI provider to get started
               </p>
               <Button onClick={() => setAddModalOpen(true)} color="blue" className="mt-4">
@@ -116,19 +108,19 @@ const ConnectionsTab = () => {
           {providers.map((provider) => (
             <div
               key={provider.id}
-              className="border-latte-surface1 bg-latte-mantle dark:border-macchiato-surface1 dark:bg-macchiato-mantle rounded-lg border p-6">
+              className="border-theme-surface-strong bg-theme-canvas-alt rounded-lg border p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
+                    <h3 className="text-theme-text text-lg font-semibold">
                       {provider.display_name}
                     </h3>
                     {provider.enabled ? (
-                      <span className="bg-latte-green/10 text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green inline-flex items-center rounded-md px-2 py-1 text-xs font-medium">
+                      <span className="bg-theme-green/10 text-theme-green inline-flex items-center rounded-md px-2 py-1 text-xs font-medium">
                         Enabled
                       </span>
                     ) : (
-                      <span className="bg-latte-overlay0/10 text-latte-overlay0 dark:bg-macchiato-overlay0/10 dark:text-macchiato-overlay0 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium">
+                      <span className="bg-theme-overlay/10 text-theme-overlay inline-flex items-center rounded-md px-2 py-1 text-xs font-medium">
                         Disabled
                       </span>
                     )}
@@ -136,20 +128,20 @@ const ConnectionsTab = () => {
 
                   <div className="mt-2 space-y-1 text-sm">
                     {provider.masked_key && (
-                      <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
+                      <div className="text-theme-text-muted flex items-center gap-2">
                         <Key className="h-4 w-4" />
                         API Key: {provider.masked_key}
                       </div>
                     )}
 
                     {provider.base_url && (
-                      <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
+                      <div className="text-theme-text-muted flex items-center gap-2">
                         <Link2 className="h-4 w-4" />
                         URL: {provider.base_url}
                       </div>
                     )}
 
-                    <div className="text-latte-subtext0 dark:text-macchiato-subtext0 flex items-center gap-2">
+                    <div className="text-theme-text-muted flex items-center gap-2">
                       <Server className="h-4 w-4" />
                       {provider.model_count} {provider.model_count === 1 ? "model" : "models"}{" "}
                       available
@@ -162,7 +154,7 @@ const ConnectionsTab = () => {
                   <button
                     onClick={() => refreshMutation.mutate(provider.id)}
                     disabled={refreshMutation.isPending}
-                    className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2 disabled:opacity-50"
+                    className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
                     title="Refresh models">
                     <RefreshCw
                       className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`}
@@ -177,7 +169,7 @@ const ConnectionsTab = () => {
                       })
                     }
                     disabled={toggleMutation.isPending}
-                    className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2 disabled:opacity-50"
+                    className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
                     title={provider.enabled ? "Disable" : "Enable"}>
                     {provider.enabled ? (
                       <XCircle className="h-5 w-5" />
@@ -197,7 +189,7 @@ const ConnectionsTab = () => {
                       }
                     }}
                     disabled={deleteMutation.isPending}
-                    className="text-latte-red hover:bg-latte-red/10 dark:text-macchiato-red dark:hover:bg-macchiato-red/10 rounded-lg p-2 disabled:opacity-50"
+                    className="text-theme-red hover:bg-theme-red/10 rounded-lg p-2 disabled:opacity-50"
                     title="Delete connection">
                     <Trash2 className="h-5 w-5" />
                   </button>

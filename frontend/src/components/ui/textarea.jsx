@@ -12,7 +12,7 @@ export const Textarea = forwardRef(function Textarea(
       {...props}
       className={clsx([
         className,
-        "text-latte-text dark:text-macchiato-text w-full resize-none bg-transparent text-base leading-6 outline-none disabled:opacity-0",
+        "text-theme-text w-full resize-none bg-transparent text-base leading-6 outline-none disabled:opacity-0",
         resizable ? "resize-y" : "resize-none",
       ])}
     />

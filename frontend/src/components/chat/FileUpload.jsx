@@ -102,9 +102,7 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
       />
 
       {uploading && currentFile && (
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs">
-          Uploading {currentFile}...
-        </div>
+        <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
       )}
     </>
   );
@@ -124,17 +122,15 @@ export function FilePreviewList({ files, onRemove }) {
       {files.map((file) => (
         <div
           key={file.id}
-          className="bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+          className="bg-theme-surface text-theme-text flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
           <File size={16} />
           <span className="max-w-[200px] truncate">{file.filename}</span>
-          <span className="text-latte-subtext0 dark:text-macchiato-subtext0 text-xs">
-            {file.sizeFormatted}
-          </span>
+          <span className="text-theme-text-muted text-xs">{file.sizeFormatted}</span>
           {onRemove && (
             <button
               type="button"
               onClick={() => onRemove(file.id)}
-              className="hover:text-latte-red dark:hover:text-macchiato-red ml-1 transition-colors">
+              className="hover:text-theme-red ml-1 transition-colors">
               <X size={14} />
             </button>
           )}

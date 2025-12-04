@@ -29,12 +29,12 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Delete User">
       <div className="space-y-4">
-        <p className="text-latte-text dark:text-macchiato-text">
+        <p className="text-theme-text">
           Are you sure you want to delete <strong>{user?.username}</strong>? This action cannot be
           undone.
         </p>
 
-        <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
+        <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">
           <p className="font-medium">Warning:</p>
           <ul className="mt-1 ml-4 list-disc">
             <li>All user data will be permanently deleted</li>
@@ -44,9 +44,7 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
         </div>
 
         {error && (
-          <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
-            {error}
-          </div>
+          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
         )}
 
         <div className="flex justify-end gap-3">

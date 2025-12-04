@@ -6,7 +6,7 @@ export const Text = ({ className, ...props }) => {
     <p
       data-slot="text"
       {...props}
-      className={clsx(className, "text-base/6 text-zinc-500 sm:text-sm/6 dark:text-zinc-400")}
+      className={clsx(className, "text-theme-text-muted text-base/6 sm:text-sm/6")}
     />
   );
 };
@@ -17,16 +17,14 @@ export const TextLink = ({ className, ...props }) => {
       {...props}
       className={clsx(
         className,
-        "text-zinc-950 underline decoration-zinc-950/50 data-[hover]:decoration-zinc-950 dark:text-white dark:decoration-white/50 dark:data-[hover]:decoration-white"
+        "text-theme-text decoration-theme-text-muted/60 data-[hover]:decoration-theme-text underline"
       )}
     />
   );
 };
 
 export const Strong = ({ className, ...props }) => {
-  return (
-    <strong {...props} className={clsx(className, "font-medium text-zinc-950 dark:text-white")} />
-  );
+  return <strong {...props} className={clsx(className, "text-theme-text font-medium")} />;
 };
 
 export const Code = ({ className, ...props }) => {
@@ -35,7 +33,7 @@ export const Code = ({ className, ...props }) => {
       {...props}
       className={clsx(
         className,
-        "sm:text/[0.8125rem] rounded border border-zinc-950/10 bg-zinc-950/[2.5%] px-0.5 text-sm font-medium text-zinc-950 dark:border-white/20 dark:bg-white/5 dark:text-white"
+        "sm:text/[0.8125rem] border-theme-overlay/20 bg-theme-surface/60 text-theme-text rounded border px-0.5 text-sm font-medium"
       )}
     />
   );

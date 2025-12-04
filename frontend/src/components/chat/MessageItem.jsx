@@ -27,8 +27,8 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
         <div
           className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10 ${
             isUser
-              ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-text dark:text-macchiato-text" // USER AVATAR: neutral background
-              : "from-latte-mauve to-latte-blue dark:from-macchiato-mauve dark:to-macchiato-blue bg-gradient-to-br text-white" // AI AVATAR: gradient background
+              ? "bg-theme-surface-strong text-theme-text" // USER AVATAR: neutral background
+              : "from-theme-mauve to-theme-blue bg-gradient-to-br text-white" // AI AVATAR: gradient background
           } `}
           style={{ boxShadow: "var(--shadow-depth-md)" }}>
           {isUser ? (
@@ -42,24 +42,22 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
         <div
           className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
-              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
-              : "text-latte-text dark:text-macchiato-text" // AI BUBBLE: solid background with border, left corner cut
+              ? "bg-theme-surface-stronger rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
+              : "text-theme-text" // AI BUBBLE: solid background with border, left corner cut
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
           {/* AI ACCENT: Gradient lines on top and bottom (only show on AI messages) */}
           {!isUser && (
             <>
-              <div className="from-latte-blue via-latte-mauve dark:from-macchiato-blue dark:via-macchiato-mauve absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
+              <div className="from-theme-blue via-theme-mauve absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
             </>
           )}
 
           {/* MODEL NAME (only shows on AI messages with model info) */}
           {!isUser && modelName && (
             <div className="mb-2 flex items-center gap-1.5">
-              <Cpu className="text-latte-mauve dark:text-macchiato-mauve h-3 w-3" />
-              <span className="text-latte-subtext0 dark:text-macchiato-subtext0 text-xs font-medium">
-                {modelName}
-              </span>
+              <Cpu className="text-theme-mauve h-3 w-3" />
+              <span className="text-theme-text-muted text-xs font-medium">{modelName}</span>
             </div>
           )}
 
@@ -84,7 +82,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
                 <button
                   type="button"
                   onClick={onStop}
-                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-red dark:text-macchiato-red hover:text-latte-red dark:hover:text-macchiato-red bg-latte-surface1/80 dark:bg-macchiato-surface1/80 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 hover:brightness-110">
+                  className="border-theme-border text-theme-red bg-theme-surface rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition-all duration-150 hover:brightness-110">
                   Stop
                 </button>
               )}
@@ -92,7 +90,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
                 <button
                   type="button"
                   onClick={onResume}
-                  className="elevate-sm border-latte-surface2/60 dark:border-macchiato-surface2/60 text-latte-blue dark:text-macchiato-blue hover:text-latte-blue dark:hover:text-macchiato-blue bg-latte-surface1/80 dark:bg-macchiato-surface1/80 rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 hover:brightness-110">
+                  className="border-theme-border text-theme-blue bg-theme-surface rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition-all duration-150 hover:brightness-110">
                   Continue
                 </button>
               )}
@@ -101,7 +99,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
 
           {/* STREAMING INDICATOR (only shows while AI is typing) */}
           {isStreaming && (
-            <div className="text-latte-mauve dark:text-macchiato-mauve mt-3 flex animate-pulse items-center gap-2">
+            <div className="text-theme-mauve mt-3 flex animate-pulse items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="text-xs font-medium">Processing...</span>
             </div>

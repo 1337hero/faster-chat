@@ -2,13 +2,13 @@ import { clsx } from "clsx";
 
 const borderVariants = {
   none: "border-0",
-  visible: "border-2 border-latte-lavender dark:border-macchiato-lavender",
+  visible: "border-2 border-theme-lavender",
 };
 
 const backgroundVariants = {
-  crust: "bg-latte-crust dark:bg-macchiato-crust",
-  mantle: "bg-latte-mantle dark:bg-macchiato-mantle",
-  base: "bg-latte-base dark:bg-macchiato-base",
+  strong: "bg-theme-canvas-strong",
+  subtle: "bg-theme-canvas-alt",
+  base: "bg-theme-canvas",
 };
 
 const sizeVariants = {
@@ -21,7 +21,7 @@ export const Avatar = ({
   src,
   name,
   border = "visible",
-  background = "mantle",
+  background = "subtle",
   size = "medium",
   ...props
 }) => {
@@ -43,7 +43,7 @@ export const Avatar = ({
         borderVariants[border],
         backgroundVariants[background],
         sizeVariants[size],
-        "text-latte-text dark:text-macchiato-text relative inline-flex items-center justify-center rounded-full font-medium"
+        "text-theme-text relative inline-flex items-center justify-center rounded-full font-medium"
       )}
       {...props}>
       {src ? (

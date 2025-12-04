@@ -11,29 +11,28 @@ export const Radio = ({ color = "blue", label, disabled = false, ...props }) => 
         id={id}
         className={clsx(
           "radio-after inline-flex h-7 w-7 cursor-pointer appearance-none items-center justify-center rounded-full border-2 transition-colors",
-          "bg-latte-surface0/40 dark:bg-macchiato-surface0/40",
-          "border-latte-surface2 dark:border-macchiato-surface2",
-          "checked:bg-latte-surface1/70 dark:checked:bg-macchiato-surface1/70",
-          "outline-latte-lavender dark:outline-macchiato-lavender",
+          "bg-theme-surface/40",
+          "border-theme-surface-stronger",
+          "checked:bg-theme-surface-strong/70",
+          "outline-theme-lavender",
           "disabled:cursor-not-allowed disabled:opacity-60",
           {
             // Color variants when checked
-            "checked:border-latte-blue dark:checked:border-macchiato-blue": color === "blue",
-            "checked:border-latte-lavender dark:checked:border-macchiato-lavender":
-              color === "lavender",
-            "checked:border-latte-green dark:checked:border-macchiato-green": color === "green",
-            "checked:border-latte-red dark:checked:border-macchiato-red": color === "red",
+            "checked:border-theme-blue": color === "blue",
+            "checked:border-theme-lavender": color === "lavender",
+            "checked:border-theme-green": color === "green",
+            "checked:border-theme-red": color === "red",
           }
         )}
         style={{
           "--radio-color":
             color === "blue"
-              ? "var(--ctp-latte-blue, var(--ctp-macchiato-blue))"
+              ? "var(--theme-blue)"
               : color === "lavender"
-                ? "var(--ctp-latte-lavender, var(--ctp-macchiato-lavender))"
+                ? "var(--theme-lavender)"
                 : color === "green"
-                  ? "var(--ctp-latte-green, var(--ctp-macchiato-green))"
-                  : "var(--ctp-latte-red, var(--ctp-macchiato-red))",
+                  ? "var(--theme-green)"
+                  : "var(--theme-red)",
         }}
         disabled={disabled}
         {...props}

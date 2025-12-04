@@ -1,7 +1,7 @@
 import { useAuthState } from "@/state/useAuthState";
-import { useEffect, useRef, useState } from "preact/hooks";
 import { useNavigate } from "@tanstack/react-router";
-import { User, Settings, LogOut, Shield } from "lucide-react";
+import { LogOut, Settings, Shield, User } from "lucide-react";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 export const UserMenu = () => {
   const { user, logout, isLoading } = useAuthState();
@@ -41,24 +41,17 @@ export const UserMenu = () => {
     <div className="relative" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-latte-surface0 text-latte-text hover:bg-latte-surface1 dark:bg-macchiato-surface0 dark:text-macchiato-text dark:hover:bg-macchiato-surface1 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 rounded-xl p-2 transition-all duration-200 hover:scale-105 focus:ring-2 focus:outline-none active:scale-95"
+        className="bg-theme-surface border-theme-border hover:border-theme-primary/50 text-theme-text hover:bg-theme-surface-strong focus:ring-theme-blue/50 rounded-xl border p-2 shadow-lg transition-all duration-200 hover:scale-105 focus:ring-2 focus:outline-none active:scale-95"
         aria-label="User Menu">
         <User size={20} />
       </button>
 
       {isOpen && (
-        <div
-          className="bg-latte-surface0 dark:bg-macchiato-surface0 border-latte-surface1 dark:border-macchiato-surface1 animate-in fade-in zoom-in-95 absolute top-full right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border duration-100"
-          style={{ boxShadow: "var(--shadow-depth-lg)" }}>
-          <div className="border-latte-surface1/50 dark:border-macchiato-surface1/50 border-b p-3">
-            <p className="text-latte-text dark:text-macchiato-text text-sm font-bold">
-              {user.username}
-            </p>
-            <p className="text-latte-overlay0 dark:text-macchiato-overlay0 text-xs">
-              {user.email || "user@example.com"}
-            </p>
+        <div className="bg-theme-surface border-theme-surface-strong animate-in fade-in zoom-in-95 absolute top-full right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border shadow-lg duration-100">
+          <div className="border-theme-surface-strong/50 flex items-center justify-between border-b p-3">
+            <span className="text-theme-text text-normal">{user.username}</span>
             {user.role === "admin" && (
-              <span className="bg-latte-blue/10 text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue mt-1 inline-block rounded px-2 py-0.5 text-xs font-medium">
+              <span className="bg-theme-blue/10 text-theme-blue mt-1 inline-block rounded px-2 py-0.5 text-xs font-medium">
                 Admin
               </span>
             )}
@@ -67,21 +60,21 @@ export const UserMenu = () => {
             {user.role === "admin" && (
               <button
                 onClick={() => handleNavigate("/admin")}
-                className="text-latte-subtext0 dark:text-macchiato-subtext0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
+                className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
                 <Shield size={16} />
                 <span>Admin Panel</span>
               </button>
             )}
             <button
               onClick={() => handleNavigate("/settings")}
-              className="text-latte-subtext0 dark:text-macchiato-subtext0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
+              className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
               <Settings size={16} />
               <span>Settings</span>
             </button>
             <button
               onClick={handleLogout}
               disabled={isLoading}
-              className="text-latte-red dark:text-macchiato-red hover:bg-latte-red/10 dark:hover:bg-macchiato-red/10 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-50">
+              className="text-theme-red hover:bg-theme-red/10 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-50">
               <LogOut size={16} />
               <span>Sign Out</span>
             </button>

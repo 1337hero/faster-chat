@@ -65,7 +65,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
   const isSubmitDisabled = !hasContent() || disabled;
 
   return (
-    <>
+    <div className="flex w-full flex-col">
       {/* File Upload Component (hidden) */}
       <FileUpload
         ref={fileUploadRef}
@@ -79,82 +79,84 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
       {/* File Previews */}
       <FilePreviewList files={selectedFiles} onRemove={removeFile} />
 
-      {/* Tool Buttons */}
-      <div className="mb-1.5 ml-1 flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => fileUploadRef.current?.handleButtonClick?.()}
-          className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
-          title="Add Attachment"
-          disabled={disabled}>
-          <Paperclip size={20} />
-        </button>
-        <button
-          type="button"
-          className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-pink dark:hover:text-macchiato-pink hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
-          title="Generate Image"
-          disabled={disabled}>
-          <Image size={20} />
-        </button>
-        <button
-          type="button"
-          className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-green dark:hover:text-macchiato-green hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50 rounded-xl p-2 transition-all"
-          title="Search Web"
-          disabled={disabled}>
-          <Globe size={20} />
-        </button>
-
-        {/* Voice Control Button */}
-        {voiceControls && (
-          <button
-            type="button"
-            onClick={voiceControls.isSupported ? voiceControls.toggleConversation : undefined}
-            className={`rounded-xl p-2 transition-all ${
-              !voiceControls.isSupported
-                ? "text-latte-overlay0/40 dark:text-macchiato-overlay0/40 cursor-not-allowed opacity-50"
-                : voiceControls.isActive
-                  ? "bg-latte-red/20 dark:bg-macchiato-red/20 text-latte-red dark:text-macchiato-red hover:bg-latte-red/30 dark:hover:bg-macchiato-red/30 animate-pulse"
-                  : "text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-blue dark:hover:text-macchiato-blue hover:bg-latte-surface1/50 dark:hover:bg-macchiato-surface1/50"
-            }`}
-            title={
-              !voiceControls.isSupported
-                ? "Voice not supported in this browser"
-                : voiceControls.isActive
-                  ? "Voice Active - Click to Stop"
-                  : "Click to Start Voice Chat"
-            }
-            disabled={disabled || !voiceControls.isSupported}>
-            {voiceControls.isActive ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
-        )}
-      </div>
-
-      {/* Textarea */}
+      {/* Textarea - Top */}
       <textarea
         ref={textareaRef}
         value={input}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Message here..."
+        placeholder="Ask anything..."
         disabled={disabled}
         rows={1}
-        className="text-latte-text dark:text-macchiato-text placeholder-latte-overlay0 dark:placeholder-macchiato-overlay0 max-h-[200px] flex-1 resize-none border-none bg-transparent px-2 py-3 text-base focus:ring-0 focus:outline-none"
+        className="text-theme-text placeholder-theme-muted max-h-[200px] w-full resize-none border-none bg-transparent px-4 py-3 text-base focus:ring-0 focus:outline-none"
       />
 
-      {/* Send Button */}
-      <button
-        onClick={handleFormSubmit}
-        disabled={isSubmitDisabled}
-        type="button"
-        className={`mb-0.5 flex-shrink-0 rounded-2xl p-3 transition-all duration-200 ${
-          isSubmitDisabled
-            ? "bg-latte-surface1 dark:bg-macchiato-surface1 text-latte-overlay0 dark:text-macchiato-overlay0 cursor-not-allowed"
-            : "btn-blue hover:-translate-y-0.5"
-        } `}
-        style={isSubmitDisabled ? {} : { boxShadow: "var(--shadow-depth-md)" }}>
-        <Send size={20} />
-      </button>
-    </>
+      {/* Bottom Row - Tool Buttons + Send */}
+      <div className="flex items-center justify-between px-2 pb-1">
+        {/* Tool Buttons - Left */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => fileUploadRef.current?.handleButtonClick?.()}
+            className="text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-lg p-2 transition-colors"
+            title="Add Attachment"
+            disabled={disabled}>
+            <Paperclip size={18} />
+          </button>
+          <button
+            type="button"
+            className="text-theme-muted hover:bg-theme-pink/10 hover:text-theme-pink rounded-lg p-2 transition-colors"
+            title="Generate Image"
+            disabled={disabled}>
+            <Image size={18} />
+          </button>
+          <button
+            type="button"
+            className="text-theme-muted hover:bg-theme-green/10 hover:text-theme-green rounded-lg p-2 transition-colors"
+            title="Search Web"
+            disabled={disabled}>
+            <Globe size={18} />
+          </button>
+
+          {/* Voice Control Button */}
+          {voiceControls && (
+            <button
+              type="button"
+              onClick={voiceControls.isSupported ? voiceControls.toggleConversation : undefined}
+              className={`rounded-lg p-2 transition-colors ${
+                !voiceControls.isSupported
+                  ? "text-theme-muted/40 cursor-not-allowed opacity-50"
+                  : voiceControls.isActive
+                    ? "bg-theme-red/20 text-theme-red hover:bg-theme-red/30 animate-pulse"
+                    : "text-theme-muted hover:bg-theme-blue/10 hover:text-theme-blue"
+              }`}
+              title={
+                !voiceControls.isSupported
+                  ? "Voice not supported in this browser"
+                  : voiceControls.isActive
+                    ? "Voice Active - Click to Stop"
+                    : "Click to Start Voice Chat"
+              }
+              disabled={disabled || !voiceControls.isSupported}>
+              {voiceControls.isActive ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+          )}
+        </div>
+
+        {/* Send Button - Right */}
+        <button
+          onClick={handleFormSubmit}
+          disabled={isSubmitDisabled}
+          type="button"
+          className={`rounded-xl p-2 transition-all duration-200 ${
+            isSubmitDisabled
+              ? "bg-theme-surface-strong text-theme-muted cursor-not-allowed"
+              : "bg-theme-primary hover:bg-theme-accent text-white shadow-sm hover:scale-105 active:scale-95"
+          }`}>
+          <Send size={18} />
+        </button>
+      </div>
+    </div>
   );
 };
 

@@ -37,11 +37,11 @@ export const CodeBlock = ({ inline, className, children, ...props }) => {
 
   return !inline ? (
     <div className="group relative">
-      <div className="flex items-center justify-between rounded-t bg-[#2e3440] px-4 py-2 text-sm text-neutral-300">
-        <span className="font-mono">{lang || "text"}</span>
+      <div className="bg-theme-surface-strong text-theme-text-muted flex items-center justify-between rounded-t px-4 py-2 text-sm">
+        <span className="text-theme-text font-mono">{lang || "text"}</span>
         <button
           onClick={copyToClipboard}
-          className="opacity-0 transition-colors group-hover:opacity-100 hover:text-white">
+          className="hover:text-theme-text opacity-0 transition-colors group-hover:opacity-100">
           <CopyIcon />
         </button>
       </div>
