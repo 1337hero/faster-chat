@@ -11,7 +11,7 @@ export const DropdownButton = ({ as = "button", className, ...props }) => {
       {...props}
       className={clsx(
         className,
-        "text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-overlay0/50 dark:hover:bg-macchiato-overlay0/50 flex items-center justify-between px-2 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50"
+        "text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-overlay0/50 dark:hover:bg-macchiato-overlay0/50 flex items-center justify-between px-2 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
       )}
     />
   );

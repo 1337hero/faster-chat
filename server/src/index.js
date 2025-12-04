@@ -9,7 +9,6 @@ import { config } from "dotenv";
 config();
 
 // Import routes
-import { chatRouter } from "./routes/chat.js";
 import { chatsRouter } from "./routes/chats.js";
 import { authRouter } from "./routes/auth.js";
 import { adminRouter } from "./routes/admin.js";
@@ -48,10 +47,6 @@ app.route("/api/admin/providers", providersRouter);
 
 // Models routes (includes both public and admin)
 app.route("/api", modelsRouter);
-
-// Protected API routes (require authentication)
-app.use("/api/chat/*", ensureSession);
-app.route("/api", chatRouter);
 
 // Files routes (authentication handled in router)
 app.route("/api/files", filesRouter);

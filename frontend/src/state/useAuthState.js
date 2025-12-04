@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { authClient } from "../lib/authClient.js";
+import { queryClient } from "../App.jsx";
 
 export const useAuthState = create((set, get) => ({
   user: null,
@@ -50,6 +51,8 @@ export const useAuthState = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await authClient.logout();
+      // Clear all cached data to prevent cache bleed between users
+      queryClient.clear();
       set({ user: null, isLoading: false });
     } catch (error) {
       set({ isLoading: false, error: error.message });

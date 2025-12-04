@@ -61,6 +61,11 @@ export function useSidebarState() {
     if (isMobile) setIsSidebarOpen(false);
   }
 
+  function handleSelectChat(chatId, replace = false) {
+    navigateToChat(chatId, replace);
+    handleLinkClick();
+  }
+
   return {
     chats,
     isSidebarOpen,
@@ -68,7 +73,7 @@ export function useSidebarState() {
     pathname,
     handleDeleteChat,
     handleNewChat,
-    handleLinkClick,
+    handleSelectChat,
     toggleSidebar,
     setIsSidebarOpen,
   };

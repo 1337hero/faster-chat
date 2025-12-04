@@ -7,11 +7,9 @@ config();
 const ENCRYPTION_KEY = process.env.API_KEY_ENCRYPTION_KEY;
 
 if (!ENCRYPTION_KEY) {
-  console.warn(
-    "⚠️  API_KEY_ENCRYPTION_KEY not set! Generating random key (will not persist between restarts)"
+  throw new Error(
+    "API_KEY_ENCRYPTION_KEY is not set. Generate a 32-byte hex key and set it in the environment before starting the server."
   );
-  // Generate a random key for development
-  process.env.API_KEY_ENCRYPTION_KEY = randomBytes(32).toString("hex");
 }
 
 const ALGORITHM = "aes-256-gcm";

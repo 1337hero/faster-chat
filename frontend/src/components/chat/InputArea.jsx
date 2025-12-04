@@ -138,7 +138,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
         placeholder="Message here..."
         disabled={disabled}
         rows={1}
-        className="text-latte-text dark:text-macchiato-text placeholder-latte-overlay0 dark:placeholder-macchiato-overlay0 max-h-[200px] flex-1 resize-none border-none bg-transparent px-2 py-3 text-base focus:outline-none focus:ring-0"
+        className="text-latte-text dark:text-macchiato-text placeholder-latte-overlay0 dark:placeholder-macchiato-overlay0 max-h-[200px] flex-1 resize-none border-none bg-transparent px-2 py-3 text-base focus:ring-0 focus:outline-none"
       />
 
       {/* Send Button */}

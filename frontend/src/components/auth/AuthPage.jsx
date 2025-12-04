@@ -60,7 +60,7 @@ const AuthPage = () => {
                 required
                 minLength={3}
                 autoComplete="username"
-                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-1"
+                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                 disabled={isLoading}
               />
             </div>
@@ -79,7 +79,7 @@ const AuthPage = () => {
                 required
                 minLength={8}
                 autoComplete={isLogin ? "current-password" : "new-password"}
-                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-1"
+                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                 disabled={isLoading}
               />
             </div>
@@ -99,7 +99,7 @@ const AuthPage = () => {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-1"
+                  className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                   disabled={isLoading}
                 />
               </div>

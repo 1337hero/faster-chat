@@ -1,11 +1,11 @@
 import { DefaultChatTransport } from "ai";
 import { useChat as useAIChat } from "@ai-sdk/react";
 import { useMemo, useRef } from "preact/hooks";
-
-const MAX_MESSAGE_HISTORY = 64;
+import { deduplicateMessages, ensureTimestamp, getMessageTimestamp } from "@/lib/messageUtils";
+import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
 
 function trimMessageHistory(messages) {
-  const trimmed = messages.slice(-MAX_MESSAGE_HISTORY);
+  const trimmed = messages.slice(-MESSAGE_CONSTANTS.MAX_HISTORY);
   return trimmed.filter((message) => {
     if (message.role !== "assistant") return true;
     if (!message.parts?.length) return false;
@@ -25,36 +25,36 @@ function formatMessagesForTransport(messages) {
   }));
 }
 
-function deduplicateMessages(messages) {
-  const seen = new Set();
-  return messages.filter((msg) => {
-    const content = msg.parts?.map((p) => p.text).join("") || "";
-    const key = `${msg.role}:${content}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 export function useChatStream({ chatId, model, persistedMessages, onMessageComplete }) {
+  const chatIdRef = useRef(chatId);
+  chatIdRef.current = chatId;
+
   const modelRef = useRef(model);
   modelRef.current = model;
 
   const persistedMessagesRef = useRef(persistedMessages);
   persistedMessagesRef.current = persistedMessages;
 
-  const formattedMessages = (persistedMessages ?? []).map((msg) => ({
-    id: msg.id,
-    role: msg.role,
-    parts: [{ type: "text", text: msg.content }],
-    fileIds: msg.fileIds || [],
-    model: msg.model || null,
-  }));
+  const messageTimestampsRef = useRef(new Map());
+
+  const formattedMessages = (persistedMessages ?? []).map((msg) =>
+    ensureTimestamp(
+      {
+        id: msg.id,
+        role: msg.role,
+        parts: [{ type: "text", text: msg.content }],
+        fileIds: msg.fileIds || [],
+        model: msg.model || null,
+        createdAt: getMessageTimestamp(msg, null),
+      },
+      messageTimestampsRef
+    )
+  );
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "/api/chat",
+        api: () => `/api/chats/${chatIdRef.current}/completion`,
         prepareSendMessagesRequest: ({ messages: outgoingMessages }) => {
           // Convert persisted messages to transport format
           const persistedForTransport = (persistedMessagesRef.current ?? []).map((msg) => ({
@@ -107,7 +107,11 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
         .join("");
 
       if (onMessageComplete && content.trim()) {
-        await onMessageComplete(content);
+        await onMessageComplete({
+          id: message.id,
+          content,
+          createdAt: getMessageTimestamp(message),
+        });
       }
     },
   });
@@ -116,7 +120,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
 
   // Attach current model to streaming assistant messages
   const streamingMessagesWithModel = streamingMessages.map((msg) => ({
-    ...msg,
+    ...ensureTimestamp(msg, messageTimestampsRef),
     model: msg.role === "assistant" ? modelRef.current : msg.model,
   }));
 
@@ -125,18 +129,22 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
     ? deduplicateMessages([...formattedMessages, ...streamingMessagesWithModel])
     : formattedMessages;
 
-  async function send(content, fileIds = []) {
+  async function send({ id, content, fileIds = [], createdAt }) {
+    const messageId = id || crypto.randomUUID();
+    const timestamp = createdAt ?? Date.now();
+
     const message = {
-      id: crypto.randomUUID(),
+      id: messageId,
       role: "user",
       parts: [{ type: "text", text: content }],
+      createdAt: timestamp,
     };
 
-    // Attach fileIds to message if provided
     if (fileIds.length > 0) {
       message.fileIds = fileIds;
     }
 
+    messageTimestampsRef.current.set(message.id, message.createdAt);
     await sendMessage(message);
   }
 

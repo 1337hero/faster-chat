@@ -1,5 +1,33 @@
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 
+/**
+ * Transform snake_case keys to camelCase
+ * Only handles the specific keys used in our API
+ */
+function toCamelCase(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+
+  const transformed = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // Map snake_case to camelCase for known keys
+    const camelKey =
+      key === "created_at"
+        ? "createdAt"
+        : key === "updated_at"
+          ? "updatedAt"
+          : key === "file_ids"
+            ? "fileIds"
+            : key === "chat_id"
+              ? "chatId"
+              : key === "user_id"
+                ? "userId"
+                : key;
+    transformed[camelKey] = toCamelCase(value);
+  }
+  return transformed;
+}
+
 async function chatsFetch(endpoint, options = {}) {
   const response = await fetch(`${API_BASE}/api/chats${endpoint}`, {
     ...options,
@@ -16,7 +44,8 @@ async function chatsFetch(endpoint, options = {}) {
     throw new Error(data.error || "Request failed");
   }
 
-  return data;
+  // Normalize response keys to camelCase
+  return toCamelCase(data);
 }
 
 export const chatsClient = {

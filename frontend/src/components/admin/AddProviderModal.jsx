@@ -54,14 +54,6 @@ const AddProviderModal = ({ isOpen, onClose }) => {
       const finalBaseUrl = baseUrl || null;
       const providerType = getProviderType(selectedProvider);
 
-      console.log("Submitting provider:", {
-        name: selectedProvider.id,
-        displayName: displayName || selectedProvider.displayName || selectedProvider.name,
-        providerType,
-        baseUrl: finalBaseUrl,
-        hasApiKey: !!finalApiKey,
-      });
-
       return providersClient.createProvider(
         selectedProvider.id,
         displayName || selectedProvider.displayName || selectedProvider.name,
@@ -217,7 +209,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 {/* Local Providers - FIRST */}
                 {groupedProviders.local.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold uppercase tracking-wide">
+                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
                       🖥️ Local Models (Run on Your Computer)
                     </h3>
                     <div className="space-y-2">
@@ -236,7 +228,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 {/* Official Native SDK Providers - SECOND */}
                 {groupedProviders.official.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold uppercase tracking-wide">
+                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
                       ☁️ Official Cloud Providers
                     </h3>
                     <div className="space-y-2">
@@ -255,7 +247,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 {/* Community Providers - LAST */}
                 {groupedProviders.community.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold uppercase tracking-wide">
+                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
                       🌐 Community & Third-Party
                     </h3>
                     <div className="space-y-2">
@@ -409,7 +401,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
             {error && (
               <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
-                <pre className="whitespace-pre-wrap font-sans">{error}</pre>
+                <pre className="font-sans whitespace-pre-wrap">{error}</pre>
               </div>
             )}
 

@@ -26,6 +26,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
     input,
     handleInputChange,
     handleSubmit,
+    submitMessage,
+    error: chatError,
     isLoading,
     status,
     stop,
@@ -39,19 +41,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   // Voice integration
   const voice = useVoice({
     onSpeechResult: async (transcript) => {
-      // CRITICAL: Don't use setInput + handleSubmit - state update is async
-      // Instead, pass transcript directly via custom event property
-      setInput(transcript);
-
-      try {
-        const customEvent = {
-          preventDefault: () => {},
-          voiceTranscript: transcript,
-        };
-        await handleSubmit(customEvent);
-      } catch (err) {
-        console.error("[ChatInterface] Voice submission failed:", err);
-      }
+      setInput(transcript); // Echo to input for visual feedback
+      await submitMessage({ content: transcript });
     },
     onError: (error) => {
       console.error("Voice error:", error);
@@ -125,7 +116,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
           ref={scrollContainerRef}
-          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pb-[180px] pt-12 md:px-20">
+          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
           <div className="mx-auto max-w-4xl">
             <MessageList
               messages={messages}
@@ -143,6 +134,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Input Area - Floating on top */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
           <div className="pointer-events-auto relative mx-auto max-w-4xl">
+            <ErrorBanner message={chatError?.message || chatError} className="mb-3" />
             <ErrorBanner message={voiceError} className="mb-3" />
 
             <div
@@ -159,7 +151,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
           </div>
           {/* Footer Info */}
           <div className="mt-3 text-center">
-            <p className="text-latte-overlay0/70 dark:text-macchiato-overlay0/70 text-[11px] font-medium uppercase tracking-wide">
+            <p className="text-latte-overlay0/70 dark:text-macchiato-overlay0/70 text-[11px] font-medium tracking-wide uppercase">
               Faster Chat • AI Powered
             </p>
           </div>

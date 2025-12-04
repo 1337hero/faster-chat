@@ -20,7 +20,7 @@ const CopyIcon = () => {
       strokeLinecap="round"
       strokeLinejoin="round">
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-      <path d="M4 16c-1.1 0-2-.9-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+      <path d="M4 16 c-1.1 0 -2 -0.9 -2 -2 V4 c0 -1.1 0.9 -2 2 -2 h10 c1.1 0 2 0.9 2 2" />
     </svg>
   );
 };
@@ -41,7 +41,7 @@ export const CodeBlock = ({ inline, className, children, ...props }) => {
         <span className="font-mono">{lang || "text"}</span>
         <button
           onClick={copyToClipboard}
-          className="opacity-0 transition-colors hover:text-white group-hover:opacity-100">
+          className="opacity-0 transition-colors group-hover:opacity-100 hover:text-white">
           <CopyIcon />
         </button>
       </div>
@@ -70,16 +70,6 @@ export const MarkdownContent = ({ content }) => {
         code: CodeBlock,
         pre: ({ children }) => <div className="markdown-block">{children}</div>,
         p: ({ children }) => <div className="markdown-block">{children}</div>,
-        h1: ({ children }) => <h1>{children}</h1>,
-        h2: ({ children }) => <h2>{children}</h2>,
-        h3: ({ children }) => <h3>{children}</h3>,
-        h4: ({ children }) => <h4>{children}</h4>,
-        h5: ({ children }) => <h5>{children}</h5>,
-        h6: ({ children }) => <h6>{children}</h6>,
-        ul: ({ children }) => <ul>{children}</ul>,
-        ol: ({ children }) => <ol>{children}</ol>,
-        li: ({ children }) => <li>{children}</li>,
-        blockquote: ({ children }) => <blockquote>{children}</blockquote>,
       }}
       unwrapDisallowed={true}>
       {content}

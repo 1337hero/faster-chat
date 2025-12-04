@@ -53,7 +53,7 @@ const VoiceSettings = ({ voiceControls, onClose }) => {
           <select
             value={selectedVoice}
             onChange={handleVoiceChange}
-            className="bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text border-latte-overlay0/20 dark:border-macchiato-overlay0/20 focus:border-latte-blue dark:focus:border-macchiato-blue focus:ring-latte-blue/20 dark:focus:ring-macchiato-blue/20 w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2">
+            className="bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text border-latte-overlay0/20 dark:border-macchiato-overlay0/20 focus:border-latte-blue dark:focus:border-macchiato-blue focus:ring-latte-blue/20 dark:focus:ring-macchiato-blue/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none">
             <option value="">Select a voice...</option>
             {Object.entries(voicesByLanguage).map(([lang, voices]) => (
               <optgroup key={lang} label={getLanguageName(lang)}>

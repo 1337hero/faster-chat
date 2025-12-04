@@ -189,7 +189,7 @@ const ModelsTab = () => {
               <div key={provider}>
                 <button
                   onClick={() => toggleProvider(provider)}
-                  className="text-latte-subtext0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:text-macchiato-text mb-3 flex w-full items-center gap-2 text-left text-sm font-semibold uppercase tracking-wide transition-colors">
+                  className="text-latte-subtext0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:text-macchiato-text mb-3 flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wide uppercase transition-colors">
                   {expanded ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
@@ -237,7 +237,7 @@ const ModelsTab = () => {
                                     onChange={(e) => setEditingName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, model.id)}
                                     onBlur={() => saveEditing(model.id)}
-                                    className="border-latte-blue text-latte-text focus:ring-latte-blue dark:border-macchiato-blue dark:bg-macchiato-base dark:text-macchiato-text dark:focus:ring-macchiato-blue rounded border px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2"
+                                    className="border-latte-blue text-latte-text focus:ring-latte-blue dark:border-macchiato-blue dark:bg-macchiato-base dark:text-macchiato-text dark:focus:ring-macchiato-blue rounded border px-2 py-1 text-sm font-semibold focus:ring-2 focus:outline-none"
                                     disabled={updateDisplayNameMutation.isPending}
                                   />
                                   <button
