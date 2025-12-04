@@ -116,7 +116,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
           ref={scrollContainerRef}
-          className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
+          style={{ scrollbarGutter: "stable both-edges" }}
+          className="absolute inset-0 overflow-y-scroll pt-12 pb-[180px] md:px-20">
           <div className="mx-auto max-w-3xl">
             <MessageList
               messages={messages}

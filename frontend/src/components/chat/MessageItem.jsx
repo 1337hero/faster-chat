@@ -1,6 +1,6 @@
 import { MarkdownContent } from "@/components/markdown/markdown-chunker";
 import { memo } from "@preact/compat";
-import { Cpu, Sparkles } from "lucide-react";
+import { Brain, ChevronDown, Cpu, Sparkles } from "lucide-react";
 import MessageAttachment from "./MessageAttachment";
 
 const extractTextContent = (message) =>
@@ -9,13 +9,48 @@ const extractTextContent = (message) =>
     .map((part) => part.text)
     .join("");
 
+/**
+ * Parse <think> blocks from content for reasoning models (DeepSeek R1, o1, etc.)
+ * Returns { thinking: string[], content: string }
+ */
+const parseThinkingBlocks = (text) => {
+  if (!text) return { thinking: [], content: "" };
+
+  // Handle incomplete closing tag during streaming
+  let processedText = text;
+  const openCount = (text.match(/<think>/g) || []).length;
+  const closeCount = (text.match(/<\/think>/g) || []).length;
+  if (openCount > closeCount) {
+    processedText += "</think>";
+  }
+
+  const thinking = [];
+  const regex = /<think>([\s\S]*?)<\/think>/g;
+  let match;
+  while ((match = regex.exec(processedText)) !== null) {
+    const thinkContent = match[1].trim();
+    if (thinkContent) {
+      thinking.push(thinkContent);
+    }
+  }
+
+  // Remove think blocks from main content
+  const content = processedText.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+  return { thinking, content };
+};
+
 const MessageItem = memo(({ message, onStop, onResume }) => {
   const isUser = message.role === "user";
-  const content = extractTextContent(message);
+  const rawContent = extractTextContent(message);
+  const { thinking, content } = isUser
+    ? { thinking: [], content: rawContent }
+    : parseThinkingBlocks(rawContent);
   const isStreaming = message.experimental_status === "streaming";
   const showActions = !isUser && (onStop || onResume);
   const hasAttachments = message.fileIds && message.fileIds.length > 0;
   const modelName = message.model || null;
+  const hasThinking = thinking.length > 0;
 
   return (
     // MESSAGE ROW: Controls alignment (user messages right, AI messages left)
@@ -70,6 +105,26 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
             </div>
           )}
 
+          {/* THINKING BLOCKS (collapsible reasoning from DeepSeek R1, o1, etc.) */}
+          {hasThinking && (
+            <div className="mb-4">
+              {thinking.map((thinkContent, index) => (
+                <details
+                  key={index}
+                  className="bg-theme-surface/50 border-theme-border/50 group rounded-lg border">
+                  <summary className="text-theme-text-muted hover:text-theme-text flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium transition-colors select-none">
+                    <Brain className="text-theme-mauve h-4 w-4 flex-shrink-0" />
+                    <span>Reasoning</span>
+                    <ChevronDown className="ml-auto h-4 w-4 transform-gpu transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="text-theme-text-muted border-theme-border/50 border-t px-3 py-3 text-sm">
+                    <MarkdownContent content={thinkContent} />
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+
           {/* MESSAGE TEXT CONTENT */}
           <div className={`font-sans ${isUser ? "font-medium text-white/95" : ""}`}>
             <MarkdownContent content={content} />
@@ -99,7 +154,7 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
 
           {/* STREAMING INDICATOR (only shows while AI is typing) */}
           {isStreaming && (
-            <div className="text-theme-mauve mt-3 flex animate-pulse items-center gap-2">
+            <div className="text-theme-mauve mt-3 flex transform-gpu animate-pulse items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="text-xs font-medium">Processing...</span>
             </div>
