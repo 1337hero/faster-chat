@@ -1,5 +1,36 @@
 import { useRef } from "preact/hooks";
 import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
+import { getSpeechRecognition } from "@/utils/voice/browserSupport";
+import { handleVoiceError, ERROR_TYPES, ERROR_MESSAGES } from "@/utils/voice/errorHandler";
+
+const createRecognitionInstance = (language) => {
+  const SpeechRecognition = getSpeechRecognition();
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = language || VOICE_CONSTANTS.DEFAULT_LANGUAGE;
+  return recognition;
+};
+
+const parseRecognitionResults = (event) => {
+  let interimTranscript = "";
+  let finalTranscript = "";
+
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const transcript = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      finalTranscript += transcript;
+    } else {
+      interimTranscript += transcript;
+    }
+  }
+
+  return { interim: interimTranscript, final: finalTranscript };
+};
+
+const shouldRestartRecognition = (currentStateRef, recognitionRef) => {
+  return currentStateRef.current === CHAT_STATES.LISTENING && recognitionRef.current;
+};
 
 export function useSpeechRecognition({ onResult, onError, language, currentStateRef }) {
   const recognitionRef = useRef(null);
@@ -7,47 +38,21 @@ export function useSpeechRecognition({ onResult, onError, language, currentState
   const initRecognition = () => {
     if (recognitionRef.current) return recognitionRef.current;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = language || VOICE_CONSTANTS.DEFAULT_LANGUAGE;
+    const recognition = createRecognitionInstance(language);
 
     recognition.onresult = (event) => {
-      let interimTranscript = "";
-      let finalTranscript = "";
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      if (onResult) {
-        onResult({
-          interim: interimTranscript,
-          final: finalTranscript,
-        });
-      }
+      const transcripts = parseRecognitionResults(event);
+      if (onResult) onResult(transcripts);
     };
 
     recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-
-      if (onError && event.error !== "aborted") {
-        onError(`Microphone error: ${event.error}`);
-      }
+      handleVoiceError(event.error, ERROR_TYPES.RECOGNITION, onError);
     };
 
     recognition.onend = () => {
-      if (currentStateRef.current === CHAT_STATES.LISTENING) {
+      if (shouldRestartRecognition(currentStateRef, recognitionRef)) {
         setTimeout(() => {
-          if (currentStateRef.current === CHAT_STATES.LISTENING && recognitionRef.current) {
+          if (shouldRestartRecognition(currentStateRef, recognitionRef)) {
             try {
               recognitionRef.current.start();
             } catch (err) {
@@ -68,7 +73,7 @@ export function useSpeechRecognition({ onResult, onError, language, currentState
       recognition.start();
     } catch (err) {
       console.error("[useSpeechRecognition] Failed to start:", err);
-      if (onError) onError("Failed to start microphone");
+      if (onError) onError(ERROR_MESSAGES.MICROPHONE_START_FAILED);
     }
   };
 
