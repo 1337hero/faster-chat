@@ -120,6 +120,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chats_user_updated ON chats(user_id, updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_chats_deleted ON chats(deleted_at);
 
+  -- Add pinned_at and archived_at columns if they don't exist
+  -- SQLite doesn't have IF NOT EXISTS for ALTER TABLE, so we handle this in code
+
   -- Messages table for chat messages
   CREATE TABLE IF NOT EXISTS messages (
     id TEXT PRIMARY KEY,
@@ -144,6 +147,24 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   );
+`);
+
+// Migration: Add pinned_at and archived_at columns to chats table
+// SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so check manually
+const chatColumns = db.prepare("PRAGMA table_info(chats)").all();
+const columnNames = chatColumns.map((col) => col.name);
+
+if (!columnNames.includes("pinned_at")) {
+  db.exec("ALTER TABLE chats ADD COLUMN pinned_at INTEGER");
+}
+if (!columnNames.includes("archived_at")) {
+  db.exec("ALTER TABLE chats ADD COLUMN archived_at INTEGER");
+}
+
+// Create indexes for pinned/archived queries
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_chats_pinned ON chats(pinned_at);
+  CREATE INDEX IF NOT EXISTS idx_chats_archived ON chats(archived_at);
 `);
 
 function parseFileMeta(file) {
@@ -789,11 +810,23 @@ export const dbUtils = {
     return stmt.get(chatId, userId);
   },
 
-  getChatsByUserId(userId) {
+  getChatsByUserId(userId, includeArchived = false) {
     const stmt = db.prepare(`
       SELECT * FROM chats
-      WHERE user_id = ? AND deleted_at IS NULL
-      ORDER BY updated_at DESC
+      WHERE user_id = ? AND deleted_at IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
+      ORDER BY
+        CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
+        pinned_at DESC,
+        updated_at DESC
+    `);
+    return stmt.all(userId);
+  },
+
+  getArchivedChatsByUserId(userId) {
+    const stmt = db.prepare(`
+      SELECT * FROM chats
+      WHERE user_id = ? AND deleted_at IS NULL AND archived_at IS NOT NULL
+      ORDER BY archived_at DESC
     `);
     return stmt.all(userId);
   },
@@ -823,6 +856,42 @@ export const dbUtils = {
       "UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ?"
     );
     const result = stmt.run(now, now, chatId, userId);
+    return result.changes > 0;
+  },
+
+  pinChat(chatId, userId) {
+    const now = Date.now();
+    const stmt = db.prepare(
+      "UPDATE chats SET pinned_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    );
+    const result = stmt.run(now, now, chatId, userId);
+    return result.changes > 0;
+  },
+
+  unpinChat(chatId, userId) {
+    const now = Date.now();
+    const stmt = db.prepare(
+      "UPDATE chats SET pinned_at = NULL, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    );
+    const result = stmt.run(now, chatId, userId);
+    return result.changes > 0;
+  },
+
+  archiveChat(chatId, userId) {
+    const now = Date.now();
+    const stmt = db.prepare(
+      "UPDATE chats SET archived_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    );
+    const result = stmt.run(now, now, chatId, userId);
+    return result.changes > 0;
+  },
+
+  unarchiveChat(chatId, userId) {
+    const now = Date.now();
+    const stmt = db.prepare(
+      "UPDATE chats SET archived_at = NULL, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    );
+    const result = stmt.run(now, chatId, userId);
     return result.changes > 0;
   },
 

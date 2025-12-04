@@ -16,13 +16,17 @@ function toCamelCase(obj) {
         ? "createdAt"
         : key === "updated_at"
           ? "updatedAt"
-          : key === "file_ids"
-            ? "fileIds"
-            : key === "chat_id"
-              ? "chatId"
-              : key === "user_id"
-                ? "userId"
-                : key;
+          : key === "pinned_at"
+            ? "pinnedAt"
+            : key === "archived_at"
+              ? "archivedAt"
+              : key === "file_ids"
+                ? "fileIds"
+                : key === "chat_id"
+                  ? "chatId"
+                  : key === "user_id"
+                    ? "userId"
+                    : key;
     transformed[camelKey] = toCamelCase(value);
   }
   return transformed;
@@ -92,6 +96,30 @@ export const chatsClient = {
 
   async deleteMessage(chatId, messageId) {
     return chatsFetch(`/${chatId}/messages/${messageId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async pinChat(chatId) {
+    return chatsFetch(`/${chatId}/pin`, {
+      method: "POST",
+    });
+  },
+
+  async unpinChat(chatId) {
+    return chatsFetch(`/${chatId}/pin`, {
+      method: "DELETE",
+    });
+  },
+
+  async archiveChat(chatId) {
+    return chatsFetch(`/${chatId}/archive`, {
+      method: "POST",
+    });
+  },
+
+  async unarchiveChat(chatId) {
+    return chatsFetch(`/${chatId}/archive`, {
       method: "DELETE",
     });
   },

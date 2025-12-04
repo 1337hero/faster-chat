@@ -186,3 +186,104 @@ export function useDeleteMessageMutation() {
     },
   });
 }
+
+export function usePinChatMutation() {
+  const queryClient = useQueryClient();
+  const userId = useAuthState((state) => state.user?.id ?? null);
+
+  return useMutation({
+    mutationFn: (chatId) => chatsClient.pinChat(chatId),
+    onMutate: async (chatId) => {
+      await queryClient.cancelQueries({ queryKey: chatKeys.list(userId) });
+      const previousChats = queryClient.getQueryData(chatKeys.list(userId));
+
+      queryClient.setQueryData(chatKeys.list(userId), (old) => {
+        if (!old) return old;
+        return old.map((chat) =>
+          chat.id === chatId ? { ...chat, pinnedAt: Date.now() } : chat
+        );
+      });
+
+      return { previousChats };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(chatKeys.list(userId), context.previousChats);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
+    },
+  });
+}
+
+export function useUnpinChatMutation() {
+  const queryClient = useQueryClient();
+  const userId = useAuthState((state) => state.user?.id ?? null);
+
+  return useMutation({
+    mutationFn: (chatId) => chatsClient.unpinChat(chatId),
+    onMutate: async (chatId) => {
+      await queryClient.cancelQueries({ queryKey: chatKeys.list(userId) });
+      const previousChats = queryClient.getQueryData(chatKeys.list(userId));
+
+      queryClient.setQueryData(chatKeys.list(userId), (old) => {
+        if (!old) return old;
+        return old.map((chat) =>
+          chat.id === chatId ? { ...chat, pinnedAt: null } : chat
+        );
+      });
+
+      return { previousChats };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(chatKeys.list(userId), context.previousChats);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
+    },
+  });
+}
+
+export function useArchiveChatMutation() {
+  const queryClient = useQueryClient();
+  const userId = useAuthState((state) => state.user?.id ?? null);
+
+  return useMutation({
+    mutationFn: (chatId) => chatsClient.archiveChat(chatId),
+    onMutate: async (chatId) => {
+      await queryClient.cancelQueries({ queryKey: chatKeys.list(userId) });
+      const previousChats = queryClient.getQueryData(chatKeys.list(userId));
+
+      // Remove from list (archived chats are filtered out)
+      queryClient.setQueryData(chatKeys.list(userId), (old) => {
+        if (!old) return old;
+        return old.filter((chat) => chat.id !== chatId);
+      });
+
+      return { previousChats };
+    },
+    onError: (_, __, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(chatKeys.list(userId), context.previousChats);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
+    },
+  });
+}
+
+export function useUnarchiveChatMutation() {
+  const queryClient = useQueryClient();
+  const userId = useAuthState((state) => state.user?.id ?? null);
+
+  return useMutation({
+    mutationFn: (chatId) => chatsClient.unarchiveChat(chatId),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
+    },
+  });
+}

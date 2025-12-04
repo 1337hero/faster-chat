@@ -1,5 +1,6 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from "preact/compat";
 import { FILE_CONSTANTS, formatFileSize } from "@faster-chat/shared";
+import { toast } from "sonner";
 import { X, File } from "lucide-react";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
@@ -77,10 +78,13 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
     setCurrentFile(null);
     if (uploadedFiles.length > 0) {
       onFilesUploaded?.(uploadedFiles);
+      const fileCount = uploadedFiles.length;
+      toast.success(fileCount === 1 ? "File uploaded" : `${fileCount} files uploaded`);
     }
 
     if (errors.length > 0) {
       onError?.(errors.join("\n"));
+      toast.error("Upload failed", { description: errors[0] });
     }
 
     // Reset input

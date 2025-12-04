@@ -33,6 +33,8 @@ chatsRouter.get("/", async (c) => {
       chats: chats.map((chat) => ({
         id: chat.id,
         title: chat.title,
+        pinnedAt: chat.pinned_at,
+        archivedAt: chat.archived_at,
         createdAt: chat.created_at,
         updatedAt: chat.updated_at,
       })),
@@ -147,6 +149,90 @@ chatsRouter.delete("/:chatId", async (c) => {
   } catch (error) {
     console.error("Delete chat error:", error);
     return c.json({ error: "Failed to delete chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * POST /api/chats/:chatId/pin
+ * Pin a chat
+ */
+chatsRouter.post("/:chatId/pin", async (c) => {
+  try {
+    const user = c.get("user");
+    const chatId = c.req.param("chatId");
+
+    const pinned = dbUtils.pinChat(chatId, user.id);
+    if (!pinned) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    return c.json({ message: "Chat pinned successfully" });
+  } catch (error) {
+    console.error("Pin chat error:", error);
+    return c.json({ error: "Failed to pin chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * DELETE /api/chats/:chatId/pin
+ * Unpin a chat
+ */
+chatsRouter.delete("/:chatId/pin", async (c) => {
+  try {
+    const user = c.get("user");
+    const chatId = c.req.param("chatId");
+
+    const unpinned = dbUtils.unpinChat(chatId, user.id);
+    if (!unpinned) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    return c.json({ message: "Chat unpinned successfully" });
+  } catch (error) {
+    console.error("Unpin chat error:", error);
+    return c.json({ error: "Failed to unpin chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * POST /api/chats/:chatId/archive
+ * Archive a chat
+ */
+chatsRouter.post("/:chatId/archive", async (c) => {
+  try {
+    const user = c.get("user");
+    const chatId = c.req.param("chatId");
+
+    const archived = dbUtils.archiveChat(chatId, user.id);
+    if (!archived) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    return c.json({ message: "Chat archived successfully" });
+  } catch (error) {
+    console.error("Archive chat error:", error);
+    return c.json({ error: "Failed to archive chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * DELETE /api/chats/:chatId/archive
+ * Unarchive a chat
+ */
+chatsRouter.delete("/:chatId/archive", async (c) => {
+  try {
+    const user = c.get("user");
+    const chatId = c.req.param("chatId");
+
+    const unarchived = dbUtils.unarchiveChat(chatId, user.id);
+    if (!unarchived) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    return c.json({ message: "Chat unarchived successfully" });
+  } catch (error) {
+    console.error("Unarchive chat error:", error);
+    return c.json({ error: "Failed to unarchive chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
