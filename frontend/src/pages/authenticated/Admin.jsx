@@ -1,6 +1,8 @@
 import { useAuthState } from "@/state/useAuthState";
+import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
 import { lazy, Suspense } from "preact/compat";
+import { LayoutGrid } from "lucide-react";
 
 // Lazy load admin tab components for better code splitting
 const UsersTab = lazy(() => import("@/components/admin/UsersTab"));
@@ -21,6 +23,7 @@ const Admin = () => {
   const search = useRouterState({ select: (state) => state.location.search });
   const selectedTab = search?.tab;
   const activeTab = tabs.some((tab) => tab.id === selectedTab) ? selectedTab : "users";
+  const { returnToChat, isReturning } = useReturnToChat();
 
   // Admin-only access
   if (user?.role !== "admin") {
@@ -44,7 +47,15 @@ const Admin = () => {
     <div className="bg-theme-canvas flex h-full flex-col">
       {/* Header with tabs */}
       <div className="border-theme-surface border-b">
-        <div className="flex h-14 items-center px-6">
+        <div className="flex h-14 items-center justify-between gap-4 px-6">
+          <button
+            type="button"
+            onClick={returnToChat}
+            disabled={isReturning}
+            className="text-theme-text hover:text-theme-text flex items-center gap-2 rounded-lg border border-theme-surface px-3 py-1.5 text-sm font-medium transition-colors hover:border-theme-surface-strong hover:bg-theme-surface disabled:opacity-60">
+            <LayoutGrid size={16} />
+            <span>Return to chat</span>
+          </button>
           <nav className="flex space-x-8">
             {tabs.map((tab) => (
               <button
