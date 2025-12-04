@@ -30,8 +30,9 @@ export const UI_CONSTANTS = {
   // Scrollbar
   SCROLLBAR_WIDTH: "0.25rem",
 
-  // Notifications
+  // Feedback Durations
   SUCCESS_MESSAGE_DURATION_MS: 2000,
+  COPY_FEEDBACK_DURATION_MS: 1500,
 
   // Form Inputs
   APP_NAME_MAX_LENGTH: 50,

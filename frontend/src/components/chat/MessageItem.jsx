@@ -1,4 +1,4 @@
-import { MarkdownContent } from "@/components/markdown/markdown-chunker";
+import { MarkdownContent } from "@/components/markdown/MarkdownRenderer";
 import { memo } from "@preact/compat";
 import { Brain, ChevronDown, Cpu, Sparkles } from "lucide-react";
 import MessageAttachment from "./MessageAttachment";

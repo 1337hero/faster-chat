@@ -62,6 +62,23 @@
     --theme-font-size-chat: 16px;
   }
 
+  /* Shiki syntax highlighting - dual theme support via CSS variables */
+  /* Light mode: use --shiki-light variables */
+  .shiki-wrapper .shiki span {
+    color: var(--shiki-light) !important;
+    background-color: transparent !important;
+  }
+  /* Dark mode: switch to --shiki-dark variables */
+  .dark .shiki-wrapper .shiki span {
+    color: var(--shiki-dark) !important;
+  }
+  /* Code block container styling */
+  .shiki-wrapper .shiki {
+    background-color: var(--theme-surface, #18181b) !important;
+    border-radius: var(--border-radius-normal);
+    border: 1px solid var(--theme-border, #27272a);
+  }
+
   /* Set default background and text colors */
   body {
     background-color: var(--theme-background, #09090b);
