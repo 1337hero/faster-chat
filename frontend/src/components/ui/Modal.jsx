@@ -23,18 +23,16 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="bg-theme-overlay/40 absolute inset-0 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="bg-latte-base dark:bg-macchiato-base relative z-10 w-full max-w-md rounded-lg p-6 shadow-xl">
+      <div className="bg-theme-canvas relative z-10 w-full max-w-md rounded-lg p-6 shadow-xl">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-latte-text dark:text-macchiato-text text-xl font-semibold">
-            {title}
-          </h2>
+          <h2 className="text-theme-text text-xl font-semibold">{title}</h2>
           <button
             onClick={onClose}
-            className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-1">
+            className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-1">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"

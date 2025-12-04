@@ -25,7 +25,7 @@ export default function MessageAttachment({ fileId }) {
 
   if (isLoading) {
     return (
-      <div className="bg-latte-surface0/50 dark:bg-macchiato-surface0/50 text-latte-subtext0 dark:text-macchiato-subtext0 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+      <div className="bg-theme-surface/50 text-theme-text-muted inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
         <File size={16} />
         <span>Loading...</span>
       </div>
@@ -34,7 +34,7 @@ export default function MessageAttachment({ fileId }) {
 
   if (error || !fileMetadata) {
     return (
-      <div className="bg-latte-red/10 dark:bg-macchiato-red/10 text-latte-red dark:text-macchiato-red inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+      <div className="bg-theme-red/10 text-theme-red inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
         <File size={16} />
         <span>File unavailable</span>
       </div>
@@ -44,12 +44,10 @@ export default function MessageAttachment({ fileId }) {
   return (
     <button
       onClick={handleDownload}
-      className="bg-latte-surface0 dark:bg-macchiato-surface0 hover:bg-latte-surface1 dark:hover:bg-macchiato-surface1 text-latte-text dark:text-macchiato-text inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors">
+      className="bg-theme-surface hover:bg-theme-surface-strong text-theme-text inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors">
       <File size={16} />
       <span className="max-w-[200px] truncate">{fileMetadata.filename}</span>
-      <span className="text-latte-subtext0 dark:text-macchiato-subtext0 text-xs">
-        {fileMetadata.sizeFormatted}
-      </span>
+      <span className="text-theme-text-muted text-xs">{fileMetadata.sizeFormatted}</span>
       <Download size={14} />
     </button>
   );

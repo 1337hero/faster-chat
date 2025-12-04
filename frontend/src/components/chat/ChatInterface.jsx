@@ -1,6 +1,6 @@
+import ErrorBanner from "@/components/ui/ErrorBanner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
-import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useChat } from "@/hooks/useChat";
 import { useVoice } from "@/hooks/useVoice";
 import { useUiState } from "@/state/useUiState";
@@ -9,8 +9,8 @@ import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
-import VoiceStatusIndicator from "./VoiceStatusIndicator";
 import VoiceSettings from "./VoiceSettings";
+import VoiceStatusIndicator from "./VoiceStatusIndicator";
 
 const ChatInterface = ({ chatId, onMenuClick }) => {
   const preferredModel = useUiState((state) => state.preferredModel);
@@ -92,7 +92,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   }, [messages, voice.isActive, voice.isProcessing, isLoading]);
 
   return (
-    <div className="bg-latte-base dark:bg-macchiato-base relative z-0 flex h-full flex-1 flex-col">
+    <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">
       {/* Main Content Area - Absolute positioning for scroll-behind effect */}
       <div className="relative flex-1">
         {/* Navbar - Elevated Layer */}
@@ -101,7 +101,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
             {onMenuClick && (
               <button
                 onClick={onMenuClick}
-                className="hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 text-latte-text dark:text-macchiato-text rounded-lg p-2 md:hidden"
+                className="hover:bg-theme-surface/50 text-theme-text rounded-lg p-2 md:hidden"
                 aria-label="Open menu"></button>
             )}
             <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
@@ -117,7 +117,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         <div
           ref={scrollContainerRef}
           className="custom-scrollbar absolute inset-0 overflow-y-auto scroll-smooth pt-12 pb-[180px] md:px-20">
-          <div className="mx-auto max-w-4xl">
+          <div className="mx-auto max-w-3xl">
             <MessageList
               messages={messages}
               isLoading={isLoading}
@@ -129,31 +129,28 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         </div>
 
         {/* Bottom Gradient Fade Overlay - Content scrolls behind input */}
-        <div className="from-latte-base via-latte-base/80 dark:from-macchiato-base dark:via-macchiato-base/80 pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t to-transparent" />
+        <div className="from-theme-canvas via-theme-canvas/80 pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t to-transparent" />
 
         {/* Input Area - Floating on top */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
-          <div className="pointer-events-auto relative mx-auto max-w-4xl">
+          <div className="pointer-events-auto relative mx-auto max-w-3xl">
             <ErrorBanner message={chatError?.message || chatError} className="mb-3" />
             <ErrorBanner message={voiceError} className="mb-3" />
 
             <div
-              className={`layered-panel elevate-lg relative flex items-end gap-3 rounded-[22px] px-4 py-3 transition-transform duration-200 ${
-                isLoading ? "opacity-95" : "hover:-translate-y-1"
+              className={`bg-theme-surface relative rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
+                isLoading
+                  ? "border-theme-primary/30"
+                  : "border-theme-border hover:border-theme-primary/50"
               }`}>
               <InputArea
                 input={input}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
                 voiceControls={voice}
+                disabled={isLoading}
               />
             </div>
-          </div>
-          {/* Footer Info */}
-          <div className="mt-3 text-center">
-            <p className="text-latte-overlay0/70 dark:text-macchiato-overlay0/70 text-[11px] font-medium tracking-wide uppercase">
-              Faster Chat • AI Powered
-            </p>
           </div>
         </div>
       </div>

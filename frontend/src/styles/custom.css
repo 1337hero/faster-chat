@@ -1,157 +1,5 @@
 @layer components {
-  .glass-card {
-    --glass-bg: color-mix(in srgb, var(--color-secondary) 72%, transparent);
-    --glass-border: color-mix(in srgb, var(--color-border) 60%, transparent);
-    --glass-shine: color-mix(in srgb, var(--color-accent) 18%, transparent);
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    border-radius: 16px;
-    border: 1px solid var(--glass-border);
-    background-color: var(--color-secondary);
-    background: linear-gradient(
-      145deg,
-      var(--glass-bg),
-      color-mix(in srgb, var(--color-background) 88%, transparent)
-    );
-    box-shadow:
-      0 14px 36px -22px rgba(var(--shadow-color), 0.8),
-      0 1px 0 0 color-mix(in srgb, var(--color-foreground) 6%, transparent);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    transition:
-      transform 180ms ease,
-      border-color 200ms ease,
-      box-shadow 200ms ease;
-  }
-
-  .glass-card:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--glass-border), var(--color-accent) 30%);
-    box-shadow:
-      0 18px 44px -24px rgba(var(--shadow-color), 0.85),
-      0 1px 0 0 color-mix(in srgb, var(--color-foreground) 9%, transparent);
-  }
-
-  .glass-card::after {
-    content: "";
-    position: absolute;
-    inset: -20% -30% auto -10%;
-    background: linear-gradient(135deg, var(--glass-shine), transparent 50%);
-    opacity: 0.45;
-    transform: skewX(-16deg);
-    pointer-events: none;
-  }
-
-  .glass-card > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .glass-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-  }
-
-  .glass-veil {
-    position: relative;
-    isolation: isolate;
-  }
-
-  .glass-veil::before {
-    content: "";
-    position: absolute;
-    inset: -15%;
-    pointer-events: none;
-    background: linear-gradient(
-      115deg,
-      color-mix(in srgb, var(--color-background) 70%, transparent) 0%,
-      color-mix(in srgb, var(--color-background) 30%, transparent) 30%,
-      color-mix(in srgb, var(--color-foreground) 8%, transparent) 50%,
-      transparent 60%,
-      color-mix(in srgb, var(--color-foreground) 10%, transparent) 75%,
-      transparent 100%
-    );
-    opacity: 0.35;
-    mix-blend-mode: soft-light;
-  }
-
-  /* Depth utilities inspired by the "Easy Way to Fix Boring UIs" layering trick */
-  .elevate-sm {
-    box-shadow: var(--shadow-depth-sm);
-  }
-
-  .elevate-md {
-    box-shadow: var(--shadow-depth-md);
-  }
-
-  .elevate-lg {
-    box-shadow: var(--shadow-depth-lg);
-  }
-
-  .elevate-inset {
-    box-shadow: var(--shadow-inset);
-  }
-
-  .layered-panel {
-    position: relative;
-    border-radius: 18px;
-    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--color-secondary) 35%, transparent),
-        color-mix(in srgb, var(--color-background) 88%, transparent)
-      ),
-      var(--color-secondary);
-    box-shadow: var(--shadow-depth-md);
-    overflow: hidden;
-    transition:
-      box-shadow 180ms ease,
-      transform 180ms ease,
-      border-color 180ms ease;
-  }
-
-  .layered-panel::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-foreground) 10%, transparent),
-      transparent 38%
-    );
-    pointer-events: none;
-    mix-blend-mode: soft-light;
-  }
-
-  .layered-panel:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-depth-lg);
-    border-color: color-mix(in srgb, var(--color-border), var(--color-accent) 30%);
-  }
-
-  .layered-panel-cta {
-    border-width: 2px;
-    border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border) 45%);
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
-        color-mix(in srgb, var(--color-secondary) 55%, transparent) 45%,
-        color-mix(in srgb, var(--color-background) 92%, transparent) 100%
-      ),
-      var(--color-secondary);
-    box-shadow: var(--shadow-depth-lg);
-  }
-
-  .layered-panel-cta:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 36px -18px rgba(var(--shadow-color), 0.9);
-  }
-
-  /* Catppuccin-themed Switch Component */
+  /* Themed Switch Component */
   .switch-pseudo::before,
   .switch-pseudo::after {
     @apply absolute block h-3 w-3 transition-all duration-300;
@@ -172,7 +20,7 @@
   }
 
   .switch-pseudo::after {
-    @apply bg-latte-surface2 dark:bg-macchiato-surface2 opacity-100;
+    @apply bg-theme-surface-stronger opacity-100;
     right: 0.3rem;
     mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='currentColor'%3E%3Cpath d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3C/svg%3E");
     transform: translateX(0);
@@ -183,7 +31,7 @@
     transform: translateX(1ch);
   }
 
-  /* Catppuccin-themed Radio Component */
+  /* Themed Radio Component */
   .radio-after::after {
     @apply block h-2 w-2 rounded-full opacity-0 transition-all delay-75 duration-300;
     content: "";
@@ -207,41 +55,26 @@
     overflow-y: hidden;
   }
 
-  /* Light mode KaTeX colors */
   .katex .katex-html {
-    color: var(--color-latte-text);
+    color: var(--theme-text);
   }
 
-  /* Dark mode KaTeX colors */
-  .dark .katex .katex-html {
-    color: var(--color-macchiato-text);
-  }
-
-  /* Inline math spacing */
   .markdown-block .katex {
     display: inline-block;
     margin: 0 0.2em;
   }
 
-  /* Display math styling */
   .markdown-block .katex-display {
     padding: 1em;
-    background: var(--color-latte-surface0);
+    background: var(--theme-surface);
     border-radius: 8px;
-    border: 1px solid var(--color-latte-surface1);
+    border: 1px solid var(--theme-border);
   }
 
-  .dark .markdown-block .katex-display {
-    background: var(--color-macchiato-surface0);
-    border-color: var(--color-macchiato-surface1);
-  }
-
-  /* Code block and math spacing */
   .markdown-block + .markdown-block {
     margin-top: 0.5em;
   }
 
-  /* Ensure proper spacing for lists with math */
   .markdown-block ul,
   .markdown-block ol {
     margin: 0.5em 0;
@@ -252,7 +85,6 @@
     margin: 0.25em 0;
   }
 
-  /* Headings with math */
   .markdown-block h1,
   .markdown-block h2,
   .markdown-block h3,
@@ -263,16 +95,10 @@
     margin-bottom: 0.5em;
   }
 
-  /* Blockquotes with math */
   .markdown-block blockquote {
-    border-left: 3px solid var(--color-latte-mauve);
+    border-left: 3px solid var(--theme-primary);
     padding-left: 1em;
     margin: 1em 0;
-    color: var(--color-latte-subtext0);
-  }
-
-  .dark .markdown-block blockquote {
-    border-left-color: var(--color-macchiato-mauve);
-    color: var(--color-macchiato-subtext0);
+    color: var(--theme-text-muted);
   }
 }

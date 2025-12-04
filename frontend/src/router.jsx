@@ -21,7 +21,7 @@ const Settings = lazy(() => import("@/pages/authenticated/Settings"));
 const LoadingSpinner = () => {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="text-latte-subtext0 dark:text-macchiato-subtext0">Loading...</div>
+      <div className="text-theme-text-muted">Loading...</div>
     </div>
   );
 };
@@ -95,7 +95,10 @@ const adminRoute = createRoute({
   path: "/admin",
   validateSearch: (search) => ({
     tab:
-      search?.tab === "users" || search?.tab === "models" || search?.tab === "connections"
+      search?.tab === "users" ||
+      search?.tab === "models" ||
+      search?.tab === "connections" ||
+      search?.tab === "customize"
         ? search.tab
         : undefined,
   }),

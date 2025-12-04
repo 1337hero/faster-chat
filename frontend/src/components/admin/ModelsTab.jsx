@@ -119,7 +119,7 @@ const ModelsTab = () => {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0">Loading models...</div>
+        <div className="text-theme-text-muted">Loading models...</div>
       </div>
     );
   }
@@ -127,9 +127,7 @@ const ModelsTab = () => {
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-red dark:text-macchiato-red">
-          Error loading models: {error.message}
-        </div>
+        <div className="text-theme-red">Error loading models: {error.message}</div>
       </div>
     );
   }
@@ -137,23 +135,19 @@ const ModelsTab = () => {
   if (models.length === 0) {
     return (
       <div className="flex h-full flex-col">
-        <div className="border-latte-surface0 dark:border-macchiato-surface0 flex items-center justify-between border-b px-6 py-4">
+        <div className="border-theme-surface flex items-center justify-between border-b px-6 py-4">
           <div>
-            <h2 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
-              Available Models
-            </h2>
-            <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-sm">
+            <h2 className="text-theme-text text-lg font-semibold">Available Models</h2>
+            <p className="text-theme-text-muted mt-1 text-sm">
               Enable or disable models for use in chat
             </p>
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <Server className="text-latte-subtext0 dark:text-macchiato-subtext0 mx-auto h-12 w-12" />
-            <h3 className="text-latte-text dark:text-macchiato-text mt-4 text-lg font-medium">
-              No models available
-            </h3>
-            <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-2 text-sm">
+            <Server className="text-theme-text-muted mx-auto h-12 w-12" />
+            <h3 className="text-theme-text mt-4 text-lg font-medium">No models available</h3>
+            <p className="text-theme-text-muted mt-2 text-sm">
               Add a provider connection in the Settings tab to fetch models
             </p>
           </div>
@@ -165,12 +159,10 @@ const ModelsTab = () => {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-latte-surface0 dark:border-macchiato-surface0 flex items-center justify-between border-b px-6 py-4">
+      <div className="border-theme-surface flex items-center justify-between border-b px-6 py-4">
         <div>
-          <h2 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
-            Available Models
-          </h2>
-          <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-sm">
+          <h2 className="text-theme-text text-lg font-semibold">Available Models</h2>
+          <p className="text-theme-text-muted mt-1 text-sm">
             {models.filter((m) => m.enabled).length} of {models.length} models enabled
           </p>
         </div>
@@ -189,7 +181,7 @@ const ModelsTab = () => {
               <div key={provider}>
                 <button
                   onClick={() => toggleProvider(provider)}
-                  className="text-latte-subtext0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:text-macchiato-text mb-3 flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wide uppercase transition-colors">
+                  className="text-theme-text-muted hover:text-theme-text mb-3 flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wide uppercase transition-colors">
                   {expanded ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
@@ -197,8 +189,7 @@ const ModelsTab = () => {
                   )}
                   <div
                     className={`flex h-6 w-6 items-center justify-center rounded-md ${
-                      branding.className ||
-                      "from-latte-blue/10 to-latte-mauve/10 dark:from-macchiato-blue/20 dark:to-macchiato-mauve/20 bg-gradient-to-br"
+                      branding.className || "from-theme-blue/10 to-theme-mauve/10 bg-gradient-to-br"
                     }`}
                     style={branding.style}>
                     <img
@@ -222,8 +213,8 @@ const ModelsTab = () => {
                         key={model.id}
                         className={`group rounded-lg border p-4 transition-colors ${
                           model.enabled
-                            ? "border-latte-surface1 bg-latte-mantle dark:border-macchiato-surface1 dark:bg-macchiato-mantle"
-                            : "border-latte-surface0 bg-latte-base dark:border-macchiato-surface0 dark:bg-macchiato-base opacity-60"
+                            ? "border-theme-surface-strong bg-theme-canvas-alt"
+                            : "border-theme-surface bg-theme-canvas opacity-60"
                         }`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -237,46 +228,46 @@ const ModelsTab = () => {
                                     onChange={(e) => setEditingName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, model.id)}
                                     onBlur={() => saveEditing(model.id)}
-                                    className="border-latte-blue text-latte-text focus:ring-latte-blue dark:border-macchiato-blue dark:bg-macchiato-base dark:text-macchiato-text dark:focus:ring-macchiato-blue rounded border px-2 py-1 text-sm font-semibold focus:ring-2 focus:outline-none"
+                                    className="border-theme-blue text-theme-text focus:ring-theme-blue rounded border px-2 py-1 text-sm font-semibold focus:ring-2 focus:outline-none"
                                     disabled={updateDisplayNameMutation.isPending}
                                   />
                                   <button
                                     onClick={() => saveEditing(model.id)}
                                     disabled={updateDisplayNameMutation.isPending}
-                                    className="text-latte-green hover:bg-latte-green/10 dark:text-macchiato-green dark:hover:bg-macchiato-green/10 rounded p-1"
+                                    className="text-theme-green hover:bg-theme-green/10 rounded p-1"
                                     title="Save">
                                     <Check className="h-4 w-4" />
                                   </button>
                                   <button
                                     onClick={cancelEditing}
                                     disabled={updateDisplayNameMutation.isPending}
-                                    className="text-latte-red hover:bg-latte-red/10 dark:text-macchiato-red dark:hover:bg-macchiato-red/10 rounded p-1"
+                                    className="text-theme-red hover:bg-theme-red/10 rounded p-1"
                                     title="Cancel">
                                     <X className="h-4 w-4" />
                                   </button>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <h4 className="text-latte-text dark:text-macchiato-text font-semibold">
+                                  <h4 className="text-theme-text font-semibold">
                                     {model.display_name}
                                   </h4>
                                   <button
                                     onClick={() => startEditing(model)}
-                                    className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                    className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
                                     title="Edit name">
                                     <Pencil className="h-3 w-3" />
                                   </button>
                                 </div>
                               )}
                               {model.is_default && (
-                                <span className="bg-latte-blue/10 text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+                                <span className="bg-theme-blue/10 text-theme-blue inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
                                   <Star className="h-3 w-3 fill-current" />
                                   Default
                                 </span>
                               )}
                             </div>
 
-                            <div className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                            <div className="text-theme-text-muted mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                               {model.metadata?.context_window && (
                                 <span>
                                   {formatContextWindow(model.metadata.context_window)} context
@@ -290,37 +281,35 @@ const ModelsTab = () => {
                                   </span>
                                 )}
                               {model.metadata?.cache_read_price_per_1m > 0 && (
-                                <span
-                                  className="text-latte-green dark:text-macchiato-green"
-                                  title="Supports prompt caching">
+                                <span className="text-theme-green" title="Supports prompt caching">
                                   💾 Cache: ${model.metadata.cache_read_price_per_1m.toFixed(2)}
                                 </span>
                               )}
                               <div className="flex items-center gap-2">
                                 {model.metadata?.supports_reasoning && (
                                   <span
-                                    className="bg-latte-mauve/20 text-latte-mauve dark:bg-macchiato-mauve/20 dark:text-macchiato-mauve rounded px-1.5 py-0.5 text-xs font-medium"
+                                    className="bg-theme-mauve/20 text-theme-mauve rounded px-1.5 py-0.5 text-xs font-medium"
                                     title="Extended thinking / reasoning model">
                                     🧠 Reasoning
                                   </span>
                                 )}
                                 {model.metadata?.supports_vision && (
                                   <span
-                                    className="bg-latte-surface0 dark:bg-macchiato-surface0 rounded px-1.5 py-0.5 text-xs"
+                                    className="bg-theme-surface rounded px-1.5 py-0.5 text-xs"
                                     title="Supports vision / image inputs">
                                     👁️ Vision
                                   </span>
                                 )}
                                 {model.metadata?.supports_tools && (
                                   <span
-                                    className="bg-latte-surface0 dark:bg-macchiato-surface0 rounded px-1.5 py-0.5 text-xs"
+                                    className="bg-theme-surface rounded px-1.5 py-0.5 text-xs"
                                     title="Supports function calling / tools">
                                     🔧 Tools
                                   </span>
                                 )}
                                 {model.metadata?.experimental && (
                                   <span
-                                    className="bg-latte-yellow/20 text-latte-yellow dark:bg-macchiato-yellow/20 dark:text-macchiato-yellow rounded px-1.5 py-0.5 text-xs font-medium"
+                                    className="bg-theme-yellow/20 text-theme-yellow rounded px-1.5 py-0.5 text-xs font-medium"
                                     title="Experimental model">
                                     ⚠️ Experimental
                                   </span>
@@ -335,7 +324,7 @@ const ModelsTab = () => {
                               <button
                                 onClick={() => setDefaultMutation.mutate(model.id)}
                                 disabled={setDefaultMutation.isPending}
-                                className="text-latte-blue hover:bg-latte-blue/10 dark:text-macchiato-blue dark:hover:bg-macchiato-blue/10 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">
+                                className="text-theme-blue hover:bg-theme-blue/10 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">
                                 Set Default
                               </button>
                             )}

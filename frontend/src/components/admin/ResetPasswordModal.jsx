@@ -51,38 +51,32 @@ const ResetPasswordModal = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={`Reset Password: ${user?.username}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
-            New Password
-          </label>
+          <label className="text-theme-text block text-sm font-medium">New Password</label>
           <input
             type="password"
             value={password}
             onInput={(e) => setPassword(e.target.value)}
-            className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
+            className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
             placeholder="Minimum 8 characters"
           />
         </div>
 
         <div>
-          <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
-            Confirm Password
-          </label>
+          <label className="text-theme-text block text-sm font-medium">Confirm Password</label>
           <input
             type="password"
             value={confirmPassword}
             onInput={(e) => setConfirmPassword(e.target.value)}
-            className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
+            className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
             placeholder="Re-enter password"
           />
-          <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-2 text-sm">
+          <p className="text-theme-text-muted mt-2 text-sm">
             Resetting password will invalidate all active sessions for this user.
           </p>
         </div>
 
         {error && (
-          <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
-            {error}
-          </div>
+          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
         )}
 
         <div className="flex justify-end gap-3">

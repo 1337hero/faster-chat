@@ -38,10 +38,10 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="bg-latte-base dark:bg-macchiato-base flex min-h-screen items-center justify-center px-4">
+    <div className="bg-theme-canvas flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="border-latte-surface0 bg-latte-mantle dark:border-macchiato-surface0 dark:bg-macchiato-mantle rounded-lg border p-8 shadow-lg">
-          <h1 className="text-latte-text dark:text-macchiato-text mb-6 text-center text-2xl font-bold">
+        <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-8 shadow-lg">
+          <h1 className="text-theme-text mb-6 text-center text-2xl font-bold">
             {isLogin ? "Sign In" : "Create Account"}
           </h1>
 
@@ -49,7 +49,7 @@ const AuthPage = () => {
             <div>
               <label
                 htmlFor="username"
-                className="text-latte-subtext1 dark:text-macchiato-subtext1 mb-1 block text-sm font-medium">
+                className="text-theme-text-subtle mb-1 block text-sm font-medium">
                 Username
               </label>
               <input
@@ -60,7 +60,7 @@ const AuthPage = () => {
                 required
                 minLength={3}
                 autoComplete="username"
-                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
+                className="border-theme-surface bg-theme-canvas text-theme-text focus:border-theme-blue focus:ring-theme-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                 disabled={isLoading}
               />
             </div>
@@ -68,7 +68,7 @@ const AuthPage = () => {
             <div>
               <label
                 htmlFor="password"
-                className="text-latte-subtext1 dark:text-macchiato-subtext1 mb-1 block text-sm font-medium">
+                className="text-theme-text-subtle mb-1 block text-sm font-medium">
                 Password
               </label>
               <input
@@ -79,7 +79,7 @@ const AuthPage = () => {
                 required
                 minLength={8}
                 autoComplete={isLogin ? "current-password" : "new-password"}
-                className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
+                className="border-theme-surface bg-theme-canvas text-theme-text focus:border-theme-blue focus:ring-theme-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                 disabled={isLoading}
               />
             </div>
@@ -88,7 +88,7 @@ const AuthPage = () => {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="text-latte-subtext1 dark:text-macchiato-subtext1 mb-1 block text-sm font-medium">
+                  className="text-theme-text-subtle mb-1 block text-sm font-medium">
                   Confirm Password
                 </label>
                 <input
@@ -99,16 +99,14 @@ const AuthPage = () => {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="border-latte-surface0 bg-latte-base text-latte-text focus:border-latte-blue focus:ring-latte-blue dark:border-macchiato-surface0 dark:bg-macchiato-base dark:text-macchiato-text dark:focus:border-macchiato-blue dark:focus:ring-macchiato-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
+                  className="border-theme-surface bg-theme-canvas text-theme-text focus:border-theme-blue focus:ring-theme-blue w-full rounded-md border px-3 py-2 focus:ring-1 focus:outline-none"
                   disabled={isLoading}
                 />
               </div>
             )}
 
             {error && (
-              <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-md p-3 text-sm">
-                {error}
-              </div>
+              <div className="bg-theme-red/10 text-theme-red rounded-md p-3 text-sm">{error}</div>
             )}
 
             <Button type="submit" color="blue" className="w-full" disabled={isLoading}>
@@ -120,7 +118,7 @@ const AuthPage = () => {
             <button
               type="button"
               onClick={toggleMode}
-              className="text-latte-blue dark:text-macchiato-blue text-sm hover:underline"
+              className="text-theme-blue text-sm hover:underline"
               disabled={isLoading}>
               {isLogin ? "Don't have an account? Create one" : "Already have an account? Sign in"}
             </button>
@@ -128,7 +126,7 @@ const AuthPage = () => {
         </div>
 
         {!isLogin && (
-          <div className="bg-latte-surface0/50 text-latte-subtext0 dark:bg-macchiato-surface0/50 dark:text-macchiato-subtext0 mt-4 rounded-md p-4 text-sm">
+          <div className="bg-theme-surface/50 text-theme-text-muted mt-4 rounded-md p-4 text-sm">
             <p className="font-semibold">First user becomes admin</p>
             <p className="mt-1">The first account created will have admin privileges.</p>
           </div>

@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { useEffect } from "preact/hooks";
 import { router } from "./router";
-import { useUiState } from "./state/useUiState";
+import { useThemeStore } from "./state/useThemeStore";
+import { useAppSettings } from "./state/useAppSettings";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,11 +15,14 @@ export const queryClient = new QueryClient({
 });
 
 const App = () => {
-  const theme = useUiState((state) => state.theme);
+  const initializeTheme = useThemeStore((state) => state.initializeTheme);
+  const fetchSettings = useAppSettings((state) => state.fetchSettings);
 
+  // Initialize theme and app settings on app mount
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    initializeTheme();
+    fetchSettings();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -137,7 +137,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
     const badges = {
       "openai-compatible": (
-        <span className="bg-latte-green/10 text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+        <span className="bg-theme-green/10 text-theme-green inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -149,7 +149,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         </span>
       ),
       local: (
-        <span className="bg-latte-green/10 text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+        <span className="bg-theme-green/10 text-theme-green inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -161,7 +161,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         </span>
       ),
       official: (
-        <span className="bg-latte-blue/10 text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+        <span className="bg-theme-blue/10 text-theme-blue inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -173,7 +173,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         </span>
       ),
       community: (
-        <span className="bg-latte-mauve/10 text-latte-mauve dark:bg-macchiato-mauve/10 dark:text-macchiato-mauve inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
+        <span className="bg-theme-mauve/10 text-theme-mauve inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
             <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
           </svg>
@@ -196,20 +196,18 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 value={searchTerm}
                 onInput={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search providers..."
-                className="border-latte-surface1 bg-latte-base text-latte-text placeholder-latte-subtext0 focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:placeholder-macchiato-subtext0 dark:focus:border-macchiato-blue w-full rounded-lg border px-4 py-2 focus:outline-none"
+                className="border-theme-surface-strong bg-theme-canvas text-theme-text placeholder-theme-text-muted focus:border-theme-blue w-full rounded-lg border px-4 py-2 focus:outline-none"
               />
             </div>
 
             {isLoadingProviders ? (
-              <div className="text-latte-subtext0 dark:text-macchiato-subtext0 py-8 text-center">
-                Loading providers...
-              </div>
+              <div className="text-theme-text-muted py-8 text-center">Loading providers...</div>
             ) : (
               <div className="max-h-96 space-y-4 overflow-y-auto">
                 {/* Local Providers - FIRST */}
                 {groupedProviders.local.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
+                    <h3 className="text-theme-text-muted mb-2 text-xs font-semibold tracking-wide uppercase">
                       🖥️ Local Models (Run on Your Computer)
                     </h3>
                     <div className="space-y-2">
@@ -228,7 +226,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 {/* Official Native SDK Providers - SECOND */}
                 {groupedProviders.official.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
+                    <h3 className="text-theme-text-muted mb-2 text-xs font-semibold tracking-wide uppercase">
                       ☁️ Official Cloud Providers
                     </h3>
                     <div className="space-y-2">
@@ -247,7 +245,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 {/* Community Providers - LAST */}
                 {groupedProviders.community.length > 0 && (
                   <div>
-                    <h3 className="text-latte-subtext0 dark:text-macchiato-subtext0 mb-2 text-xs font-semibold tracking-wide uppercase">
+                    <h3 className="text-theme-text-muted mb-2 text-xs font-semibold tracking-wide uppercase">
                       🌐 Community & Third-Party
                     </h3>
                     <div className="space-y-2">
@@ -264,7 +262,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 )}
 
                 {filteredProviders.length === 0 && (
-                  <div className="text-latte-subtext0 dark:text-macchiato-subtext0 py-8 text-center">
+                  <div className="text-theme-text-muted py-8 text-center">
                     No providers found matching "{searchTerm}"
                   </div>
                 )}
@@ -274,10 +272,10 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         ) : (
           <>
             {/* Selected provider */}
-            <div className="bg-latte-blue/10 dark:bg-macchiato-blue/10 rounded-lg p-3">
+            <div className="bg-theme-blue/10 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-latte-blue dark:text-macchiato-blue font-medium">
+                  <span className="text-theme-blue font-medium">
                     {selectedProvider.displayName || selectedProvider.name}
                   </span>
                   {getTypeBadge(selectedProvider)}
@@ -290,12 +288,12 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                     setBaseUrl("");
                     setApiKey("");
                   }}
-                  className="text-latte-blue dark:text-macchiato-blue text-sm hover:underline">
+                  className="text-theme-blue text-sm hover:underline">
                   Change
                 </button>
               </div>
               {(selectedProvider.website || selectedProvider.description) && (
-                <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-xs">
+                <p className="text-theme-text-muted mt-1 text-xs">
                   {selectedProvider.website ? (
                     <a
                       href={selectedProvider.website}
@@ -313,7 +311,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
             {/* Display Name */}
             <div>
-              <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
+              <label className="text-theme-text block text-sm font-medium">
                 Display Name (optional)
               </label>
               <input
@@ -321,14 +319,14 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                 value={displayName}
                 onInput={(e) => setDisplayName(e.target.value)}
                 placeholder={selectedProvider.displayName || selectedProvider.name}
-                className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
+                className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
               />
             </div>
 
             {/* Base URL (if required) */}
             {(selectedProvider.requiresBaseUrl || selectedProvider.category === "local") && (
               <div>
-                <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
+                <label className="text-theme-text block text-sm font-medium">
                   {selectedProvider.baseUrlLabel || "Base URL"}
                 </label>
                 <input
@@ -340,9 +338,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                       ? "http://localhost:11434/v1"
                       : "https://..."
                   }
-                  className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
+                  className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
                 />
-                <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-xs">
+                <p className="text-theme-text-muted mt-1 text-xs">
                   {selectedProvider.id === "ollama"
                     ? "The API endpoint where Ollama is running"
                     : selectedProvider.category === "local"
@@ -357,7 +355,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
               (selectedProvider.category !== "local" &&
                 selectedProvider.type !== "openai-compatible")) && (
               <div>
-                <label className="text-latte-text dark:text-macchiato-text block text-sm font-medium">
+                <label className="text-theme-text block text-sm font-medium">
                   API Key {selectedProvider.category === "local" && "(optional for local)"}
                 </label>
                 <input
@@ -367,10 +365,10 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   placeholder={
                     selectedProvider.category === "local" ? "Not required for local" : "sk-..."
                   }
-                  className="border-latte-surface1 bg-latte-base text-latte-text focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:focus:border-macchiato-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
+                  className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
                 />
                 {selectedProvider.docs && (
-                  <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-xs">
+                  <p className="text-theme-text-muted mt-1 text-xs">
                     Get your API key from{" "}
                     <a
                       href={selectedProvider.docs}
@@ -382,7 +380,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   </p>
                 )}
                 {selectedProvider.category === "local" && (
-                  <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-xs">
+                  <p className="text-theme-text-muted mt-1 text-xs">
                     Leave empty if running locally
                   </p>
                 )}
@@ -391,16 +389,16 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
             {/* Environment Variables Warning */}
             {selectedProvider.requiresEnvVars && (
-              <div className="bg-latte-yellow/10 text-latte-text dark:bg-macchiato-yellow/10 dark:text-macchiato-text rounded-lg p-3 text-sm">
+              <div className="bg-theme-yellow/10 text-theme-text rounded-lg p-3 text-sm">
                 <strong>Note:</strong> This provider requires environment variables:{" "}
-                <code className="bg-latte-surface0 dark:bg-macchiato-surface0 rounded px-1">
+                <code className="bg-theme-surface rounded px-1">
                   {selectedProvider.requiresEnvVars.join(", ")}
                 </code>
               </div>
             )}
 
             {error && (
-              <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
+              <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">
                 <pre className="font-sans whitespace-pre-wrap">{error}</pre>
               </div>
             )}
@@ -425,18 +423,18 @@ const ProviderCard = ({ provider, onSelect, badge }) => (
   <button
     type="button"
     onClick={() => onSelect(provider)}
-    className="border-latte-surface1 bg-latte-base hover:border-latte-blue hover:bg-latte-mantle dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:hover:border-macchiato-blue dark:hover:bg-macchiato-base w-full rounded-lg border p-3 text-left transition-colors">
+    className="border-theme-surface-strong bg-theme-canvas hover:border-theme-blue hover:bg-theme-canvas-alt w-full rounded-lg border p-3 text-left transition-colors">
     <div className="flex items-start justify-between gap-2">
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-latte-text dark:text-macchiato-text font-medium">
+          <span className="text-theme-text font-medium">
             {provider.displayName || provider.name}
           </span>
           {badge}
         </div>
         {/* Show capabilities for native providers OR description for community providers */}
         {provider.type ? (
-          <div className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 flex flex-wrap gap-2 text-xs">
+          <div className="text-theme-text-muted mt-1 flex flex-wrap gap-2 text-xs">
             {provider.supportsVision && <span>👁️ Vision</span>}
             {provider.supportsTools && <span>🔧 Tools</span>}
             {provider.supportsStreaming && <span>⚡ Streaming</span>}
@@ -445,14 +443,12 @@ const ProviderCard = ({ provider, onSelect, badge }) => (
           </div>
         ) : (
           provider.description && (
-            <p className="text-latte-subtext0 dark:text-macchiato-subtext0 mt-1 text-sm">
-              {provider.description}
-            </p>
+            <p className="text-theme-text-muted mt-1 text-sm">{provider.description}</p>
           )
         )}
       </div>
       <svg
-        className="text-latte-subtext0 dark:text-macchiato-subtext0 h-5 w-5 flex-shrink-0"
+        className="text-theme-text-muted h-5 w-5 flex-shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24">

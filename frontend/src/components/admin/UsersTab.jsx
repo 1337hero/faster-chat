@@ -64,7 +64,7 @@ const UsersTab = () => {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0">Loading users...</div>
+        <div className="text-theme-text-muted">Loading users...</div>
       </div>
     );
   }
@@ -72,9 +72,7 @@ const UsersTab = () => {
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-latte-red dark:text-macchiato-red">
-          Error loading users: {error.message}
-        </div>
+        <div className="text-theme-red">Error loading users: {error.message}</div>
       </div>
     );
   }
@@ -82,11 +80,10 @@ const UsersTab = () => {
   return (
     <div className="flex h-full flex-col">
       {/* Header with search and add button */}
-      <div className="border-latte-surface0 dark:border-macchiato-surface0 flex items-center justify-between border-b px-6 py-4">
+      <div className="border-theme-surface flex items-center justify-between border-b px-6 py-4">
         <div className="flex items-center gap-4">
-          <h2 className="text-latte-text dark:text-macchiato-text text-lg font-semibold">
-            Users{" "}
-            <span className="text-latte-subtext0 dark:text-macchiato-subtext0">{users.length}</span>
+          <h2 className="text-theme-text text-lg font-semibold">
+            Users <span className="text-theme-text-muted">{users.length}</span>
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -96,10 +93,10 @@ const UsersTab = () => {
               placeholder="Search"
               value={searchQuery}
               onInput={(e) => setSearchQuery(e.target.value)}
-              className="border-latte-surface1 bg-latte-base text-latte-text placeholder-latte-subtext0 focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:placeholder-macchiato-subtext0 dark:focus:border-macchiato-blue w-64 rounded-lg border px-4 py-2 text-sm focus:outline-none"
+              className="border-theme-surface-strong bg-theme-canvas text-theme-text placeholder-theme-text-muted focus:border-theme-blue w-64 rounded-lg border px-4 py-2 text-sm focus:outline-none"
             />
             <svg
-              className="text-latte-subtext0 dark:text-macchiato-subtext0 absolute top-2.5 right-3 h-5 w-5"
+              className="text-theme-text-muted absolute top-2.5 right-3 h-5 w-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24">
@@ -132,66 +129,60 @@ const UsersTab = () => {
       <div className="flex-1 overflow-auto px-6 py-4">
         <table className="w-full">
           <thead>
-            <tr className="border-latte-surface0 dark:border-macchiato-surface0 border-b">
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
+            <tr className="border-theme-surface border-b">
+              <th className="text-theme-text-muted pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Role
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
+              <th className="text-theme-text-muted pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Name
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
+              <th className="text-theme-text-muted pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Email
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
+              <th className="text-theme-text-muted pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Last Active
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
+              <th className="text-theme-text-muted pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Created At
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-right text-xs font-semibold tracking-wider uppercase">
+              <th className="text-theme-text-muted pb-3 text-right text-xs font-semibold tracking-wider uppercase">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((user) => (
-              <tr
-                key={user.id}
-                className="border-latte-surface0 hover:bg-latte-mantle dark:border-macchiato-surface0 dark:hover:bg-macchiato-mantle border-b">
+              <tr key={user.id} className="border-theme-surface hover:bg-theme-canvas-alt border-b">
                 <td className="py-4">
                   <span
                     className={`inline-flex rounded-md px-2 py-1 text-xs font-medium uppercase ${
                       user.role === "admin"
-                        ? "bg-latte-blue/10 text-latte-blue dark:bg-macchiato-blue/10 dark:text-macchiato-blue"
-                        : "bg-latte-green/10 text-latte-green dark:bg-macchiato-green/10 dark:text-macchiato-green"
+                        ? "bg-theme-blue/10 text-theme-blue"
+                        : "bg-theme-green/10 text-theme-green"
                     }`}>
                     {user.role}
                   </span>
                 </td>
                 <td className="py-4">
                   <div className="flex items-center gap-3">
-                    <div className="bg-latte-yellow text-latte-base dark:bg-macchiato-yellow dark:text-macchiato-base flex h-10 w-10 items-center justify-center rounded-full">
+                    <div className="bg-theme-yellow text-theme-canvas flex h-10 w-10 items-center justify-center rounded-full">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-latte-text dark:text-macchiato-text font-medium">
-                      {user.username}
-                    </span>
+                    <span className="text-theme-text font-medium">{user.username}</span>
                   </div>
                 </td>
-                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
+                <td className="text-theme-text-muted py-4">
                   {user.email || `${user.username}@mk3y.com`}
                 </td>
-                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
+                <td className="text-theme-text-muted py-4">
                   {formatRelativeTime(user.last_active)}
                 </td>
-                <td className="text-latte-subtext0 dark:text-macchiato-subtext0 py-4">
-                  {formatDate(user.created_at)}
-                </td>
+                <td className="text-theme-text-muted py-4">{formatDate(user.created_at)}</td>
                 <td className="py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => setEditRoleUser(user)}
-                      className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2"
+                      className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2"
                       title="Change role">
                       <svg
                         className="h-5 w-5"
@@ -208,7 +199,7 @@ const UsersTab = () => {
                     </button>
                     <button
                       onClick={() => setResetPasswordUser(user)}
-                      className="text-latte-subtext0 hover:bg-latte-surface0 hover:text-latte-text dark:text-macchiato-subtext0 dark:hover:bg-macchiato-surface0 dark:hover:text-macchiato-text rounded-lg p-2"
+                      className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2"
                       title="Reset password">
                       <svg
                         className="h-5 w-5"
@@ -225,7 +216,7 @@ const UsersTab = () => {
                     </button>
                     <button
                       onClick={() => setDeleteUser(user)}
-                      className="text-latte-red hover:bg-latte-surface0 dark:text-macchiato-red dark:hover:bg-macchiato-surface0 rounded-lg p-2"
+                      className="text-theme-red hover:bg-theme-surface rounded-lg p-2"
                       title="Delete user">
                       <svg
                         className="h-5 w-5"
@@ -248,9 +239,7 @@ const UsersTab = () => {
         </table>
 
         {filteredUsers.length === 0 && (
-          <div className="text-latte-subtext0 dark:text-macchiato-subtext0 py-12 text-center">
-            No users found
-          </div>
+          <div className="text-theme-text-muted py-12 text-center">No users found</div>
         )}
       </div>
 
