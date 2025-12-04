@@ -1,41 +1,40 @@
 import { create } from "zustand";
-
-const DEFAULT_SETTINGS = {
-  appName: "Faster Chat",
-};
+import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from "@faster-chat/shared";
 
 export const useAppSettings = create((set, get) => ({
-  appName: DEFAULT_SETTINGS.appName,
+  appName: DEFAULT_APP_SETTINGS.appName,
+  logoIcon: DEFAULT_APP_SETTINGS.logoIcon,
   isLoaded: false,
-  isLoading: false,
+  isFetching: false,
+  isSaving: false,
   error: null,
 
   fetchSettings: async () => {
-    if (get().isLoading) return;
+    if (get().isFetching) return;
 
-    set({ isLoading: true, error: null });
+    set({ isFetching: true, error: null });
     try {
       const response = await fetch("/api/settings");
       if (!response.ok) throw new Error("Failed to fetch settings");
 
       const data = await response.json();
       set({
-        appName: data.appName || DEFAULT_SETTINGS.appName,
+        ...normalizeAppSettings(data),
         isLoaded: true,
-        isLoading: false,
+        isFetching: false,
       });
     } catch (error) {
       console.error("Failed to fetch app settings:", error);
       set({
         error: error.message,
         isLoaded: true,
-        isLoading: false,
+        isFetching: false,
       });
     }
   },
 
   updateSettings: async (updates) => {
-    set({ isLoading: true, error: null });
+    set({ isSaving: true, error: null });
     try {
       const response = await fetch("/api/settings", {
         method: "PUT",
@@ -51,13 +50,14 @@ export const useAppSettings = create((set, get) => ({
 
       const data = await response.json();
       set({
-        appName: data.appName || DEFAULT_SETTINGS.appName,
-        isLoading: false,
+        ...normalizeAppSettings(data),
+        isLoaded: true,
+        isSaving: false,
       });
       return { success: true };
     } catch (error) {
       console.error("Failed to update app settings:", error);
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, isSaving: false });
       return { success: false, error: error.message };
     }
   },

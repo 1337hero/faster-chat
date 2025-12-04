@@ -1,7 +1,15 @@
+import * as LucideIcons from "lucide-react";
+import { PanelLeftClose, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useUiState } from "@/state/useUiState";
 import { useAppSettings } from "@/state/useAppSettings";
-import { MessageSquare, PanelLeftClose, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
+import { LOGO_ICON_NAMES } from "@faster-chat/shared";
+
+// Build icon map from shared names
+const LOGO_ICONS = LOGO_ICON_NAMES.reduce((acc, name) => {
+  acc[name] = LucideIcons[name];
+  return acc;
+}, {});
 
 const Sidebar = () => {
   const {
@@ -18,6 +26,8 @@ const Sidebar = () => {
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
   const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
   const appName = useAppSettings((state) => state.appName);
+  const logoIcon = useAppSettings((state) => state.logoIcon);
+  const LogoIcon = LOGO_ICONS[logoIcon] || Zap;
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-72";
   const shouldLogoStartNewChat = pathname.startsWith("/admin") || pathname.startsWith("/settings");
 
@@ -59,7 +69,7 @@ const Sidebar = () => {
             onClick={handleLogoClick}
             title={logoTitle}>
             <div className="bg-theme-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg shadow-lg">
-              <Zap className="h-5 w-5 text-white" />
+              <LogoIcon className="h-5 w-5 text-white" />
             </div>
             {!sidebarCollapsed && (
               <h1 className="text-theme-text overflow-hidden text-xl font-extrabold tracking-tight whitespace-nowrap">

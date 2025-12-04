@@ -10,9 +10,9 @@ const CustomizeTab = lazy(() => import("@/components/admin/CustomizeTab"));
 
 const tabs = [
   { id: "users", label: "Users" },
-  { id: "models", label: "Models" },
-  { id: "connections", label: "Connections" },
   { id: "customize", label: "Customize" },
+  { id: "models", label: "Models" },
+  { id: "connections", label: "Connections" }
 ];
 
 const Admin = () => {
@@ -71,9 +71,9 @@ const Admin = () => {
             </div>
           }>
           {activeTab === "users" && <UsersTab />}
+          {activeTab === "customize" && <CustomizeTab />}
           {activeTab === "models" && <ModelsTab />}
           {activeTab === "connections" && <ConnectionsTab />}
-          {activeTab === "customize" && <CustomizeTab />}
         </Suspense>
       </div>
     </div>
