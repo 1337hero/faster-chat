@@ -270,27 +270,6 @@ const UsersTab = () => {
           />
         )}
       </Suspense>
-      {editRoleUser && (
-        <EditUserRoleModal
-          user={editRoleUser}
-          isOpen={!!editRoleUser}
-          onClose={() => setEditRoleUser(null)}
-        />
-      )}
-      {resetPasswordUser && (
-        <ResetPasswordModal
-          user={resetPasswordUser}
-          isOpen={!!resetPasswordUser}
-          onClose={() => setResetPasswordUser(null)}
-        />
-      )}
-      {deleteUser && (
-        <DeleteUserModal
-          user={deleteUser}
-          isOpen={!!deleteUser}
-          onClose={() => setDeleteUser(null)}
-        />
-      )}
     </div>
   );
 };

@@ -1,8 +1,7 @@
-import { UI_CONSTANTS } from "@faster-chat/shared";
 import { useChatsQuery, useDeleteChatMutation, useCreateChatMutation } from "./useChatsQuery";
+import { useIsMobile } from "./useIsMobile";
 import { useUiState } from "@/state/useUiState";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "preact/hooks";
 
 export function useSidebarState() {
   const navigate = useNavigate();
@@ -13,20 +12,7 @@ export function useSidebarState() {
   const isSidebarOpen = useUiState((state) => state.sidebarOpen);
   const setIsSidebarOpen = useUiState((state) => state.setSidebarOpen);
   const toggleSidebar = useUiState((state) => state.toggleSidebar);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    function handleResize() {
-      if (typeof window === "undefined") return;
-      setIsMobile(window.innerWidth < UI_CONSTANTS.BREAKPOINT_MD);
-    }
-
-    handleResize();
-
-    if (typeof window === "undefined") return;
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const isMobile = useIsMobile();
 
   function navigateToChat(chatId, replace = false) {
     navigate({ to: "/chat/$chatId", params: { chatId }, replace });

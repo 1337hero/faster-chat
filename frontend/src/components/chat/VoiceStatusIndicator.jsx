@@ -1,12 +1,13 @@
-import { Mic, Loader2, Volume2 } from "lucide-react";
+import { Mic, Loader2, Volume2, Settings } from "lucide-react";
 import { CHAT_STATES } from "@faster-chat/shared";
 
 /**
  * Voice Status Indicator
  *
- * Shows current voice conversation state with visual feedback
+ * Shows current voice conversation state with visual feedback.
+ * Clickable to open voice settings modal.
  */
-const VoiceStatusIndicator = ({ voiceControls }) => {
+const VoiceStatusIndicator = ({ voiceControls, onOpenSettings }) => {
   if (!voiceControls.isActive) return null;
 
   const getStateInfo = () => {
@@ -55,7 +56,11 @@ const VoiceStatusIndicator = ({ voiceControls }) => {
   const Icon = stateInfo.icon;
 
   return (
-    <div className={`${stateInfo.bgColor} flex items-center gap-2 rounded-full px-3 py-1.5`}>
+    <button
+      type="button"
+      onClick={onOpenSettings}
+      className={`${stateInfo.bgColor} flex items-center gap-2 rounded-full px-3 py-1.5 cursor-pointer transition-all duration-150 ease-snappy hover:scale-105 hover:shadow-md active:scale-95`}
+      title="Voice Settings">
       <Icon
         size={16}
         className={`${stateInfo.color} ${stateInfo.spin ? "animate-spin" : ""} ${stateInfo.animate ? "animate-pulse" : ""}`}
@@ -68,7 +73,9 @@ const VoiceStatusIndicator = ({ voiceControls }) => {
           "{voiceControls.transcript}"
         </span>
       )}
-    </div>
+
+      <Settings size={14} className={`${stateInfo.color} opacity-60`} />
+    </button>
   );
 };
 

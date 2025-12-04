@@ -1,17 +1,13 @@
-import { useState } from "preact/hooks";
 import { Volume2, X } from "lucide-react";
 import { getLanguageName } from "@faster-chat/shared";
 
 const VoiceSettings = ({ voiceControls, onClose }) => {
-  const [selectedVoice, setSelectedVoice] = useState(voiceControls.selectedVoice?.name || "");
-
   const handleVoiceChange = (e) => {
     const voiceName = e.target.value;
     const voice = voiceControls.availableVoices.find((v) => v.name === voiceName);
 
     if (voice) {
       voiceControls.changeVoice(voice);
-      setSelectedVoice(voice.name);
     }
   };
 
@@ -47,7 +43,7 @@ const VoiceSettings = ({ voiceControls, onClose }) => {
           <label className="text-theme-text-subtle block text-sm font-medium">Select Voice</label>
 
           <select
-            value={selectedVoice}
+            value={voiceControls.selectedVoice?.name || ""}
             onChange={handleVoiceChange}
             className="bg-theme-surface text-theme-text border-theme-overlay/20 focus:border-theme-blue focus:ring-theme-blue/20 w-full rounded-lg border px-4 py-2 focus:ring-2 focus:outline-none">
             <option value="">Select a voice...</option>

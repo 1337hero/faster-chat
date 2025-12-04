@@ -3,10 +3,9 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
 import { useChat } from "@/hooks/useChat";
+import { useChatVoice } from "@/hooks/useChatVoice";
 import { useCreateChatMutation } from "@/hooks/useChatsQuery";
-import { useVoice } from "@/hooks/useVoice";
 import { useUiState } from "@/state/useUiState";
-import { VOICE_CONSTANTS } from "@faster-chat/shared";
 import { useNavigate } from "@tanstack/react-router";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import InputArea from "./InputArea";
@@ -27,9 +26,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   };
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollContainerRef = useRef(null);
-  const [voiceError, setVoiceError] = useState(null);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
-  const lastSpokenMessageRef = useRef(null);
 
   const {
     messages,
@@ -48,17 +45,11 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
     model: preferredModel,
   });
 
-  // Voice integration
-  const voice = useVoice({
-    onSpeechResult: async (transcript) => {
-      setInput(transcript); // Echo to input for visual feedback
-      await submitMessage({ content: transcript });
-    },
-    onError: (error) => {
-      console.error("Voice error:", error);
-      setVoiceError(error);
-      setTimeout(() => setVoiceError(null), VOICE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
-    },
+  const { voice, voiceError } = useChatVoice({
+    messages,
+    isLoading,
+    setInput,
+    submitMessage,
   });
 
   useLayoutEffect(() => {
@@ -67,39 +58,6 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages, autoScroll]);
-
-  const shouldSpeakMessage = (message) => {
-    if (!message) return false;
-    const isAssistantMessage = message.role === "assistant";
-    const hasTextContent = message.parts?.some((part) => part.type === "text" && part.text?.trim());
-    const notAlreadySpoken = lastSpokenMessageRef.current !== message.id;
-    return isAssistantMessage && hasTextContent && notAlreadySpoken;
-  };
-
-  const extractTextContent = (message) => {
-    return (
-      message.parts
-        ?.filter((part) => part.type === "text")
-        .map((part) => part.text)
-        .join("") || ""
-    );
-  };
-
-  useLayoutEffect(() => {
-    if (!voice.isActive || messages.length === 0 || isLoading) return;
-
-    const lastMessage = messages[messages.length - 1];
-    if (!shouldSpeakMessage(lastMessage)) return;
-
-    const content = extractTextContent(lastMessage);
-    lastSpokenMessageRef.current = lastMessage.id;
-
-    if (voice.isProcessing) {
-      voice.completeProcessing();
-    }
-
-    voice.speakStream(content);
-  }, [messages, voice.isActive, voice.isProcessing, isLoading]);
 
   return (
     <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">
@@ -123,7 +81,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
           {/* Right: Controls */}
           <div className="flex items-center gap-3">
-            <VoiceStatusIndicator voiceControls={voice} />
+            <VoiceStatusIndicator voiceControls={voice} onOpenSettings={() => setShowVoiceSettings(true)} />
             <ThemeToggle />
             <UserMenu />
           </div>
