@@ -29,4 +29,23 @@ export const UI_CONSTANTS = {
 
   // Scrollbar
   SCROLLBAR_WIDTH: "0.25rem",
+
+  // Notifications
+  SUCCESS_MESSAGE_DURATION_MS: 2000,
+
+  // Form Inputs
+  APP_NAME_MAX_LENGTH: 50,
+
+  // Icon Picker
+  ICON_PICKER_COLUMNS: 10,
+};
+
+// Semantic icon sizes for lucide-react (in pixels)
+export const ICON_SIZE = {
+  XS: 12,
+  SM: 14,
+  MD: 16,
+  LG: 18,
+  XL: 20,
+  XXL: 24,
 };
