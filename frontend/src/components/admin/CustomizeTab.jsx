@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import * as LucideIcons from "lucide-react";
 import { Check, ChevronRight, RotateCcw, Zap } from "lucide-react";
 import { useAppSettings } from "@/state/useAppSettings";
@@ -17,17 +17,9 @@ const CustomizeTab = () => {
   const isFetching = useAppSettings((state) => state.isFetching);
   const isSaving = useAppSettings((state) => state.isSaving);
   const updateSettings = useAppSettings((state) => state.updateSettings);
-  const [localAppName, setLocalAppName] = useState(appName);
-  const [localLogoIcon, setLocalLogoIcon] = useState(logoIcon);
+  const [localAppName, setLocalAppName] = useState(() => appName);
+  const [localLogoIcon, setLocalLogoIcon] = useState(() => logoIcon);
   const [saveStatus, setSaveStatus] = useState(null);
-
-  useEffect(() => {
-    setLocalAppName(appName);
-  }, [appName]);
-
-  useEffect(() => {
-    setLocalLogoIcon(logoIcon);
-  }, [logoIcon]);
 
   const hasUnsavedChanges = localAppName !== appName || localLogoIcon !== logoIcon;
 
