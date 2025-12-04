@@ -14,6 +14,7 @@ export const VOICE_CONSTANTS = {
 
   // Defaults
   DEFAULT_LANGUAGE: 'en-US',
+  DEFAULT_LANGUAGE_PREFIX: 'en',
 
   // LocalStorage keys
   STORAGE_KEY_LANGUAGE: 'selectedLanguage',

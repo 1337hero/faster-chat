@@ -1,22 +1,13 @@
 import { useVoice } from "@/hooks/useVoice";
+import { extractTextContent, hasTextContent } from "@/utils/message/messageUtils";
 import { VOICE_CONSTANTS } from "@faster-chat/shared";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
-
-const extractTextContent = (message) => {
-  return (
-    message.parts
-      ?.filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("") || ""
-  );
-};
 
 const shouldSpeakMessage = (message, lastSpokenId) => {
   if (!message) return false;
   const isAssistantMessage = message.role === "assistant";
-  const hasTextContent = message.parts?.some((part) => part.type === "text" && part.text?.trim());
   const notAlreadySpoken = lastSpokenId !== message.id;
-  return isAssistantMessage && hasTextContent && notAlreadySpoken;
+  return isAssistantMessage && hasTextContent(message) && notAlreadySpoken;
 };
 
 export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {

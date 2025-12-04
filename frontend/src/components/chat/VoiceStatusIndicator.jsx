@@ -1,5 +1,5 @@
-import { Mic, Loader2, Volume2, Settings } from "lucide-react";
-import { CHAT_STATES } from "@faster-chat/shared";
+import { Settings } from "lucide-react";
+import { VOICE_STATE_CONFIG } from "@/constants/voiceStateConfig";
 
 /**
  * Voice Status Indicator
@@ -10,47 +10,7 @@ import { CHAT_STATES } from "@faster-chat/shared";
 const VoiceStatusIndicator = ({ voiceControls, onOpenSettings }) => {
   if (!voiceControls.isActive) return null;
 
-  const getStateInfo = () => {
-    switch (voiceControls.currentState) {
-      case CHAT_STATES.LISTENING:
-        return {
-          icon: Mic,
-          text: "Listening...",
-          color: "text-theme-green",
-          bgColor: "bg-theme-green/10",
-          animate: true,
-        };
-      case CHAT_STATES.PROCESSING:
-        return {
-          icon: Loader2,
-          text: "Processing...",
-          color: "text-theme-blue",
-          bgColor: "bg-theme-blue/10",
-          animate: true,
-          spin: true,
-        };
-      case CHAT_STATES.SPEAKING:
-        return {
-          icon: Volume2,
-          text: "Speaking...",
-          color: "text-theme-mauve",
-          bgColor: "bg-theme-mauve/10",
-          animate: true,
-        };
-      case CHAT_STATES.COOLDOWN:
-        return {
-          icon: Loader2,
-          text: "Ready...",
-          color: "text-theme-overlay",
-          bgColor: "bg-theme-overlay/10",
-          animate: false,
-        };
-      default:
-        return null;
-    }
-  };
-
-  const stateInfo = getStateInfo();
+  const stateInfo = VOICE_STATE_CONFIG[voiceControls.currentState];
   if (!stateInfo) return null;
 
   const Icon = stateInfo.icon;

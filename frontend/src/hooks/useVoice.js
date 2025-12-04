@@ -1,8 +1,10 @@
 import { useRef, useState } from "preact/hooks";
-import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
+import { CHAT_STATES } from "@faster-chat/shared";
 import { useSpeechRecognition } from "./voice/useSpeechRecognition";
 import { useTextToSpeech } from "./voice/useTextToSpeech";
 import { useVoiceSelection } from "./voice/useVoiceSelection";
+import { checkVoiceSupport } from "@/utils/voice/browserSupport";
+import { ERROR_MESSAGES } from "@/utils/voice/errorHandler";
 
 export function useVoice({ onSpeechResult, onError }) {
   const [currentState, setCurrentState] = useState(CHAT_STATES.IDLE);
@@ -61,11 +63,8 @@ export function useVoice({ onSpeechResult, onError }) {
   };
 
   const startConversation = () => {
-    const isSupported =
-      !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis;
-
-    if (!isSupported) {
-      if (onError) onError("Voice not supported in this browser");
+    if (!checkVoiceSupport()) {
+      if (onError) onError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
       return;
     }
 
@@ -98,8 +97,7 @@ export function useVoice({ onSpeechResult, onError }) {
   };
 
   const derivedState = {
-    isSupported:
-      !!(window.SpeechRecognition || window.webkitSpeechRecognition) && !!window.speechSynthesis,
+    isSupported: checkVoiceSupport(),
     isActive: currentState !== CHAT_STATES.IDLE,
     isListening: currentState === CHAT_STATES.LISTENING,
     isProcessing: currentState === CHAT_STATES.PROCESSING,
