@@ -4,10 +4,31 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import { toast } from "sonner";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check, ExternalLink, Download, WrapText } from "lucide-react";
 import { highlightCode } from "@/lib/shiki";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 import "katex/dist/katex.min.css";
+
+// Map language to file extension for downloads
+const LANG_EXTENSIONS = {
+  javascript: "js",
+  typescript: "ts",
+  jsx: "jsx",
+  tsx: "tsx",
+  python: "py",
+  ruby: "rb",
+  rust: "rs",
+  csharp: "cs",
+  cpp: "cpp",
+  bash: "sh",
+  shell: "sh",
+  powershell: "ps1",
+  dockerfile: "dockerfile",
+  yaml: "yaml",
+  yml: "yml",
+  markdown: "md",
+  plaintext: "txt",
+};
 
 // Static plugin arrays - never recreated
 const REMARK_PLUGINS = [remarkMath, remarkGfm];
@@ -17,15 +38,20 @@ const REHYPE_PLUGINS = [rehypeKatex];
  * Code block with Shiki syntax highlighting.
  * Supports dual themes via CSS variables (responds to .dark class).
  */
-const CodeBlock = ({ inline, className, children }) => {
+const CodeBlock = ({ inline, className, children, node }) => {
   const [copied, setCopied] = useState(false);
+  const [wrap, setWrap] = useState(false);
   const [highlightedHtml, setHighlightedHtml] = useState(null);
 
   const lang = className?.match(/language-(\w+)/)?.[1] ?? "";
   const code = String(children).trim();
 
+  // Detect inline code: explicit inline prop, no language class, or single-line without parent pre
+  // react-markdown v9+ doesn't reliably pass inline prop, so we use heuristics
+  const isInline = inline || (!className && !code.includes("\n") && node?.tagName !== "pre");
+
   // Inline code - no highlighting needed
-  if (inline) {
+  if (isInline) {
     return (
       <code className="bg-theme-surface-strong rounded px-1.5 py-0.5 text-sm font-medium">
         {children}
@@ -64,28 +90,61 @@ const CodeBlock = ({ inline, className, children }) => {
     setTimeout(() => setCopied(false), UI_CONSTANTS.COPY_FEEDBACK_DURATION_MS);
   };
 
+  const handleDownload = () => {
+    const ext = LANG_EXTENSIONS[lang] || lang || "txt";
+    const blob = new Blob([code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `code.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded code.${ext}`);
+  };
+
+  const wrapClasses = wrap
+    ? "[&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:whitespace-pre-wrap [&_code]:break-words"
+    : "[&_pre]:overflow-x-auto";
+
   return (
     <div className="group relative my-4 overflow-hidden rounded-lg">
       {/* Header bar */}
       <div className="bg-theme-surface-strong text-theme-text-muted flex items-center justify-between px-4 py-2 text-sm">
         <span className="text-theme-text font-mono text-xs">{lang || "plaintext"}</span>
-        <button
-          onClick={handleCopy}
-          className="text-theme-text-muted hover:text-theme-text flex items-center gap-1.5 opacity-0 transition-opacity duration-75 ease-snappy group-hover:opacity-100"
-          aria-label={copied ? "Copied" : "Copy code"}>
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownload}
+            className="text-theme-text-muted hover:text-theme-text transition-colors duration-75 ease-snappy"
+            aria-label="Download code"
+            title="Download">
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setWrap((w) => !w)}
+            className={`transition-colors duration-75 ease-snappy ${wrap ? "text-theme-text" : "text-theme-text-muted hover:text-theme-text"}`}
+            aria-label={wrap ? "Disable word wrap" : "Enable word wrap"}
+            title={wrap ? "Disable wrap" : "Enable wrap"}>
+            <WrapText className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleCopy}
+            className="text-theme-text-muted hover:text-theme-text transition-colors duration-75 ease-snappy"
+            aria-label={copied ? "Copied" : "Copy code"}
+            title="Copy">
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Code content */}
       {highlightedHtml ? (
         <div
-          className="shiki-wrapper overflow-x-auto text-sm [&_pre]:overflow-x-auto [&_pre]:p-4"
+          className={`shiki-wrapper text-sm [&_pre]:p-4 ${wrapClasses}`}
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       ) : (
         // Fallback while Shiki loads
-        <pre className="bg-theme-surface overflow-x-auto p-4 text-sm">
+        <pre className={`bg-theme-surface p-4 text-sm ${wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto"}`}>
           <code className="text-theme-text-muted">{code}</code>
         </pre>
       )}
