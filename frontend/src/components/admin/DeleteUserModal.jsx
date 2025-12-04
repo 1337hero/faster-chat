@@ -36,7 +36,7 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
 
         <div className="bg-latte-red/10 text-latte-red dark:bg-macchiato-red/10 dark:text-macchiato-red rounded-lg px-4 py-3 text-sm">
           <p className="font-medium">Warning:</p>
-          <ul className="ml-4 mt-1 list-disc">
+          <ul className="mt-1 ml-4 list-disc">
             <li>All user data will be permanently deleted</li>
             <li>All active sessions will be terminated</li>
             <li>This action cannot be reversed</li>

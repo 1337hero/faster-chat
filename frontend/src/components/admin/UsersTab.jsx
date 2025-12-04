@@ -99,7 +99,7 @@ const UsersTab = () => {
               className="border-latte-surface1 bg-latte-base text-latte-text placeholder-latte-subtext0 focus:border-latte-blue dark:border-macchiato-surface1 dark:bg-macchiato-mantle dark:text-macchiato-text dark:placeholder-macchiato-subtext0 dark:focus:border-macchiato-blue w-64 rounded-lg border px-4 py-2 text-sm focus:outline-none"
             />
             <svg
-              className="text-latte-subtext0 dark:text-macchiato-subtext0 absolute right-3 top-2.5 h-5 w-5"
+              className="text-latte-subtext0 dark:text-macchiato-subtext0 absolute top-2.5 right-3 h-5 w-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24">
@@ -133,22 +133,22 @@ const UsersTab = () => {
         <table className="w-full">
           <thead>
             <tr className="border-latte-surface0 dark:border-macchiato-surface0 border-b">
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Role
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Name
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Email
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Last Active
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-left text-xs font-semibold tracking-wider uppercase">
                 Created At
               </th>
-              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-right text-xs font-semibold uppercase tracking-wider">
+              <th className="text-latte-subtext0 dark:text-macchiato-subtext0 pb-3 text-right text-xs font-semibold tracking-wider uppercase">
                 Actions
               </th>
             </tr>

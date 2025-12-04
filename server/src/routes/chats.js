@@ -1,8 +1,20 @@
 import { Hono } from "hono";
+import { z } from "zod";
+import { streamText } from "ai";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
-import { UI_CONSTANTS } from "@faster-chat/shared";
+import {
+  UI_CONSTANTS,
+  getSystemPrompt,
+  MODEL_FEATURES,
+  COMPLETION_CONSTANTS,
+} from "@faster-chat/shared";
+import { decryptApiKey } from "../lib/encryption.js";
+import { getModelInstance } from "../lib/providerFactory.js";
+import { readFile } from "fs/promises";
+import path from "path";
+import { FILE_CONFIG } from "../lib/fileUtils.js";
 
 export const chatsRouter = new Hono();
 
@@ -44,12 +56,15 @@ chatsRouter.post("/", async (c) => {
 
     const chat = dbUtils.createChat(chatId, user.id, title);
 
-    return c.json({
-      id: chat.id,
-      title: chat.title,
-      createdAt: chat.created_at,
-      updatedAt: chat.updated_at,
-    }, HTTP_STATUS.CREATED);
+    return c.json(
+      {
+        id: chat.id,
+        title: chat.title,
+        createdAt: chat.created_at,
+        updatedAt: chat.updated_at,
+      },
+      HTTP_STATUS.CREATED
+    );
   } catch (error) {
     console.error("Create chat error:", error);
     return c.json({ error: "Failed to create chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
@@ -185,19 +200,21 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       return c.json({ error: "Invalid role" }, HTTP_STATUS.BAD_REQUEST);
     }
 
-    let chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-
+    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
     if (!chat) {
-      // Check if this chat exists but belongs to someone else
-      const existingChat = dbUtils.getChatById(chatId);
-      if (existingChat) {
-        return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-      }
-      // Chat doesn't exist at all, safe to create for this user
-      chat = dbUtils.createChat(chatId, user.id, null);
+      // Hide existence of chats that belong to other users and do not auto-create
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
     const messageId = body.id || crypto.randomUUID();
+    // Validate attachment ownership
+    if (body.fileIds && body.fileIds.length > 0) {
+      const userFiles = dbUtils.getFilesByIdsForUser(body.fileIds, user.id);
+      if (!userFiles || userFiles.length !== body.fileIds.length) {
+        return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+      }
+    }
+
     const message = dbUtils.createMessage(
       messageId,
       chatId,
@@ -220,15 +237,18 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       dbUtils.updateChatTimestamp(chatId);
     }
 
-    return c.json({
-      id: message.id,
-      chatId: message.chat_id,
-      role: message.role,
-      content: message.content,
-      model: message.model,
-      fileIds: message.file_ids,
-      createdAt: message.created_at,
-    }, HTTP_STATUS.CREATED);
+    return c.json(
+      {
+        id: message.id,
+        chatId: message.chat_id,
+        role: message.role,
+        content: message.content,
+        model: message.model,
+        fileIds: message.file_ids,
+        createdAt: message.created_at,
+      },
+      HTTP_STATUS.CREATED
+    );
   } catch (error) {
     console.error("Create message error:", error);
     return c.json({ error: "Failed to create message" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
@@ -260,4 +280,209 @@ chatsRouter.delete("/:chatId/messages/:messageId", async (c) => {
     console.error("Delete message error:", error);
     return c.json({ error: "Failed to delete message" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
+});
+
+// =============================================================================
+// Completion / Streaming
+// =============================================================================
+
+// Request validation schema for completions
+const CompletionRequestSchema = z.object({
+  model: z.string(),
+  systemPromptId: z.string().default("default"),
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      role: z.enum(["user", "assistant", "system"]),
+      content: z.string(),
+    })
+  ),
+  fileIds: z.array(z.string()).optional(),
+});
+
+/**
+ * Get the appropriate model from database
+ */
+function getModel(modelId) {
+  const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
+  if (!modelRecord) {
+    throw new Error(`Model ${modelId} is disabled or not registered`);
+  }
+  return getModelInstance(modelRecord, decryptApiKey);
+}
+
+/**
+ * Convert file to multimodal content part
+ */
+async function fileToContentPart(file) {
+  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+  let fileBuffer;
+  try {
+    fileBuffer = await readFile(filePath);
+  } catch (err) {
+    console.error(`Missing or unreadable file ${file.id} at ${filePath}:`, err);
+    throw err;
+  }
+
+  const isImage = file.mime_type?.startsWith("image/");
+  if (isImage) {
+    const base64Data = fileBuffer.toString("base64");
+    return {
+      type: "image",
+      image: `data:${file.mime_type};base64,${base64Data}`,
+    };
+  }
+
+  return {
+    type: "text",
+    text: `[Attached file: ${file.filename}]`,
+  };
+}
+
+/**
+ * Apply Anthropic prompt caching to messages
+ */
+function applyCacheControl(messages, modelId) {
+  if (!MODEL_FEATURES.SUPPORTS_PROMPT_CACHING(modelId)) {
+    return messages;
+  }
+
+  return messages.map((msg, idx, arr) => {
+    if (msg.role === "system") {
+      return {
+        ...msg,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
+        },
+      };
+    }
+
+    const isRecentMessage = idx >= arr.length - MODEL_FEATURES.CACHE_LAST_N_MESSAGES;
+    if (isRecentMessage && idx > 0) {
+      return {
+        ...msg,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
+        },
+      };
+    }
+
+    return msg;
+  });
+}
+
+/**
+ * Create multimodal content array with text and file attachments
+ */
+async function createMultimodalContent(message, fileIds, userId) {
+  const content = [];
+
+  if (message.content.trim()) {
+    content.push({ type: "text", text: message.content });
+  }
+
+  const files = dbUtils.getFilesByIdsForUser(fileIds, userId);
+  if (files.length !== fileIds.length) {
+    throw new Error("One or more attachments are not accessible");
+  }
+
+  for (const file of files) {
+    try {
+      const contentPart = await fileToContentPart(file);
+      content.push(contentPart);
+    } catch (error) {
+      console.error(`Failed to process file ${file.id}:`, error);
+    }
+  }
+
+  return content;
+}
+
+/**
+ * Convert chat messages to model messages format
+ */
+async function convertToModelMessages(messages, systemPrompt, fileIds = [], userId) {
+  const result = systemPrompt ? [{ role: "system", content: systemPrompt }] : [];
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    if (msg.role === "system") continue;
+
+    const isLastUserWithFiles =
+      i === messages.length - 1 && msg.role === "user" && fileIds.length > 0;
+
+    if (isLastUserWithFiles) {
+      const content = await createMultimodalContent(msg, fileIds, userId);
+      result.push({ role: msg.role, content });
+    } else {
+      result.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * POST /api/chats/:chatId/completion
+ * Stream an AI completion for a chat
+ */
+chatsRouter.post("/:chatId/completion", async (c) => {
+  try {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const chatId = c.req.param("chatId");
+    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+    if (!chat) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    const body = await c.req.json();
+    const validated = CompletionRequestSchema.parse(body);
+
+    const modelId = validated.model;
+    const model = getModel(modelId);
+    const systemPrompt = getSystemPrompt(validated.systemPromptId);
+
+    let messages;
+    try {
+      messages = await convertToModelMessages(
+        validated.messages,
+        systemPrompt.content,
+        validated.fileIds || [],
+        user.id
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("not accessible")) {
+        return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+      }
+      throw err;
+    }
+
+    messages = applyCacheControl(messages, modelId);
+
+    const stream = await streamText({
+      model,
+      messages,
+      maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
+    });
+
+    return stream.toUIMessageStreamResponse();
+  } catch (error) {
+    console.error("Completion error:", error);
+    return c.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
+  }
+});
+
+/**
+ * GET /api/chats/:chatId/stream
+ * Resume endpoint (stub for now)
+ */
+chatsRouter.get("/:chatId/stream", async (c) => {
+  return c.body(null, 204);
 });

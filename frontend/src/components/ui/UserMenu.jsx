@@ -41,14 +41,14 @@ export const UserMenu = () => {
     <div className="relative" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-latte-surface0 text-latte-text hover:bg-latte-surface1 dark:bg-macchiato-surface0 dark:text-macchiato-text dark:hover:bg-macchiato-surface1 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 rounded-xl p-2 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 active:scale-95"
+        className="bg-latte-surface0 text-latte-text hover:bg-latte-surface1 dark:bg-macchiato-surface0 dark:text-macchiato-text dark:hover:bg-macchiato-surface1 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 rounded-xl p-2 transition-all duration-200 hover:scale-105 focus:ring-2 focus:outline-none active:scale-95"
         aria-label="User Menu">
         <User size={20} />
       </button>
 
       {isOpen && (
         <div
-          className="bg-latte-surface0 dark:bg-macchiato-surface0 border-latte-surface1 dark:border-macchiato-surface1 animate-in fade-in zoom-in-95 absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border duration-100"
+          className="bg-latte-surface0 dark:bg-macchiato-surface0 border-latte-surface1 dark:border-macchiato-surface1 animate-in fade-in zoom-in-95 absolute top-full right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border duration-100"
           style={{ boxShadow: "var(--shadow-depth-lg)" }}>
           <div className="border-latte-surface1/50 dark:border-macchiato-surface1/50 border-b p-3">
             <p className="text-latte-text dark:text-macchiato-text text-sm font-bold">

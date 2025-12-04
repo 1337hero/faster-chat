@@ -1,20 +1,15 @@
 import MainLayout from "@/components/layout/MainLayout";
 import Sidebar from "@/components/layout/Sidebar";
-import {
-  hasSeenAdminConnectionsOnboarding,
-  markAdminConnectionsOnboardingSeen,
-} from "@/lib/adminOnboarding";
-import { chatsClient } from "@/lib/chatsClient";
 import { useAuthState } from "@/state/useAuthState";
+import { IndexRouteGuard } from "@/components/layout/IndexRouteGuard";
 import {
   createRootRoute,
   createRoute,
   createRouter,
   Navigate,
   Outlet,
-  useNavigate,
 } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useRef, useState } from "preact/compat";
+import { lazy, Suspense, useEffect } from "preact/compat";
 
 // Lazy load page components
 const Login = lazy(() => import("@/pages/public/Login"));
@@ -83,74 +78,7 @@ const protectedRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/",
-  component: () => {
-    const navigate = useNavigate();
-    const { user } = useAuthState();
-    const [isChecking, setIsChecking] = useState(true);
-    const hasStartedNavigation = useRef(false);
-
-    useEffect(() => {
-      // Prevent double execution
-      if (hasStartedNavigation.current) return;
-
-      async function loadChatOrCreateNew() {
-        try {
-          const existingChats = await chatsClient.getChats();
-          const hasSeenOnboarding = hasSeenAdminConnectionsOnboarding(user?.id);
-
-          // First-time admin onboarding: redirect to Connections tab before creating chats
-          if (user?.role === "admin" && existingChats.length === 0 && !hasSeenOnboarding) {
-            markAdminConnectionsOnboardingSeen(user.id);
-            navigate({
-              to: "/admin",
-              search: { tab: "connections" },
-              replace: true,
-            });
-            return;
-          }
-
-          if (existingChats && existingChats.length > 0) {
-            // Load most recent chat
-            navigate({
-              to: "/chat/$chatId",
-              params: { chatId: existingChats[0].id },
-              replace: true,
-            });
-          } else {
-            // Create new chat
-            const newChat = await chatsClient.createChat();
-            navigate({
-              to: "/chat/$chatId",
-              params: { chatId: newChat.id },
-              replace: true,
-            });
-          }
-        } catch (error) {
-          console.error("Error loading chats:", error);
-          // Fallback to new chat on error
-          const newChat = await chatsClient.createChat();
-          navigate({
-            to: "/chat/$chatId",
-            params: { chatId: newChat.id },
-            replace: true,
-          });
-        } finally {
-          setIsChecking(false);
-        }
-      }
-
-      hasStartedNavigation.current = true;
-      loadChatOrCreateNew();
-    }, [navigate, user]);
-
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-latte-subtext0 dark:text-macchiato-subtext0">
-          {isChecking ? "Loading..." : "Redirecting..."}
-        </div>
-      </div>
-    );
-  },
+  component: IndexRouteGuard,
 });
 
 const chatRoute = createRoute({

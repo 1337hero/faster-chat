@@ -72,7 +72,7 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
 
       {isOpen && (
         <div
-          className="bg-latte-surface0 dark:bg-macchiato-surface0 border-latte-surface1 dark:border-macchiato-surface1 animate-in fade-in zoom-in-95 absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border duration-100"
+          className="bg-latte-surface0 dark:bg-macchiato-surface0 border-latte-surface1 dark:border-macchiato-surface1 animate-in fade-in zoom-in-95 absolute top-full left-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border duration-100"
           style={{ boxShadow: "var(--shadow-depth-lg)" }}>
           <div className="max-h-96 overflow-y-auto p-1">
             {models.map((model) => {

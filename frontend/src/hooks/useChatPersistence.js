@@ -5,21 +5,25 @@ export function useChatPersistence(chatId) {
   const { data: messages } = useMessagesQuery(chatId);
   const createMessageMutation = useCreateMessageMutation();
 
-  async function saveUserMessage(content, currentChatId, fileIds = []) {
+  async function saveUserMessage({ id, content, fileIds = [], createdAt }, currentChatId) {
     const message = {
+      id,
       role: "user",
       content,
       fileIds,
+      createdAt,
     };
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }
 
-  async function saveAssistantMessage(content, currentChatId, model = null) {
+  async function saveAssistantMessage({ id, content, model = null, createdAt }, currentChatId) {
     const message = {
+      id,
       role: "assistant",
       content,
       model,
+      createdAt,
     };
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
@@ -27,7 +31,11 @@ export function useChatPersistence(chatId) {
 
   return {
     chat,
-    messages: messages ?? [],
+    messages:
+      messages?.map((msg) => ({
+        ...msg,
+        createdAt: msg.createdAt ?? msg.created_at ?? null,
+      })) ?? [],
     isChatLoading,
     isChatError,
     saveUserMessage,

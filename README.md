@@ -13,8 +13,11 @@
   <a href="https://tanstack.com/router">
     <img src="https://img.shields.io/badge/TanStack%20Router-1.98-FF4154" alt="TanStack Router" />
   </a>
-  <a href="https://dexie.org/">
-    <img src="https://img.shields.io/badge/Dexie-IndexedDB-orange?logo=javascript" alt="Dexie" />
+  <a href="https://tanstack.com/query">
+    <img src="https://img.shields.io/badge/TanStack%20Query-5.x-FF4154" alt="TanStack Query" />
+  </a>
+  <a href="https://bun.sh/docs/api/sqlite">
+    <img src="https://img.shields.io/badge/SQLite-Server%20Storage-003B57?logo=sqlite" alt="SQLite" />
   </a>
   <a href="https://sdk.vercel.ai/">
     <img src="https://img.shields.io/badge/Vercel%20AI%20SDK-Streaming-black?logo=vercel" alt="Vercel AI SDK" />
@@ -38,11 +41,11 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 **Core**
 - 💬 Real-time streaming chat with Vercel AI SDK
 - ⚡ **Blazingly fast** - 3KB Preact runtime, zero SSR overhead, instant responses
-- 🗄️ **Conversations stay on your machine** - Local-first IndexedDB & SQLite storage, never sent to server
+- 🗄️ **Server-side SQLite storage** - Conversations persist across devices and browser tabs
 - 🤖 Multi-provider support: OpenAI, Anthropic, Ollama, Groq, Mistral, custom APIs
 - 📎 File attachments with preview and download
 - 📝 Markdown rendering with syntax highlighting and LaTeX support
-- 📱 Responsive design for desktop, tablet, and mobile (reguraly improving)
+- 📱 Responsive design for desktop, tablet, and mobile
 
 **Administration**
 - 🔐 Multi-user authentication with role-based access (admin/member/readonly)
@@ -57,36 +60,38 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) (recommended) or Node.js 20+
-- At least one AI provider:
-  - **Offline**: [Ollama](https://ollama.ai/) running locally
-  - **Cloud**: API key from OpenAI, Anthropic, Groq, Mistral, or OpenRouter
-  - **Self-Hosted**: LM Studio, vLLM, or any OpenAI-compatible inference server
-
-### Installation
+### One-Click Docker Deploy (Recommended)
 
 ```bash
-# Clone and install
+git clone https://github.com/1337hero/faster-next-chat.git
+cd faster-next-chat
+docker compose up -d
+```
+
+That's it. Open http://localhost:8787, register your first user (becomes admin), and configure your AI providers.
+
+**With HTTPS** (for production):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+```
+
+### Local Development
+
+**Prerequisites**: [Bun](https://bun.sh/) (recommended) or Node.js 20+
+
+```bash
 git clone https://github.com/1337hero/faster-next-chat.git
 cd faster-next-chat
 bun install
-
-# Start development servers (auto-generates encryption key on first run)
 bun run dev
 ```
 
-**On first run**, the server will automatically:
-- ✅ Generate a secure encryption key for API key storage (`server/.env`)
-- ✅ Create required data directories
-- ✅ Initialize the SQLite database
+**On first run**, the server automatically generates encryption keys and initializes the database.
 
-The app will be available at:
 - **Frontend**: http://localhost:3000
 - **API Server**: http://localhost:3001
 
-> **Important**: Backup `server/.env` - this file contains the encryption key needed to decrypt stored API keys. Don't commit it to git (already in .gitignore).
+> **Important**: Backup `server/.env` - contains the encryption key for stored API keys.
 
 ### First-Time Setup
 
@@ -115,38 +120,10 @@ curl -fsSL https://ollama.ai/install.sh | sh
 # Pull a model
 ollama pull llama3.2
 
-# Start Ollama (usually runs automatically)
-ollama serve
-
-# In Faster Chat Admin Panel:
-# 1. Go to /admin → Providers tab
-# 2. Add Custom Provider with base URL: http://localhost:11434
-# 3. Refresh Models to discover available Ollama models
+# In Faster Chat: Admin Panel → Providers → Search "Ollama" → Add
 ```
 
-### Custom Provider Setup
-
-Faster Chat works with **any OpenAI-compatible API**. Add custom providers through the Admin Panel:
-
-**LM Studio**
-- Base URL: `http://localhost:1234/v1`
-- No API key required
-
-**Groq Cloud**
-- Base URL: `https://api.groq.com/openai/v1`
-- API Key: `gsk_...`
-
-**OpenRouter** (access 100+ models)
-- Base URL: `https://openrouter.ai/api/v1`
-- API Key: `sk-or-...`
-
-**Mistral AI**
-- Base URL: `https://api.mistral.ai/v1`
-- API Key: Your Mistral API key
-
-**Self-hosted vLLM/TGI**
-- Base URL: `http://your-server:8000/v1`
-- API Key: Optional, depending on your setup
+The Provider Hub auto-discovers 50+ providers including Ollama, LM Studio, OpenAI, Anthropic, Groq, Mistral, OpenRouter, and more. Just search and add.
 
 ## 💻 Development
 
@@ -177,74 +154,15 @@ bun run build       # Build for production
 bun run start       # Run production server on :3001
 ```
 
-### Project Structure
+## 🐳 Docker Details
 
-See WIKI for detailed architecture documentation. Quick overview:
+The Docker setup uses a hybrid build (Bun for deps, Node.js 22 runtime) with SQLite storage in a persistent volume.
 
-```
-faster-chat/
-├── frontend/        # Preact SPA
-│   ├── components/  # UI components
-│   ├── hooks/       # Custom hooks
-│   ├── lib/         # Utilities, DB, API
-│   └── state/       # Zustand stores
-├── server/          # Hono API server
-│   ├── routes/      # API endpoints
-│   ├── lib/         # Database, auth, utils
-│   └── data/        # SQLite DB + uploads
-└── packages/
-    └── shared/      # Shared constants
-```
-
-## 🐳 Docker Deployment
-
-### Quick Start
-
+**HTTPS with Caddy**: For production with automatic Let's Encrypt certificates:
 ```bash
-# Clone the repository
-git clone https://github.com/1337hero/faster-next-chat.git
-cd faster-next-chat
-
-# Create environment file with encryption key
-echo "API_KEY_ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" > server/.env
-
-# Start with Docker
-docker compose up -d
-
-# Access at http://localhost:8787
-```
-
-**First-time setup:**
-1. Register your first user (becomes admin automatically)
-2. Configure AI providers in Admin Panel (`/admin` → Providers tab)
-3. Add your API keys and refresh models
-
-### Architecture
-
-**Hybrid build for maximum compatibility:**
-- Builder: Bun 1.3 on Debian (fast dependency installation)
-- Runtime: Node.js 22 on Debian (native module compatibility)
-- Port: 8787 (configurable via `APP_PORT`)
-- Storage: SQLite database in `chat-data` volume
-
-### HTTPS with Caddy (Optional)
-
-For production deployments with automatic HTTPS:
-
-```bash
-# Start with Caddy reverse proxy
 docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
-
-# Local development: http://localhost
-# Production: Edit Caddyfile with your domain, point DNS, restart
+# Edit Caddyfile with your domain, point DNS, restart
 ```
-
-**Features:**
-- Automatic HTTPS with Let's Encrypt
-- Certificate auto-renewal
-- HTTP/2 and HTTP/3 support
-- Compression and security headers
-- Only 13MB overhead (Alpine-based)
 
 See `docs/caddy-https-setup.md` and `docs/docker-setup.md` for details.
 
@@ -285,13 +203,13 @@ docker compose up -d
 ### Completed ✅
 - Preact + Hono migration from Next.js
 - Streaming chat with Vercel AI SDK
-- Local-first persistence (IndexedDB + SQLite)
+- Server-side SQLite persistence (chats sync across devices/tabs)
 - Multi-provider support (OpenAI, Anthropic, Ollama, custom APIs)
 - Admin panel for providers, models, and users
 - Role-based access control
 - File attachments with preview/download
 - Markdown, code highlighting, LaTeX rendering
-- Docker deployment with optional HTTPS
+- One-click Docker deployment with optional HTTPS
 
 ### In Progress 🚧
 - [ ] Tool calling implementation (infrastructure ready)
@@ -323,7 +241,7 @@ docker compose up -d
 
 **Faster Chat** is built on these principles:
 
-- **Privacy-First**: Your data lives in your browser. Server is optional.
+- **Self-Hosted**: Your data stays on your server. No cloud dependencies.
 - **Provider-Agnostic**: Never locked into a single AI vendor.
 - **Minimal Runtime**: 3KB Preact, no SSR overhead, instant responses.
 - **Offline-Capable**: Run completely offline with local models.
@@ -353,8 +271,8 @@ See WIKI for detailed coding principles and architecture documentation.
 - [models.dev](https://github.com/sst/models.dev) - Community-maintained AI model database for auto-discovery
 - [Preact](https://preactjs.com/) - Lightweight 3KB React alternative
 - [Hono](https://hono.dev/) - Ultrafast web framework for the backend
-- [Dexie.js](https://dexie.org/) - Elegant IndexedDB wrapper for local-first storage
 - [TanStack Router](https://tanstack.com/router) & [TanStack Query](https://tanstack.com/query) - Modern routing and server state management
+- [bun:sqlite](https://bun.sh/docs/api/sqlite) - Fast SQLite driver for server-side persistence
 
 **UI & Styling**
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
@@ -368,7 +286,7 @@ For transparency, this application makes the following external API calls:
 - **Your configured AI providers** (OpenAI, Anthropic, etc.) - Only when you send chat messages
 - **No tracking, analytics, or telemetry services** - Your privacy is paramount
 
-All conversations stay local in your browser's IndexedDB. The server handles authentication, provider configuration, and file uploads—but never stores your chat messages.
+All data (conversations, settings, API keys) is stored in your self-hosted SQLite database. Nothing leaves your server except API calls to your configured AI providers.
 
 ## 🤝 Contributing
 

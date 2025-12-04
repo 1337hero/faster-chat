@@ -687,6 +687,13 @@ export const dbUtils = {
     return stmt.all(...fileIds).map(parseFileMeta);
   },
 
+  getFilesByIdsForUser(fileIds, userId) {
+    if (!fileIds || fileIds.length === 0) return [];
+    const placeholders = fileIds.map(() => "?").join(",");
+    const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders}) AND user_id = ?`);
+    return stmt.all(...fileIds, userId).map(parseFileMeta);
+  },
+
   /**
    * Update file metadata
    * @param {string} fileId
@@ -769,7 +776,9 @@ export const dbUtils = {
   },
 
   getChatByIdAndUser(chatId, userId) {
-    const stmt = db.prepare("SELECT * FROM chats WHERE id = ? AND user_id = ? AND deleted_at IS NULL");
+    const stmt = db.prepare(
+      "SELECT * FROM chats WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    );
     return stmt.get(chatId, userId);
   },
 
@@ -803,7 +812,9 @@ export const dbUtils = {
 
   softDeleteChatByUser(chatId, userId) {
     const now = Date.now();
-    const stmt = db.prepare("UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ?");
+    const stmt = db.prepare(
+      "UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ? AND user_id = ?"
+    );
     const result = stmt.run(now, now, chatId, userId);
     return result.changes > 0;
   },
@@ -826,7 +837,16 @@ export const dbUtils = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(id, chatId, userId, role, content, model, fileIdsJson, now);
-    return { id, chat_id: chatId, user_id: userId, role, content, model, file_ids: fileIds, created_at: now };
+    return {
+      id,
+      chat_id: chatId,
+      user_id: userId,
+      role,
+      content,
+      model,
+      file_ids: fileIds,
+      created_at: now,
+    };
   },
 
   getMessageById(messageId) {

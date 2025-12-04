@@ -42,14 +42,14 @@ const MessageItem = memo(({ message, onStop, onResume }) => {
         <div
           className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
-              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-bl-lg rounded-br-lg rounded-tl-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
+              ? "bg-latte-surface2 dark:bg-macchiato-crust rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br text-white" // USER BUBBLE: blue gradient, right corner cut
               : "text-latte-text dark:text-macchiato-text" // AI BUBBLE: solid background with border, left corner cut
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
           {/* AI ACCENT: Gradient lines on top and bottom (only show on AI messages) */}
           {!isUser && (
             <>
-              <div className="from-latte-blue via-latte-mauve dark:from-macchiato-blue dark:via-macchiato-mauve absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
+              <div className="from-latte-blue via-latte-mauve dark:from-macchiato-blue dark:via-macchiato-mauve absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
             </>
           )}
 

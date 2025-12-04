@@ -1,11 +1,17 @@
 import MessageItem from "./MessageItem";
+import { getMessageTimestamp } from "@/lib/messageUtils";
+import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
 
 function sortMessagesWithUserFirst(messages) {
   return [...messages].sort((a, b) => {
-    const aTime = a.created_at || 0;
-    const bTime = b.created_at || 0;
+    const aTime = getMessageTimestamp(a, 0);
+    const bTime = getMessageTimestamp(b, 0);
 
-    if (aTime > 0 && bTime > 0 && Math.abs(aTime - bTime) < 5000) {
+    if (
+      aTime > 0 &&
+      bTime > 0 &&
+      Math.abs(aTime - bTime) < MESSAGE_CONSTANTS.TIMESTAMP_SIMILARITY_MS
+    ) {
       if (a.role === "user" && b.role === "assistant") return -1;
       if (a.role === "assistant" && b.role === "user") return 1;
     }

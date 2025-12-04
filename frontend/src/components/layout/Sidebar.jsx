@@ -1,17 +1,6 @@
 import { useSidebarState } from "@/hooks/useSidebarState";
-import { formatDate } from "@/lib/utils";
 import { useUiState } from "@/state/useUiState";
-import {
-  FileText,
-  LayoutGrid,
-  MessageSquare,
-  PanelLeftClose,
-  Search,
-  SquarePen,
-  Trash2,
-  X,
-  Zap,
-} from "lucide-react";
+import { MessageSquare, PanelLeftClose, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 
 const Sidebar = () => {
   const {
@@ -21,7 +10,7 @@ const Sidebar = () => {
     pathname,
     handleDeleteChat,
     handleNewChat,
-    handleLinkClick,
+    handleSelectChat,
     setIsSidebarOpen,
   } = useSidebarState();
 
@@ -29,10 +18,6 @@ const Sidebar = () => {
   const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-72";
   const shouldLogoStartNewChat = pathname.startsWith("/admin") || pathname.startsWith("/settings");
-
-  const handleSelectSession = (chatId) => {
-    handleLinkClick();
-  };
 
   const handleLogoClick = async () => {
     if (shouldLogoStartNewChat) {
@@ -75,7 +60,7 @@ const Sidebar = () => {
               <Zap className="h-8 w-8 text-white" />
             </div>
             {!sidebarCollapsed && (
-              <h1 className="text-latte-text dark:text-macchiato-text overflow-hidden whitespace-nowrap text-xl font-extrabold tracking-tight">
+              <h1 className="text-latte-text dark:text-macchiato-text overflow-hidden text-xl font-extrabold tracking-tight whitespace-nowrap">
                 Faster Chat
               </h1>
             )}
@@ -124,13 +109,13 @@ const Sidebar = () => {
             ) : (
               <div className="relative">
                 <Search
-                  className="text-latte-overlay0 dark:text-macchiato-overlay0 group-focus-within:text-latte-blue dark:group-focus-within:text-macchiato-blue absolute left-3 top-1/2 -translate-y-1/2 transform transition-colors"
+                  className="text-latte-overlay0 dark:text-macchiato-overlay0 group-focus-within:text-latte-blue dark:group-focus-within:text-macchiato-blue absolute top-1/2 left-3 -translate-y-1/2 transform transition-colors"
                   size={16}
                 />
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="bg-latte-crust dark:bg-macchiato-crust border-latte-surface0 dark:border-macchiato-surface0 text-latte-text dark:text-macchiato-text focus:border-latte-blue/50 dark:focus:border-macchiato-blue/50 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 placeholder-latte-overlay0/70 dark:placeholder-macchiato-overlay0/70 w-full rounded-xl border py-2 pl-9 pr-3 text-sm transition-all focus:outline-none focus:ring-1"
+                  className="bg-latte-crust dark:bg-macchiato-crust border-latte-surface0 dark:border-macchiato-surface0 text-latte-text dark:text-macchiato-text focus:border-latte-blue/50 dark:focus:border-macchiato-blue/50 focus:ring-latte-blue/50 dark:focus:ring-macchiato-blue/50 placeholder-latte-overlay0/70 dark:placeholder-macchiato-overlay0/70 w-full rounded-xl border py-2 pr-3 pl-9 text-sm transition-all focus:ring-1 focus:outline-none"
                 />
               </div>
             )}
@@ -145,7 +130,7 @@ const Sidebar = () => {
         {/* History List (Hidden when collapsed) */}
         {!sidebarCollapsed && (
           <div className="flex-1 space-y-1 overflow-y-auto px-4 opacity-100 transition-opacity duration-300">
-            <div className="text-latte-overlay0 dark:text-macchiato-overlay0 px-2 py-2 text-xs font-bold uppercase tracking-widest opacity-70">
+            <div className="text-latte-overlay0 dark:text-macchiato-overlay0 px-2 py-2 text-xs font-bold tracking-widest uppercase opacity-70">
               Recent Activity
             </div>
 
@@ -158,16 +143,11 @@ const Sidebar = () => {
             {chats?.map((chat) => {
               const isActive = pathname === `/chat/${chat.id}`;
               return (
-                <a
+                <button
                   key={chat.id}
-                  href={`/chat/${chat.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSelectSession(chat.id);
-                    window.history.pushState({}, "", `/chat/${chat.id}`);
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  }}
-                  className={`group relative flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all duration-200 ${
+                  type="button"
+                  onClick={() => handleSelectChat(chat.id)}
+                  className={`group relative flex w-full cursor-pointer items-center gap-3 rounded-xl p-3 text-left transition-all duration-200 ${
                     isActive
                       ? "bg-latte-surface0 dark:bg-macchiato-surface0 text-latte-text dark:text-macchiato-text font-medium shadow-md"
                       : "text-latte-subtext0 dark:text-macchiato-subtext0 hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 hover:text-latte-text dark:hover:text-macchiato-text"
@@ -184,7 +164,7 @@ const Sidebar = () => {
                     title="Delete Chat">
                     <Trash2 size={14} />
                   </button>
-                </a>
+                </button>
               );
             })}
           </div>
