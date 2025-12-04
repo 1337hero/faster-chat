@@ -1,4 +1,5 @@
 import { useAuthState } from "@/state/useAuthState";
+import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 
 const Settings = () => {
@@ -45,6 +46,12 @@ const Settings = () => {
           <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
             <h2 className="text-theme-text mb-4 text-lg font-semibold">Appearance</h2>
             <ThemeSelector />
+          </div>
+
+          {/* Typography */}
+          <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
+            <h2 className="text-theme-text mb-4 text-lg font-semibold">Typography</h2>
+            <FontSelector />
           </div>
 
           {/* Notifications (Placeholder) */}
