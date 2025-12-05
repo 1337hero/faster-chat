@@ -5,12 +5,13 @@ import { ToolbarGroup } from "@/components/ui/ToolbarGroup";
 import { UserMenu } from "@/components/ui/UserMenu";
 import { useChat } from "@/hooks/useChat";
 import { useChatVoice } from "@/hooks/useChatVoice";
-import { useCreateChatMutation } from "@/hooks/useChatsQuery";
+import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChatsQuery";
+import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { useNavigate } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
@@ -54,6 +55,57 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
     setInput,
     submitMessage,
   });
+
+  // Image generation
+  const createMessageMutation = useCreateMessageMutation();
+  const { generate: generateImage, isGenerating } = useImageGeneration({
+    onError: (error) => {
+      toast.error(error.message || "Image generation failed");
+    },
+  });
+
+  async function handleImageSubmit(prompt) {
+    if (!prompt || !chatId) return;
+
+    // Save user message with the prompt
+    const userMessageId = crypto.randomUUID();
+    const userCreatedAt = Date.now();
+    await createMessageMutation.mutateAsync({
+      chatId,
+      message: {
+        id: userMessageId,
+        role: "user",
+        content: `[Image Generation] ${prompt}`,
+        createdAt: userCreatedAt,
+      },
+    });
+
+    // Clear input
+    setInput("");
+
+    // Generate image
+    generateImage(
+      { prompt, chatId },
+      {
+        onSuccess: async (data) => {
+          // Save assistant message with the generated image
+          const assistantMessageId = crypto.randomUUID();
+          await createMessageMutation.mutateAsync({
+            chatId,
+            message: {
+              id: assistantMessageId,
+              role: "assistant",
+              content: `Generated image: "${prompt}"`,
+              fileIds: [data.id],
+              model: data.model,
+              createdAt: Date.now(),
+            },
+          });
+          toast.success("Image generated!");
+        },
+      }
+    );
+  }
 
   useLayoutEffect(() => {
     if (!scrollContainerRef.current || !autoScroll) return;
@@ -127,7 +179,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
             <div
               className={`bg-theme-surface relative rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
-                isLoading
+                isLoading || isGenerating
                   ? "border-theme-primary/30"
                   : "border-theme-border hover:border-theme-primary/50"
               }`}>
@@ -136,7 +188,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}
                 voiceControls={voice}
-                disabled={isLoading}
+                disabled={isLoading || isGenerating}
+                onImageSubmit={handleImageSubmit}
               />
             </div>
           </div>

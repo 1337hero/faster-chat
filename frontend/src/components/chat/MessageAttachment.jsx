@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Download, File } from "lucide-react";
+import { Download, File, Sparkles } from "lucide-react";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 
@@ -41,6 +41,39 @@ export default function MessageAttachment({ fileId }) {
     );
   }
 
+  const isImage = fileMetadata.mimeType?.startsWith("image/");
+  const isGenerated = fileMetadata.meta?.type === "generated";
+
+  // Render images inline
+  if (isImage) {
+    return (
+      <div className="group relative inline-block">
+        <img
+          src={`${API_BASE}/api/files/${fileId}/content`}
+          alt={fileMetadata.meta?.prompt || fileMetadata.filename}
+          className="max-h-96 max-w-full rounded-lg shadow-md"
+          loading="lazy"
+        />
+        {/* Overlay with download button and generated badge */}
+        <div className="absolute inset-0 flex items-start justify-between rounded-lg bg-black/0 p-2 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
+          {isGenerated && (
+            <span className="bg-theme-pink/90 text-white flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium">
+              <Sparkles size={12} />
+              Generated
+            </span>
+          )}
+          <button
+            onClick={handleDownload}
+            className="ml-auto rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
+            title="Download image">
+            <Download size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Non-image files: show download button
   return (
     <button
       onClick={handleDownload}
