@@ -12,9 +12,7 @@ const FontCard = ({ font, isSelected, onSelect }) => {
           : "border-theme-surface-stronger bg-theme-surface hover:border-theme-primary/50 hover:bg-theme-surface-strong"
       }`}>
       {/* Font Preview */}
-      <div
-        className="text-theme-text text-2xl"
-        style={{ fontFamily: font.family }}>
+      <div className="text-theme-text text-2xl" style={{ fontFamily: font.family }}>
         Aa
       </div>
 
@@ -66,9 +64,7 @@ export const FontSelector = () => {
     <div className="space-y-6">
       {/* Font Family */}
       <div>
-        <label className="text-theme-text-muted mb-3 block text-sm font-medium">
-          Chat Font
-        </label>
+        <label className="text-theme-text-muted mb-3 block text-sm font-medium">Chat Font</label>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {FONT_PRESETS.map((font) => (
             <FontCard

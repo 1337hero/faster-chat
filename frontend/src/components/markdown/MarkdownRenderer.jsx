@@ -38,7 +38,7 @@ const REHYPE_PLUGINS = [rehypeKatex];
 const ToolbarButton = ({ onClick, icon: Icon, title, ariaLabel, active = false }) => (
   <button
     onClick={onClick}
-    className={`transition-colors duration-75 ease-snappy ${
+    className={`ease-snappy transition-colors duration-75 ${
       active ? "text-theme-text" : "text-theme-text-muted hover:text-theme-text"
     }`}
     aria-label={ariaLabel}
@@ -155,7 +155,8 @@ const CodeBlock = ({ inline, className, children, node }) => {
         />
       ) : (
         // Fallback while Shiki loads
-        <pre className={`bg-theme-surface p-4 text-sm ${wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto"}`}>
+        <pre
+          className={`bg-theme-surface p-4 text-sm ${wrap ? "break-words whitespace-pre-wrap" : "overflow-x-auto"}`}>
           <code className="text-theme-text-muted">{code}</code>
         </pre>
       )}

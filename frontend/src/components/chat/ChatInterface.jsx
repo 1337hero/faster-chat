@@ -81,7 +81,10 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
           {/* Right: Controls */}
           <div className="flex items-center gap-3">
-            <VoiceStatusIndicator voiceControls={voice} onOpenSettings={() => setShowVoiceSettings(true)} />
+            <VoiceStatusIndicator
+              voiceControls={voice}
+              onOpenSettings={() => setShowVoiceSettings(true)}
+            />
             <ThemeToggle />
             <UserMenu />
           </div>

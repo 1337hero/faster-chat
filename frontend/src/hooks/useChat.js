@@ -36,7 +36,10 @@ export function useChat({ id: chatId, model }) {
     setInput("");
 
     try {
-      await saveUserMessage({ id: messageId, content: trimmedContent, fileIds, createdAt, model }, chatId);
+      await saveUserMessage(
+        { id: messageId, content: trimmedContent, fileIds, createdAt, model },
+        chatId
+      );
       await stream.send({ id: messageId, content: trimmedContent, fileIds, createdAt });
     } catch (err) {
       console.error("Failed to send message", err);

@@ -55,5 +55,13 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMobile, sidebarCollapsed, toggleSidebar, toggleSidebarCollapse, setSidebarOpen, navigate, createChatMutation]);
+  }, [
+    isMobile,
+    sidebarCollapsed,
+    toggleSidebar,
+    toggleSidebarCollapse,
+    setSidebarOpen,
+    navigate,
+    createChatMutation,
+  ]);
 }

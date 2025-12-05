@@ -199,9 +199,7 @@ export function usePinChatMutation() {
 
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
         if (!old) return old;
-        return old.map((chat) =>
-          chat.id === chatId ? { ...chat, pinnedAt: Date.now() } : chat
-        );
+        return old.map((chat) => (chat.id === chatId ? { ...chat, pinnedAt: Date.now() } : chat));
       });
 
       return { previousChats };
@@ -229,9 +227,7 @@ export function useUnpinChatMutation() {
 
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
         if (!old) return old;
-        return old.map((chat) =>
-          chat.id === chatId ? { ...chat, pinnedAt: null } : chat
-        );
+        return old.map((chat) => (chat.id === chatId ? { ...chat, pinnedAt: null } : chat));
       });
 
       return { previousChats };

@@ -122,7 +122,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     } else if (provider.api) {
       setBaseUrl(provider.api);
     } else if (provider.id === "ollama") {
-      const placeholder = import.meta.env.DEV ? "http://localhost:11434" : "http://host.docker.internal:11434";
+      const placeholder = import.meta.env.DEV
+        ? "http://localhost:11434"
+        : "http://host.docker.internal:11434";
       setBaseUrl(placeholder);
     }
   };
@@ -340,7 +342,8 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   placeholder={
                     selectedProvider.baseUrlPlaceholder
                       ? import.meta.env.DEV
-                        ? selectedProvider.baseUrlPlaceholderDev || selectedProvider.baseUrlPlaceholder
+                        ? selectedProvider.baseUrlPlaceholderDev ||
+                          selectedProvider.baseUrlPlaceholder
                         : selectedProvider.baseUrlPlaceholder
                       : selectedProvider.id === "ollama"
                         ? import.meta.env.DEV
