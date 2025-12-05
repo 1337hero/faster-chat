@@ -1,5 +1,7 @@
 services:
   faster-chat:
+    container_name: faster-chat
+    image: faster-chat:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,10 +10,12 @@ services:
       - server/.env
     environment:
       - NODE_ENV=production
-      - PORT=${APP_PORT:-8787}
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/server/data/chat.db}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     ports:
-      - "${HOST_PORT:-8787}:${APP_PORT:-8787}"
+      - "1337:3001"
+    extra_hosts:
+      - host.docker.internal:host-gateway
     volumes:
       - chat-data:/app/server/data
     deploy:
@@ -28,7 +32,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('http').get('http://localhost:8787/api/models', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+          "require('http').get('http://localhost:8080/api/models', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
         ]
       interval: 30s
       timeout: 3s
