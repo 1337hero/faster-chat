@@ -30,9 +30,9 @@ export const ThemeToggle = () => {
   return (
     <button
       onClick={handleToggle}
-      className="bg-theme-surface text-theme-text hover:bg-theme-surface-strong border-theme-border hover:border-theme-primary/50 focus:ring-theme-blue/50 rounded-xl border p-2 shadow-lg transition-all duration-200 hover:scale-105 focus:ring-2 focus:outline-none active:scale-95"
+      className="text-theme-text-muted hover:bg-theme-surface-strong/50 hover:text-theme-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
       aria-label={`Switch to ${mode === "light" ? "dark" : "light"} mode`}>
-      {mode === "light" ? <Moon size={20} /> : <Sun size={20} />}
+      {mode === "light" ? <Moon size={18} /> : <Sun size={18} />}
     </button>
   );
 };

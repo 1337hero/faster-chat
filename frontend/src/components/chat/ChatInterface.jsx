@@ -1,15 +1,16 @@
 import SidebarToolbar from "@/components/layout/SidebarToolbar";
-import { Toaster } from "sonner";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ToolbarGroup } from "@/components/ui/ToolbarGroup";
 import { UserMenu } from "@/components/ui/UserMenu";
-import { Menu } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useChatVoice } from "@/hooks/useChatVoice";
 import { useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { useUiState } from "@/state/useUiState";
 import { useNavigate } from "@tanstack/react-router";
+import { Menu } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { Toaster } from "sonner";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
@@ -91,14 +92,14 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
           <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
 
           {/* Right: Controls */}
-          <div className="flex items-center gap-3">
+          <ToolbarGroup>
             <VoiceStatusIndicator
               voiceControls={voice}
               onOpenSettings={() => setShowVoiceSettings(true)}
             />
             <ThemeToggle />
             <UserMenu />
-          </div>
+          </ToolbarGroup>
         </div>
         {/* Messages Area - Scrolls behind input and navbar */}
         <div
