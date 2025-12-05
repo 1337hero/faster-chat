@@ -9,7 +9,7 @@ const SidebarToolbar = ({ onNewChat, onSearch }) => {
   // When collapsed: sits normally in the flex layout
   return (
     <div
-      className={`relative flex flex-row gap-0.5 p-1 transition-[margin] duration-300 ease-snappy ${
+      className={`ease-snappy relative flex flex-row gap-0.5 p-1 transition-[margin] duration-300 ${
         sidebarCollapsed ? "ml-0" : "-ml-[280px]"
       }`}>
       {/* Backdrop pill - matches ThemeToggle styling */}

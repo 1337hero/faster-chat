@@ -39,7 +39,7 @@ const Settings = () => {
             type="button"
             onClick={returnToChat}
             disabled={isReturning}
-            className="text-theme-text hover:text-theme-text mt-1 flex items-center gap-2 rounded-lg border border-theme-surface px-3 py-1.5 text-sm font-medium transition-colors hover:border-theme-surface-strong hover:bg-theme-surface disabled:opacity-60">
+            className="text-theme-text hover:text-theme-text border-theme-surface hover:border-theme-surface-strong hover:bg-theme-surface mt-1 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60">
             <LayoutGrid size={16} />
             <span>Return to chat</span>
           </button>
@@ -87,7 +87,7 @@ const Settings = () => {
 
           {/* Keyboard Shortcuts */}
           <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="mb-4 flex items-center gap-2">
               <Keyboard size={20} className="text-theme-text-muted" />
               <h2 className="text-theme-text text-lg font-semibold">Keyboard Shortcuts</h2>
             </div>

@@ -102,7 +102,7 @@ const ChatContextMenu = ({
   return (
     <div
       ref={menuRef}
-      className="bg-theme-surface border-theme-border fixed z-[100] min-w-[160px] rounded-lg border p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
+      className="bg-theme-surface border-theme-border animate-in fade-in-0 zoom-in-95 fixed z-[100] min-w-[160px] rounded-lg border p-1 shadow-lg"
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,

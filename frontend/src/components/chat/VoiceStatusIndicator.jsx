@@ -19,7 +19,7 @@ const VoiceStatusIndicator = ({ voiceControls, onOpenSettings }) => {
     <button
       type="button"
       onClick={onOpenSettings}
-      className={`${stateInfo.bgColor} flex items-center gap-2 rounded-full px-3 py-1.5 cursor-pointer transition-all duration-150 ease-snappy hover:scale-105 hover:shadow-md active:scale-95`}
+      className={`${stateInfo.bgColor} ease-snappy flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 transition-all duration-150 hover:scale-105 hover:shadow-md active:scale-95`}
       title="Voice Settings">
       <Icon
         size={16}

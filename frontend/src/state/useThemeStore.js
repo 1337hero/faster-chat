@@ -12,7 +12,8 @@ export const FONT_PRESETS = [
   {
     id: "system",
     name: "System",
-    family: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    family:
+      'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     preview: "System",
   },
   {

@@ -116,7 +116,10 @@ const CustomizeTab = () => {
           </section>
 
           <div className="flex items-center gap-3">
-            <Button onClick={handleSave} disabled={!hasUnsavedChanges || isSaving || isFetching} color="blue">
+            <Button
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges || isSaving || isFetching}
+              color="blue">
               {isSaving ? (
                 "Saving..."
               ) : saveStatus === "success" ? (

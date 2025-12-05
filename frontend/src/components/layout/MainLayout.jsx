@@ -14,7 +14,7 @@ const MainLayout = ({ sidebar, children }) => {
 
       {/* Main Content - shifts left when sidebar collapses */}
       <main
-        className={`bg-theme-background relative z-0 flex h-full flex-1 flex-col transition-[margin] duration-300 ease-snappy ${
+        className={`bg-theme-background ease-snappy relative z-0 flex h-full flex-1 flex-col transition-[margin] duration-300 ${
           effectiveCollapsed ? "ml-0" : "md:ml-72"
         }`}>
         {children}

@@ -5,7 +5,9 @@ const selectDefaultVoice = (voices, savedVoiceName) => {
   const savedVoice = voices.find((v) => v.name === savedVoiceName);
   if (savedVoice) return savedVoice;
 
-  const englishVoice = voices.find((v) => v.lang.startsWith(VOICE_CONSTANTS.DEFAULT_LANGUAGE_PREFIX));
+  const englishVoice = voices.find((v) =>
+    v.lang.startsWith(VOICE_CONSTANTS.DEFAULT_LANGUAGE_PREFIX)
+  );
   if (englishVoice) return englishVoice;
 
   return voices[0]; // First available as fallback

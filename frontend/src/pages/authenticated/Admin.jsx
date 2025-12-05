@@ -14,7 +14,7 @@ const tabs = [
   { id: "users", label: "Users" },
   { id: "customize", label: "Customize" },
   { id: "models", label: "Models" },
-  { id: "connections", label: "Connections" }
+  { id: "connections", label: "Connections" },
 ];
 
 const Admin = () => {
@@ -52,7 +52,7 @@ const Admin = () => {
             type="button"
             onClick={returnToChat}
             disabled={isReturning}
-            className="text-theme-text hover:text-theme-text flex items-center gap-2 rounded-lg border border-theme-surface px-3 py-1.5 text-sm font-medium transition-colors hover:border-theme-surface-strong hover:bg-theme-surface disabled:opacity-60">
+            className="text-theme-text hover:text-theme-text border-theme-surface hover:border-theme-surface-strong hover:bg-theme-surface flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60">
             <LayoutGrid size={16} />
             <span>Return to chat</span>
           </button>

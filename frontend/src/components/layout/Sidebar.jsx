@@ -46,15 +46,13 @@ const ChatItem = ({
       onClick={() => !isRenaming && onSelect(chat.id)}
       onKeyDown={(e) => e.key === "Enter" && !isRenaming && onSelect(chat.id)}
       onContextMenu={(e) => onContextMenu(e, chat)}
-      className={`group relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-75 ease-snappy ${
+      className={`group ease-snappy relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-75 ${
         isActive
           ? "bg-theme-primary/10 text-theme-primary font-medium"
           : "text-theme-text-muted hover:text-theme-text hover:bg-white/5"
       }`}>
       {/* Pin indicator for pinned chats */}
-      {isPinned && (
-        <Pin size={12} className="text-theme-accent flex-shrink-0 -ml-0.5" />
-      )}
+      {isPinned && <Pin size={12} className="text-theme-accent -ml-0.5 flex-shrink-0" />}
 
       {/* Title or rename input */}
       {isRenaming ? (
@@ -65,12 +63,12 @@ const ChatItem = ({
           onKeyDown={(e) => onRenameKeyDown(e, chat.id)}
           onBlur={() => onRenameSubmit(chat.id)}
           autoFocus
-          className="bg-theme-surface text-theme-text flex-1 rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-theme-primary"
+          className="bg-theme-surface text-theme-text focus:ring-theme-primary flex-1 rounded px-2 py-0.5 text-sm outline-none focus:ring-1"
           onClick={(e) => e.stopPropagation()}
         />
       ) : highlighted ? (
         <span
-          className="flex-1 truncate pr-12 text-sm [&_mark]:bg-theme-yellow/30 [&_mark]:text-theme-text [&_mark]:rounded-sm"
+          className="[&_mark]:bg-theme-yellow/30 [&_mark]:text-theme-text flex-1 truncate pr-12 text-sm [&_mark]:rounded-sm"
           dangerouslySetInnerHTML={{ __html: highlighted }}
         />
       ) : (
@@ -79,8 +77,8 @@ const ChatItem = ({
 
       {/* Hover actions - Pin and Delete */}
       {!isRenaming && (
-        <div className="absolute right-0 top-0 bottom-0 flex items-center gap-0.5 pr-2">
-          <div className="bg-theme-canvas-alt pointer-events-none absolute inset-y-0 -left-6 w-6 bg-gradient-to-l from-current to-transparent opacity-0 transition-opacity duration-75 ease-snappy group-hover:opacity-100" />
+        <div className="absolute top-0 right-0 bottom-0 flex items-center gap-0.5 pr-2">
+          <div className="bg-theme-canvas-alt ease-snappy pointer-events-none absolute inset-y-0 -left-6 w-6 bg-gradient-to-l from-current to-transparent opacity-0 transition-opacity duration-75 group-hover:opacity-100" />
 
           {/* Pin/Unpin button */}
           <button
@@ -90,7 +88,7 @@ const ChatItem = ({
               e.stopPropagation();
               isPinned ? onUnpin(chat.id) : onPin(chat.id);
             }}
-            className={`translate-x-2 transform-gpu rounded-md p-1 opacity-0 transition-all duration-75 ease-snappy group-hover:translate-x-0 group-hover:opacity-100 ${
+            className={`ease-snappy translate-x-2 transform-gpu rounded-md p-1 opacity-0 transition-all duration-75 group-hover:translate-x-0 group-hover:opacity-100 ${
               isActive
                 ? "hover:bg-theme-primary/10 text-theme-primary"
                 : "text-theme-text-muted hover:bg-theme-accent/10 hover:text-theme-accent"
@@ -103,7 +101,7 @@ const ChatItem = ({
           <button
             type="button"
             onClick={(e) => onDelete(e, chat.id)}
-            className={`translate-x-2 transform-gpu rounded-md p-1 opacity-0 transition-all duration-75 ease-snappy group-hover:translate-x-0 group-hover:opacity-100 ${
+            className={`ease-snappy translate-x-2 transform-gpu rounded-md p-1 opacity-0 transition-all duration-75 group-hover:translate-x-0 group-hover:opacity-100 ${
               isActive
                 ? "hover:bg-theme-primary/10 text-theme-primary"
                 : "text-theme-text-muted hover:bg-theme-red/10 hover:text-theme-red"
@@ -254,13 +252,15 @@ const Sidebar = () => {
 
       {/* Sidebar Panel - slides completely off-screen when collapsed */}
       <div
-        className={`bg-theme-canvas-alt border-theme-surface-strong fixed inset-y-0 left-0 z-50 flex w-72 transform-gpu flex-col border-r transition-transform duration-300 ease-snappy ${getSidebarTransform()}`}>
+        className={`bg-theme-canvas-alt border-theme-surface-strong ease-snappy fixed inset-y-0 left-0 z-50 flex w-72 transform-gpu flex-col border-r transition-transform duration-300 ${getSidebarTransform()}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6">
           <div
             className="flex cursor-pointer items-center gap-2"
             onClick={handleLogoClick}
-            title={isUtilityRoute ? "Return to chat" : effectiveCollapsed ? "Expand sidebar" : undefined}>
+            title={
+              isUtilityRoute ? "Return to chat" : effectiveCollapsed ? "Expand sidebar" : undefined
+            }>
             <div className="bg-theme-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg shadow-lg">
               <LogoIcon className="h-5 w-5 text-white" />
             </div>
@@ -286,7 +286,6 @@ const Sidebar = () => {
               <PanelLeftClose size={18} />
             </button>
           )}
-        
         </div>
 
         {/* Primary Actions */}
