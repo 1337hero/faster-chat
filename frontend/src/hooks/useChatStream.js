@@ -34,18 +34,9 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
 
   const messageTimestampsRef = useRef(new Map());
 
+  // Messages are pre-formatted by TanStack Query select, just ensure stable timestamps
   const formattedMessages = (persistedMessages ?? []).map((msg) =>
-    ensureTimestamp(
-      {
-        id: msg.id,
-        role: msg.role,
-        parts: [{ type: "text", text: msg.content }],
-        fileIds: msg.fileIds || [],
-        model: msg.model || null,
-        createdAt: getMessageTimestamp(msg, null),
-      },
-      messageTimestampsRef
-    )
+    ensureTimestamp(msg, messageTimestampsRef)
   );
 
   const transport = useMemo(

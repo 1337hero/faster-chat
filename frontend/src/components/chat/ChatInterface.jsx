@@ -1,7 +1,9 @@
 import SidebarToolbar from "@/components/layout/SidebarToolbar";
+import { Toaster } from "sonner";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserMenu } from "@/components/ui/UserMenu";
+import { Menu } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useChatVoice } from "@/hooks/useChatVoice";
 import { useCreateChatMutation } from "@/hooks/useChatsQuery";
@@ -19,12 +21,12 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   const createChatMutation = useCreateChatMutation();
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
+  const autoScroll = useUiState((state) => state.autoScroll);
 
   const handleNewChat = async () => {
     const newChat = await createChatMutation.mutateAsync();
     navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
   };
-  const [autoScroll, setAutoScroll] = useState(true);
   const scrollContainerRef = useRef(null);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
 
@@ -38,14 +40,14 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
     isLoading,
     status,
     stop,
-    resumeStream,
+    regenerateResponse,
     setInput,
   } = useChat({
     id: chatId,
     model: preferredModel,
   });
 
-  const { voice, voiceError } = useChatVoice({
+  const { voice } = useChatVoice({
     messages,
     isLoading,
     setInput,
@@ -53,14 +55,21 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   });
 
   useLayoutEffect(() => {
-    if (!scrollContainerRef.current) return;
-    if (autoScroll) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  }, [messages, autoScroll]);
+    if (!scrollContainerRef.current || !autoScroll) return;
+    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+  }, [messages.length, autoScroll]);
 
   return (
     <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">
+      {/* Sonner Toast Container */}
+      <Toaster
+        position="top-center"
+        theme="dark"
+        richColors
+        expand
+        visibleToasts={3}
+      />
+
       {/* Main Content Area - Absolute positioning for scroll-behind effect */}
       <div className="relative flex-1">
         {/* Navbar - Elevated Layer */}
@@ -72,7 +81,9 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
               <button
                 onClick={onMenuClick}
                 className="hover:bg-theme-surface/50 text-theme-text rounded-lg p-2 md:hidden"
-                aria-label="Open menu"></button>
+                aria-label="Open menu">
+                <Menu className="h-5 w-5" />
+              </button>
             )}
           </div>
 
@@ -100,7 +111,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
               isLoading={isLoading}
               status={status}
               onStop={stop}
-              onResume={resumeStream}
+              onRegenerate={regenerateResponse}
             />
           </div>
         </div>
@@ -112,7 +123,6 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
           <div className="pointer-events-auto relative mx-auto max-w-3xl">
             <ErrorBanner message={chatError?.message || chatError} className="mb-3" />
-            <ErrorBanner message={voiceError} className="mb-3" />
 
             <div
               className={`bg-theme-surface relative rounded-2xl border p-2 shadow-lg transition-all duration-300 ${

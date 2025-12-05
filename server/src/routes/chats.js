@@ -313,11 +313,19 @@ chatsRouter.post("/:chatId/messages", async (c) => {
 
     const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
     if (isFirstMessage && body.role === "user") {
-      const title =
-        body.content.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-        (body.content.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
-          ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
-          : "");
+      // Generate AI-powered title for the first message
+      let title;
+      if (body.model) {
+        // Use AI to generate a concise title
+        title = await generateChatTitle(body.content, body.model);
+      } else {
+        // Fallback to sliced message if no model provided
+        title =
+          body.content.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
+          (body.content.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
+            ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
+            : "");
+      }
       dbUtils.updateChatTitle(chatId, title);
     } else {
       dbUtils.updateChatTimestamp(chatId);
@@ -395,6 +403,53 @@ function getModel(modelId) {
     throw new Error(`Model ${modelId} is disabled or not registered`);
   }
   return getModelInstance(modelRecord, decryptApiKey);
+}
+
+/**
+ * Generate a concise AI-powered title for a chat based on the first user message
+ */
+async function generateChatTitle(userMessage, modelId) {
+  try {
+    const model = getModel(modelId);
+
+    const result = await streamText({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: userMessage,
+        },
+      ],
+      system: "Create a 2-5 word title summarizing the user's request. Return ONLY the title, no explanation.",
+      maxTokens: 20,
+    });
+
+    let title = result.text.trim();
+
+    // Remove thinking blocks if present (for models like o1)
+    title = title.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+    // Clean up any quotes or asterisks from the response
+    title = title.replace(/^["\*]+|["\*]+$/g, '').trim();
+
+    // Ensure title is within max length
+    if (title.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) {
+      title = title.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH).trim();
+    }
+
+    // Fallback to sliced message if title generation fails or returns empty
+    if (!title) {
+      title = userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
+              (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS : "");
+    }
+
+    return title;
+  } catch (error) {
+    // If title generation fails, fall back to slicing the message
+    console.warn("Title generation failed, using message slice fallback:", error);
+    return userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
+           (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS : "");
+  }
 }
 
 /**

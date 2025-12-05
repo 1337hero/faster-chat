@@ -36,6 +36,13 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 
 ![Faster Chat Interface](faster-chat.png)
 
+
++++++++++++
+
+**CONSIDER THIS BETA** I am actively working on polishing the UI and getting this into a stable position. So please consider this as WORK IN PROGRESS PRESENTLY.
+
++++++++++++
+
 ## ✨ Features
 
 **Core**
