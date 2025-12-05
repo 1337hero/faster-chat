@@ -1,23 +1,24 @@
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { config } from "dotenv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { serveStatic } from "@hono/node-server/serve-static";
-import { config } from "dotenv";
+import { resolve } from "node:path";
 
 // Load environment variables
 config();
 
 // Import routes
-import { chatsRouter } from "./routes/chats.js";
-import { authRouter } from "./routes/auth.js";
-import { adminRouter } from "./routes/admin.js";
-import { providersRouter } from "./routes/providers.js";
-import { modelsRouter } from "./routes/models.js";
-import { filesRouter } from "./routes/files.js";
-import { settingsRouter } from "./routes/settings.js";
-import { ensureSession } from "./middleware/auth.js";
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
+import { ensureSession } from "./middleware/auth.js";
+import { adminRouter } from "./routes/admin.js";
+import { authRouter } from "./routes/auth.js";
+import { chatsRouter } from "./routes/chats.js";
+import { filesRouter } from "./routes/files.js";
+import { modelsRouter } from "./routes/models.js";
+import { providersRouter } from "./routes/providers.js";
+import { settingsRouter } from "./routes/settings.js";
 
 const app = new Hono();
 
@@ -60,10 +61,12 @@ app.route("/api/settings", settingsRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
-  app.use("/*", serveStatic({ root: "./frontend/dist" }));
+  const distPath = resolve(process.cwd(), "../frontend/dist");
+  console.log(`Serving static files from ${distPath}`);
+  app.use("/*", serveStatic({ root: distPath }));
 
   // Fallback to index.html for SPA routing
-  app.get("*", serveStatic({ path: "./frontend/dist/index.html" }));
+  app.get("*", serveStatic({ path: resolve(distPath, "index.html") }));
 }
 
 // Initialize models.dev cache
