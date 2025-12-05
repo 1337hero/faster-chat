@@ -147,6 +147,9 @@ providersRouter.post("/", async (c) => {
       if (name === "ollama") {
         // Ollama: fetch from local instance
         models = await fetchOllamaModels(baseUrl);
+      } else if (name === "lmstudio") {
+        // LM Studio: fetch from local instance via OpenAI-compatible API
+        models = await fetchLMStudioModels(baseUrl);
       } else {
         // All other providers: use models.dev data
         models = await getModelsForProvider(name);
@@ -251,6 +254,9 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     if (provider.name === "ollama") {
       // Ollama: fetch from local instance
       models = await fetchOllamaModels(provider.base_url);
+    } else if (provider.name === "lmstudio") {
+      // LM Studio: fetch from local instance via OpenAI-compatible API
+      models = await fetchLMStudioModels(provider.base_url);
     } else {
       // All other providers: use models.dev data
       models = await getModelsForProvider(provider.name);
@@ -355,5 +361,55 @@ async function fetchOllamaModels(baseUrl) {
     console.error("Failed to fetch Ollama models:", error.message);
     // Fallback: return empty array or throw
     throw new Error(`Could not connect to Ollama at ${baseUrl}. Make sure Ollama is running.`);
+  }
+}
+
+/**
+ * Fetch models from LM Studio
+ * Uses OpenAI-compatible /v1/models endpoint
+ */
+async function fetchLMStudioModels(baseUrl) {
+  try {
+    // LM Studio uses OpenAI-compatible API at /v1/models
+    const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+
+    const response = await fetch(modelsUrl, {
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LM Studio API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.data || !Array.isArray(data.data)) {
+      throw new Error("Invalid response from LM Studio");
+    }
+
+    // Filter out embedding models (not useful for chat)
+    const chatModels = data.data.filter((m) => !m.id.toLowerCase().includes("embedding"));
+
+    return chatModels.map((m) => ({
+      model_id: m.id,
+      display_name: m.id,
+      enabled: true,
+      metadata: {
+        context_window: 8192, // Default, LM Studio doesn't expose this in /models
+        max_output_tokens: 2048,
+        supports_streaming: true,
+        supports_vision:
+          m.id.toLowerCase().includes("vision") || m.id.toLowerCase().includes("llava"),
+        supports_tools: m.id.toLowerCase().includes("qwen") || m.id.toLowerCase().includes("llama"),
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+        owned_by: m.owned_by || "local",
+      },
+    }));
+  } catch (error) {
+    console.error("Failed to fetch LM Studio models:", error.message);
+    throw new Error(
+      `Could not connect to LM Studio at ${baseUrl}. Make sure LM Studio is running.`
+    );
   }
 }
