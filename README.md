@@ -44,7 +44,10 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 - 🗄️ **Server-side SQLite storage** - Conversations persist across devices and browser tabs
 - 🤖 Multi-provider support: OpenAI, Anthropic, Ollama, Groq, Mistral, custom APIs
 - 📎 File attachments with preview and download
-- 📝 Markdown rendering with syntax highlighting and LaTeX support
+- 📝 Markdown rendering with syntax highlighting (Shiki) and LaTeX support
+- 🎨 **Themable UI** - Dark/light themes, custom fonts, customizable syntax highlighting
+- 🎤 Voice input/output - Speech-to-text and text-to-speech capabilities
+- ⌨️ Keyboard shortcuts for power users (Ctrl+B sidebar, Ctrl+Shift+O new chat, etc.)
 - 📱 Responsive design for desktop, tablet, and mobile
 
 **Administration**
@@ -52,6 +55,7 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 - 🔌 **Provider Hub**: Auto-discover models with [models.dev](https://models.dev) integration
 - 🛡️ Admin panel for user management (CRUD, password reset, role changes)
 - 🔑 Encrypted API key storage with server-side encryption
+- 🎭 **White labeling** - Customize app name and logo icon for your organization
 
 **Deployment**
 - 🌐 Works completely offline with local models (Ollama, LM Studio, etc.)
@@ -110,6 +114,16 @@ bun run dev
 
 ![Available Models](models.png)
 *Enable and manage models from all your providers*
+
+![New Focus Mode](focus-mode.png)
+*New Focus Mode*
+
+![Themes](themes.png)
+*New Apperance Options, to change colors and fonts*
+
+![White Labeling](white-label.png)
+*You can now white label and customize the app title and icon*
+
 
 ### Using Offline with Ollama
 
@@ -208,8 +222,14 @@ docker compose up -d
 - Admin panel for providers, models, and users
 - Role-based access control
 - File attachments with preview/download
-- Markdown, code highlighting, LaTeX rendering
+- Markdown, code highlighting (Shiki syntax highlighting), LaTeX rendering
 - One-click Docker deployment with optional HTTPS
+- Keyboard shortcuts (Ctrl+B sidebar, Ctrl+Shift+O new chat, Ctrl+K search)
+- Theming system (multiple color themes, light/dark mode)
+- Font customization and font themes
+- Voice input/output (speech-to-text, text-to-speech)
+- Settings UI improvements (tabbed interface for user preferences)
+- White labeling (custom app name, custom logo icon selection)
 
 ### In Progress 🚧
 - [ ] Tool calling implementation (infrastructure ready)
@@ -220,14 +240,14 @@ docker compose up -d
 ### Planned 📋
 
 **Settings & UX**
-- [ ] Keyboard shortcuts and accessibility improvements
-- [ ] Advanced user preferences UI (themes, defaults, behavior)
 - [ ] Conversation branching (explore alternative responses)
 - [ ] Import & Export Data Functionality (JSON, Markdown, CSV)
+- [ ] Auto title generation for chats
+- [ ] Message regeneration
+- [ ] Advanced message features (inline editing, rating)
 
 **Advanced Capabilities**
 - [ ] Local RAG with vector search (private document search)
-- [ ] Voice input/output (speech-to-text, text-to-speech)
 - [ ] Multi-modal requests (vision, audio)
 - [ ] Conversation sharing and collaboration
 
