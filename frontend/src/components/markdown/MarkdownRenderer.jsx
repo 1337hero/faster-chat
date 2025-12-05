@@ -34,6 +34,19 @@ const LANG_EXTENSIONS = {
 const REMARK_PLUGINS = [remarkMath, remarkGfm];
 const REHYPE_PLUGINS = [rehypeKatex];
 
+// Toolbar button for code block actions
+const ToolbarButton = ({ onClick, icon: Icon, title, ariaLabel, active = false }) => (
+  <button
+    onClick={onClick}
+    className={`transition-colors duration-75 ease-snappy ${
+      active ? "text-theme-text" : "text-theme-text-muted hover:text-theme-text"
+    }`}
+    aria-label={ariaLabel}
+    title={title}>
+    <Icon className="h-4 w-4" />
+  </button>
+);
+
 /**
  * Code block with Shiki syntax highlighting.
  * Supports dual themes via CSS variables (responds to .dark class).
@@ -112,27 +125,25 @@ const CodeBlock = ({ inline, className, children, node }) => {
       <div className="bg-theme-surface-strong text-theme-text-muted flex items-center justify-between px-4 py-2 text-sm">
         <span className="text-theme-text font-mono text-xs">{lang || "plaintext"}</span>
         <div className="flex items-center gap-2">
-          <button
+          <ToolbarButton
             onClick={handleDownload}
-            className="text-theme-text-muted hover:text-theme-text transition-colors duration-75 ease-snappy"
-            aria-label="Download code"
-            title="Download">
-            <Download className="h-4 w-4" />
-          </button>
-          <button
+            icon={Download}
+            title="Download"
+            ariaLabel="Download code"
+          />
+          <ToolbarButton
             onClick={() => setWrap((w) => !w)}
-            className={`transition-colors duration-75 ease-snappy ${wrap ? "text-theme-text" : "text-theme-text-muted hover:text-theme-text"}`}
-            aria-label={wrap ? "Disable word wrap" : "Enable word wrap"}
-            title={wrap ? "Disable wrap" : "Enable wrap"}>
-            <WrapText className="h-4 w-4" />
-          </button>
-          <button
+            icon={WrapText}
+            title={wrap ? "Disable wrap" : "Enable wrap"}
+            ariaLabel={wrap ? "Disable word wrap" : "Enable word wrap"}
+            active={wrap}
+          />
+          <ToolbarButton
             onClick={handleCopy}
-            className="text-theme-text-muted hover:text-theme-text transition-colors duration-75 ease-snappy"
-            aria-label={copied ? "Copied" : "Copy code"}
-            title="Copy">
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </button>
+            icon={copied ? Check : Copy}
+            title="Copy"
+            ariaLabel={copied ? "Copied" : "Copy code"}
+          />
         </div>
       </div>
 

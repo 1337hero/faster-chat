@@ -12,6 +12,7 @@ export * from "./constants/database.js";
 export * from "./constants/providers.js";
 export * from "./constants/config.js";
 export * from "./constants/settings.js";
+export * from "./constants/shortcuts.js";
 
 // Data
 export * from "./data/languages.js";

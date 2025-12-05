@@ -1,4 +1,4 @@
-import { useState } from "@preact/compat";
+import { useState, useRef, useEffect } from "@preact/compat";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useAppSettings } from "@/state/useAppSettings";
 import { useUiState } from "@/state/useUiState";
@@ -10,7 +10,7 @@ import {
 } from "@/hooks/useChatsQuery";
 import { searchWithHighlights } from "@/lib/search";
 import { toast } from "sonner";
-import { LOGO_ICON_NAMES } from "@faster-chat/shared";
+import { LOGO_ICON_NAMES, UI_CONSTANTS } from "@faster-chat/shared";
 import * as LucideIcons from "lucide-react";
 import { PanelLeftClose, Pin, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 import ChatContextMenu from "./ChatContextMenu";
@@ -122,6 +122,17 @@ const Sidebar = () => {
   const [contextMenu, setContextMenu] = useState(null); // { chat, position: {x, y} }
   const [renamingChatId, setRenamingChatId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const searchInputRef = useRef(null);
+
+  // Listen for focus-sidebar-search event (triggered by Ctrl+K)
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      // Small delay to allow sidebar to expand first
+      setTimeout(() => searchInputRef.current?.focus(), UI_CONSTANTS.SIDEBAR_FOCUS_DELAY_MS);
+    };
+    window.addEventListener("focus-sidebar-search", handleFocusSearch);
+    return () => window.removeEventListener("focus-sidebar-search", handleFocusSearch);
+  }, []);
 
   const {
     chats,
@@ -297,6 +308,7 @@ const Sidebar = () => {
                 size={16}
               />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search chats..."
                 value={searchQuery}

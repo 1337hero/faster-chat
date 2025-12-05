@@ -2,6 +2,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import Sidebar from "@/components/layout/Sidebar";
 import { useAuthState } from "@/state/useAuthState";
 import { IndexRouteGuard } from "@/components/layout/IndexRouteGuard";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   createRootRoute,
   createRoute,
@@ -29,6 +30,9 @@ const LoadingSpinner = () => {
 // Protected Layout Component - handles auth checks and sidebar layout
 const ProtectedLayout = () => {
   const { user, isLoading, checkSession } = useAuthState();
+
+  // Global keyboard shortcuts (Ctrl+B, Ctrl+Shift+O, Ctrl+K)
+  useKeyboardShortcuts();
 
   useEffect(() => {
     checkSession();
