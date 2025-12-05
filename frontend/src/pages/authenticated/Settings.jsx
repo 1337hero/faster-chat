@@ -2,7 +2,23 @@ import { useAuthState } from "@/state/useAuthState";
 import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
-import { LayoutGrid } from "lucide-react";
+import { KEYBOARD_SHORTCUTS } from "@faster-chat/shared";
+import { LayoutGrid, Keyboard } from "lucide-react";
+
+const KeyboardShortcut = ({ keys, label }) => (
+  <div className="flex items-center justify-between py-2">
+    <span className="text-theme-text text-sm">{label}</span>
+    <div className="flex items-center gap-1">
+      {keys.map((key, i) => (
+        <kbd
+          key={i}
+          className="bg-theme-surface text-theme-text-muted border-theme-surface-strong rounded-md border px-2 py-1 font-mono text-xs font-medium shadow-sm">
+          {key}
+        </kbd>
+      ))}
+    </div>
+  </div>
+);
 
 const Settings = () => {
   const { user } = useAuthState();
@@ -67,6 +83,19 @@ const Settings = () => {
           <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
             <h2 className="text-theme-text mb-4 text-lg font-semibold">Typography</h2>
             <FontSelector />
+          </div>
+
+          {/* Keyboard Shortcuts */}
+          <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Keyboard size={20} className="text-theme-text-muted" />
+              <h2 className="text-theme-text text-lg font-semibold">Keyboard Shortcuts</h2>
+            </div>
+            <div className="divide-theme-surface divide-y">
+              {KEYBOARD_SHORTCUTS.map((shortcut) => (
+                <KeyboardShortcut key={shortcut.id} keys={shortcut.keys} label={shortcut.label} />
+              ))}
+            </div>
           </div>
 
           {/* Notifications (Placeholder) */}
