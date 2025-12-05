@@ -3,12 +3,17 @@ import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-react";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
+import ImageModeIndicator from "./ImageModeIndicator";
+import { useUiState } from "@/state/useUiState";
 
-const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls }) => {
+const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls, onImageSubmit }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadError, setUploadError] = useState(null);
+  const imageMode = useUiState((state) => state.imageMode);
+  const toggleImageMode = useUiState((state) => state.toggleImageMode);
+  const setImageMode = useUiState((state) => state.setImageMode);
 
   const adjustHeight = (element) => {
     element.style.height = "auto";
@@ -34,6 +39,16 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (disabled) return;
+
+    // Image mode: call onImageSubmit instead of normal handleSubmit
+    if (imageMode && onImageSubmit) {
+      onImageSubmit(input.trim());
+      setImageMode(false); // Auto-reset after send
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+      return;
+    }
 
     const fileIds = selectedFiles.map((f) => f.id);
     handleSubmit(e, fileIds);
@@ -76,8 +91,11 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
 
       <ErrorBanner message={uploadError} className="mb-2" />
 
+      {/* Image Mode Indicator */}
+      {imageMode && <ImageModeIndicator onClose={() => setImageMode(false)} />}
+
       {/* File Previews */}
-      <FilePreviewList files={selectedFiles} onRemove={removeFile} />
+      {!imageMode && <FilePreviewList files={selectedFiles} onRemove={removeFile} />}
 
       {/* Textarea - Top */}
       <textarea
@@ -85,7 +103,7 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
         value={input}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Ask anything..."
+        placeholder={imageMode ? "Describe the image you want to generate..." : "Ask anything..."}
         disabled={disabled}
         rows={1}
         className="text-theme-text placeholder-theme-muted max-h-[200px] w-full resize-none border-none bg-transparent px-4 py-3 text-base focus:ring-0 focus:outline-none"
@@ -105,8 +123,13 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
           </button>
           <button
             type="button"
-            className="text-theme-muted hover:bg-theme-pink/10 hover:text-theme-pink rounded-lg p-2 transition-colors"
-            title="Generate Image"
+            onClick={toggleImageMode}
+            className={`rounded-lg p-2 transition-colors ${
+              imageMode
+                ? "bg-theme-pink/20 text-theme-pink"
+                : "text-theme-muted hover:bg-theme-pink/10 hover:text-theme-pink"
+            }`}
+            title={imageMode ? "Exit Image Mode" : "Generate Image"}
             disabled={disabled}>
             <Image size={18} />
           </button>

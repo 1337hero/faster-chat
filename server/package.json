@@ -30,6 +30,7 @@
     "dotenv": "^16.4.7",
     "hono": "^4.7.12",
     "ollama-ai-provider": "^1.2.0",
+    "replicate": "^1.4.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

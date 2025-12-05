@@ -9,6 +9,7 @@ export const useUiState = create(
       preferredModel: "claude-sonnet-4-5",
       theme: "dark",
       autoScroll: true,
+      imageMode: false,
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -17,9 +18,19 @@ export const useUiState = create(
       setPreferredModel: (modelId) => set({ preferredModel: modelId }),
       toggleTheme: () => set((state) => ({ theme: state.theme === "light" ? "dark" : "light" })),
       setAutoScroll: (enabled) => set({ autoScroll: enabled }),
+      setImageMode: (enabled) => set({ imageMode: enabled }),
+      toggleImageMode: () => set((state) => ({ imageMode: !state.imageMode })),
     }),
     {
       name: "ui-state",
+      partialize: (state) => ({
+        sidebarOpen: state.sidebarOpen,
+        sidebarCollapsed: state.sidebarCollapsed,
+        preferredModel: state.preferredModel,
+        theme: state.theme,
+        autoScroll: state.autoScroll,
+        // imageMode intentionally not persisted - resets on page load
+      }),
     }
   )
 );

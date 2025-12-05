@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
@@ -17,6 +18,10 @@ import {
   validateFileAccess,
   FILE_CONFIG,
 } from "../lib/fileUtils.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, "../../..");
 
 export const filesRouter = new Hono();
 
@@ -149,8 +154,8 @@ filesRouter.get("/:id/content", async (c) => {
       return c.json({ error: access.reason }, statusCode);
     }
 
-    // Read file from disk
-    const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+    // Read file from disk - use the path field which includes subdirectories
+    const filePath = path.join(PROJECT_ROOT, file.path);
     const fileContent = await readFile(filePath);
 
     // Set appropriate headers
@@ -185,8 +190,8 @@ filesRouter.delete("/:id", async (c) => {
       return c.json({ error: access.reason }, statusCode);
     }
 
-    // Delete from disk
-    const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+    // Delete from disk - use the path field which includes subdirectories
+    const filePath = path.join(PROJECT_ROOT, file.path);
     await deleteFileFromDisk(filePath);
 
     // Delete from database
