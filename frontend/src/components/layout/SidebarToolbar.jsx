@@ -1,3 +1,4 @@
+import { ToolbarButton, ToolbarGroup } from "@/components/ui/ToolbarGroup";
 import { useUiState } from "@/state/useUiState";
 import { PanelLeft, Plus, Search } from "lucide-react";
 
@@ -8,37 +9,22 @@ const SidebarToolbar = ({ onNewChat, onSearch }) => {
   // When sidebar open: negative margin pulls toolbar behind sidebar
   // When collapsed: sits normally in the flex layout
   return (
-    <div
-      className={`ease-snappy relative flex flex-row gap-0.5 p-1 transition-[margin] duration-300 ${
+    <ToolbarGroup
+      className={`ease-snappy transition-[margin] duration-300 ${
         sidebarCollapsed ? "ml-0" : "-ml-[280px]"
       }`}>
-      {/* Backdrop pill - matches ThemeToggle styling */}
-      <div className="bg-theme-surface border-theme-border pointer-events-none absolute inset-0 -z-10 rounded-xl border shadow-lg" />
-
-      {/* Toggle sidebar button */}
-      <button
-        onClick={toggleSidebarCollapse}
-        className="text-theme-text-muted hover:bg-theme-surface-strong/50 hover:text-theme-text z-10 flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-        title="Open Sidebar">
+      <ToolbarButton onClick={toggleSidebarCollapse} title="Open Sidebar">
         <PanelLeft size={18} />
-      </button>
+      </ToolbarButton>
 
-      {/* Search button */}
-      <button
-        onClick={onSearch}
-        className="text-theme-text-muted hover:bg-theme-surface-strong/50 hover:text-theme-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-        title="Search">
+      <ToolbarButton onClick={onSearch} title="Search">
         <Search size={18} />
-      </button>
+      </ToolbarButton>
 
-      {/* New chat button */}
-      <button
-        onClick={onNewChat}
-        className="text-theme-text-muted hover:bg-theme-surface-strong/50 hover:text-theme-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-        title="New Chat">
+      <ToolbarButton onClick={onNewChat} title="New Chat">
         <Plus size={18} />
-      </button>
-    </div>
+      </ToolbarButton>
+    </ToolbarGroup>
   );
 };
 

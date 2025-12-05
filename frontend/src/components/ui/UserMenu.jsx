@@ -41,9 +41,9 @@ export const UserMenu = () => {
     <div className="relative" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-theme-surface border-theme-border hover:border-theme-primary/50 text-theme-text hover:bg-theme-surface-strong focus:ring-theme-blue/50 rounded-xl border p-2 shadow-lg transition-all duration-200 hover:scale-105 focus:ring-2 focus:outline-none active:scale-95"
+        className="text-theme-text-muted hover:bg-theme-surface-strong/50 hover:text-theme-text flex h-8 w-8 items-center justify-center rounded-md transition-colors"
         aria-label="User Menu">
-        <User size={20} />
+        <User size={18} />
       </button>
 
       {isOpen && (
