@@ -115,11 +115,15 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     // Handle both native (displayName) and community (name) formats
     setDisplayName(provider.displayName || provider.name);
     if (provider.baseUrlPlaceholder) {
-      setBaseUrl(provider.baseUrlPlaceholder);
+      const placeholder = import.meta.env.DEV
+        ? provider.baseUrlPlaceholderDev || provider.baseUrlPlaceholder
+        : provider.baseUrlPlaceholder;
+      setBaseUrl(placeholder);
     } else if (provider.api) {
       setBaseUrl(provider.api);
     } else if (provider.id === "ollama") {
-      setBaseUrl("http://localhost:11434/v1");
+      const placeholder = import.meta.env.DEV ? "http://localhost:11434" : "http://host.docker.internal:11434";
+      setBaseUrl(placeholder);
     }
   };
 
@@ -334,9 +338,15 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   value={baseUrl}
                   onInput={(e) => setBaseUrl(e.target.value)}
                   placeholder={
-                    selectedProvider.baseUrlPlaceholder || selectedProvider.id === "ollama"
-                      ? "http://localhost:11434/v1"
-                      : "https://..."
+                    selectedProvider.baseUrlPlaceholder
+                      ? import.meta.env.DEV
+                        ? selectedProvider.baseUrlPlaceholderDev || selectedProvider.baseUrlPlaceholder
+                        : selectedProvider.baseUrlPlaceholder
+                      : selectedProvider.id === "ollama"
+                        ? import.meta.env.DEV
+                          ? "http://localhost:11434"
+                          : "http://host.docker.internal:11434"
+                        : "https://..."
                   }
                   className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
                 />

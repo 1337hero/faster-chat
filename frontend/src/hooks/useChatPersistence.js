@@ -5,13 +5,14 @@ export function useChatPersistence(chatId) {
   const { data: messages } = useMessagesQuery(chatId);
   const createMessageMutation = useCreateMessageMutation();
 
-  async function saveUserMessage({ id, content, fileIds = [], createdAt }, currentChatId) {
+  async function saveUserMessage({ id, content, fileIds = [], createdAt, model = null }, currentChatId) {
     const message = {
       id,
       role: "user",
       content,
       fileIds,
       createdAt,
+      model,
     };
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });

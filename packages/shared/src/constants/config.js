@@ -20,7 +20,10 @@ export const CACHE_DURATIONS = {
 export const PROVIDER_DEFAULTS = {
   GOOGLE_VERTEX_LOCATION: "us-central1",
   AWS_REGION: "us-east-1",
-  OLLAMA_BASE_URL: "http://localhost:11434/v1",
+  OLLAMA_BASE_URL:
+    typeof process !== "undefined" && process.env.OLLAMA_BASE_URL
+      ? `${process.env.OLLAMA_BASE_URL}/v1`
+      : "http://localhost:11434/v1",
 };
 
 /** Message Processing Constants */
