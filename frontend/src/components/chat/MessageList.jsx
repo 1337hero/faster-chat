@@ -20,34 +20,30 @@ function sortMessagesWithUserFirst(messages) {
   });
 }
 
-function shouldShowStopAction(isActive, status, onStop) {
+function getMessageActions(isActive, status, onStop, onRegenerate) {
   const isStreaming = status === "streaming" || status === "submitted";
-  return isActive && isStreaming && Boolean(onStop);
+  return {
+    stop: isActive && isStreaming && onStop ? onStop : undefined,
+    regenerate: isActive && !isStreaming && onRegenerate ? onRegenerate : undefined,
+  };
 }
 
-function shouldShowResumeAction(isActive, status, onResume) {
-  const isStreaming = status === "streaming" || status === "submitted";
-  return isActive && !isStreaming && Boolean(onResume);
-}
-
-const MessageList = ({ messages, isLoading, status, onStop, onResume }) => {
+const MessageList = ({ messages, isLoading, status, onStop, onRegenerate }) => {
   const sortedMessages = sortMessagesWithUserFirst(messages);
-
-  const lastAssistantId = [...sortedMessages].reverse().find((msg) => msg.role === "assistant")?.id;
+  const lastAssistantId = sortedMessages.findLast((msg) => msg.role === "assistant")?.id;
 
   return (
     <div className="space-y-4">
       {sortedMessages.map((message) => {
         const isActiveAssistant = message.id === lastAssistantId && message.role === "assistant";
-        const showStopAction = shouldShowStopAction(isActiveAssistant, status, onStop);
-        const showResumeAction = shouldShowResumeAction(isActiveAssistant, status, onResume);
+        const actions = getMessageActions(isActiveAssistant, status, onStop, onRegenerate);
 
         return (
           <MessageItem
             key={message.id}
             message={message}
-            onStop={showStopAction ? onStop : undefined}
-            onResume={showResumeAction ? onResume : undefined}
+            onStop={actions.stop}
+            onRegenerate={actions.regenerate}
           />
         );
       })}

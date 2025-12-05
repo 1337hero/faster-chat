@@ -38,6 +38,16 @@ export function useMessagesQuery(chatId) {
   return useQuery({
     queryKey: chatKeys.messages(userId, chatId),
     queryFn: () => chatsClient.getMessages(chatId),
+    select: (messages) =>
+      messages.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        parts: [{ type: "text", text: msg.content }],
+        fileIds: msg.fileIds || [],
+        model: msg.model || null,
+        createdAt: getMessageTimestamp(msg),
+      })),
     enabled: userId !== null && !!chatId,
   });
 }

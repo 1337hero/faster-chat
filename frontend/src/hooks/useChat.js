@@ -1,3 +1,4 @@
+import { extractTextContent } from "@/utils/message/messageUtils";
 import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
@@ -57,7 +58,20 @@ export function useChat({ id: chatId, model }) {
   }
 
   const isLoading = (chatId && isChatLoading) || stream.isStreaming;
-  const canResume = stream.status !== "streaming" && stream.status !== "submitted";
+
+  async function regenerateResponse() {
+    const messages = stream.messages;
+    if (!messages || messages.length === 0) return;
+
+    const lastUserMessage = messages.findLast((msg) => msg.role === "user");
+    if (!lastUserMessage) return;
+
+    const content = extractTextContent(lastUserMessage);
+    if (!content.trim()) return;
+
+    const fileIds = lastUserMessage.fileIds || [];
+    await submitMessage({ content, fileIds });
+  }
 
   return {
     messages: stream.messages,
@@ -65,13 +79,13 @@ export function useChat({ id: chatId, model }) {
     setInput,
     handleInputChange,
     handleSubmit,
-    submitMessage, // Imperative API for voice input
+    submitMessage,
     isLoading,
-    isChatError, // Expose for route-level error handling
+    isChatError,
     error: stream.error,
     currentChat: chat,
     stop: stream.stop,
-    resumeStream: canResume ? stream.resumeStream : undefined,
+    regenerateResponse: stream.isStreaming ? undefined : regenerateResponse,
     status: stream.status,
   };
 }

@@ -1,7 +1,7 @@
 import { useVoice } from "@/hooks/useVoice";
+import { showErrorToast } from "@/lib/errorHandler";
 import { extractTextContent, hasTextContent } from "@/utils/message/messageUtils";
-import { VOICE_CONSTANTS } from "@faster-chat/shared";
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useRef } from "preact/hooks";
 
 const shouldSpeakMessage = (message, lastSpokenId) => {
   if (!message) return false;
@@ -11,7 +11,6 @@ const shouldSpeakMessage = (message, lastSpokenId) => {
 };
 
 export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
-  const [voiceError, setVoiceError] = useState(null);
   const lastSpokenMessageRef = useRef(null);
 
   const voice = useVoice({
@@ -21,8 +20,7 @@ export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
     },
     onError: (error) => {
       console.error("Voice error:", error);
-      setVoiceError(error);
-      setTimeout(() => setVoiceError(null), VOICE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
+      showErrorToast(error);
     },
   });
 
@@ -42,8 +40,5 @@ export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
     voice.speakStream(content);
   }, [messages, voice.isActive, voice.isProcessing, isLoading]);
 
-  return {
-    voice,
-    voiceError,
-  };
+  return { voice };
 }

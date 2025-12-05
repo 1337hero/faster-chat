@@ -35,11 +35,7 @@ export function useChatPersistence(chatId) {
 
   return {
     chat,
-    messages:
-      messages?.map((msg) => ({
-        ...msg,
-        createdAt: msg.createdAt ?? msg.created_at ?? null,
-      })) ?? [],
+    messages: messages ?? [],
     isChatLoading,
     isChatError,
     saveUserMessage,
