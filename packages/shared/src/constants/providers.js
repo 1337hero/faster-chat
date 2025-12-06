@@ -203,6 +203,7 @@ export const PROVIDERS = {
     type: "community",
     requiresApiKey: true,
     requiresBaseUrl: false,
+    baseUrlPlaceholder: "https://openrouter.ai/api/v1",
     supportsVision: true,
     supportsTools: true,
     supportsStreaming: true,

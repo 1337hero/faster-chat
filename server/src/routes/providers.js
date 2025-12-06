@@ -13,6 +13,7 @@ import {
   getAvailableProviders as getNativeProviders,
   PROVIDERS,
   categorizeProvider,
+  TIMEOUTS,
 } from "@faster-chat/shared";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 
@@ -30,6 +31,13 @@ function getDefaultEnabledForProvider(providerName, fallbackEnabled) {
     return false;
   }
   return fallbackEnabled;
+}
+
+function normalizeBaseUrl(providerName, baseUrl) {
+  if (providerName === "openrouter") {
+    return baseUrl || "https://openrouter.ai/api/v1";
+  }
+  return baseUrl || null;
 }
 
 // Validation schemas
@@ -136,6 +144,7 @@ providersRouter.post("/", async (c) => {
       hasApiKey: !!body.apiKey,
     });
     const { name, displayName, providerType, baseUrl, apiKey } = CreateProviderSchema.parse(body);
+    const normalizedBaseUrl = normalizeBaseUrl(name, baseUrl);
 
     // Check if provider already exists
     const existing = dbUtils.getProviderByName(name);
@@ -151,7 +160,7 @@ providersRouter.post("/", async (c) => {
       name,
       displayName,
       providerType,
-      baseUrl || null,
+      normalizedBaseUrl,
       encryptedKey,
       iv,
       authTag
@@ -160,15 +169,7 @@ providersRouter.post("/", async (c) => {
     // Auto-fetch models based on provider type
     let models = [];
     try {
-      if (name === "ollama") {
-        models = await fetchOllamaModels(baseUrl);
-      } else if (name === "lmstudio") {
-        models = await fetchLMStudioModels(baseUrl);
-      } else if (name === "replicate") {
-        models = getReplicateImageModels();
-      } else {
-        models = await getModelsForProvider(name);
-      }
+      models = await fetchModelsForProvider(name, normalizedBaseUrl);
 
       for (const model of models) {
         const modelId = dbUtils.createModel(
@@ -197,7 +198,7 @@ providersRouter.post("/", async (c) => {
           model_count: models.length,
         },
       },
-      201
+      HTTP_STATUS.CREATED
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -289,17 +290,13 @@ providersRouter.post("/:id/refresh-models", async (c) => {
       ? decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag)
       : null;
 
-    // Fetch models
-    let models = [];
-    if (provider.name === "ollama") {
-      models = await fetchOllamaModels(provider.base_url);
-    } else if (provider.name === "lmstudio") {
-      models = await fetchLMStudioModels(provider.base_url);
-    } else if (provider.name === "replicate") {
-      models = getReplicateImageModels();
-    } else {
-      models = await getModelsForProvider(provider.name);
+    // Fetch models using factory
+    const normalizedBaseUrl = normalizeBaseUrl(provider.name, provider.base_url);
+    if (normalizedBaseUrl !== provider.base_url) {
+      dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
     }
+
+    const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl);
 
     dbUtils.deleteModelsForProvider(providerId);
 
@@ -356,8 +353,29 @@ providersRouter.delete("/:id", async (c) => {
 // MODEL FETCHING UTILITIES
 // ========================================
 
-// Note: OpenAI and Anthropic models now come from models.dev
-// No need for manual hardcoding anymore!
+/**
+ * Model fetcher factory - maps provider names to their fetch functions
+ * Eliminates duplicate if/else chains for model fetching
+ */
+const MODEL_FETCHERS = {
+  ollama: fetchOllamaModels,
+  lmstudio: fetchLMStudioModels,
+  replicate: () => Promise.resolve(getReplicateImageModels()),
+};
+
+/**
+ * Fetch models for a provider using the appropriate fetcher
+ * @param {string} providerName - The provider identifier
+ * @param {string} baseUrl - The base URL for local providers
+ * @returns {Promise<Array>} Array of model objects
+ */
+async function fetchModelsForProvider(providerName, baseUrl) {
+  const fetcher = MODEL_FETCHERS[providerName];
+  if (fetcher) {
+    return await fetcher(baseUrl);
+  }
+  return await getModelsForProvider(providerName);
+}
 
 /**
  * Fetch models from Ollama
@@ -365,9 +383,8 @@ providersRouter.delete("/:id", async (c) => {
  */
 async function fetchOllamaModels(baseUrl) {
   try {
-    // Try the proper Ollama API endpoint first
     const response = await fetch(`${baseUrl.replace("/v1", "")}/api/tags`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
     });
 
     if (!response.ok) {
@@ -385,7 +402,7 @@ async function fetchOllamaModels(baseUrl) {
       display_name: m.name,
       enabled: true,
       metadata: {
-        context_window: 8192, // Default, Ollama doesn't expose this easily
+        context_window: 8192,
         max_output_tokens: 2048,
         supports_streaming: true,
         supports_vision: m.name.includes("llava") || m.name.includes("vision"),
@@ -398,7 +415,6 @@ async function fetchOllamaModels(baseUrl) {
     }));
   } catch (error) {
     console.error("Failed to fetch Ollama models:", error.message);
-    // Fallback: return empty array or throw
     throw new Error(`Could not connect to Ollama at ${baseUrl}. Make sure Ollama is running.`);
   }
 }
@@ -409,11 +425,10 @@ async function fetchOllamaModels(baseUrl) {
  */
 async function fetchLMStudioModels(baseUrl) {
   try {
-    // LM Studio uses OpenAI-compatible API at /v1/models
     const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
 
     const response = await fetch(modelsUrl, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
     });
 
     if (!response.ok) {
@@ -426,7 +441,6 @@ async function fetchLMStudioModels(baseUrl) {
       throw new Error("Invalid response from LM Studio");
     }
 
-    // Filter out embedding models (not useful for chat)
     const chatModels = data.data.filter((m) => !m.id.toLowerCase().includes("embedding"));
 
     return chatModels.map((m) => ({
@@ -434,7 +448,7 @@ async function fetchLMStudioModels(baseUrl) {
       display_name: m.id,
       enabled: true,
       metadata: {
-        context_window: 8192, // Default, LM Studio doesn't expose this in /models
+        context_window: 8192,
         max_output_tokens: 2048,
         supports_streaming: true,
         supports_vision:

@@ -1,17 +1,18 @@
 import { providersClient } from "@/lib/providersClient";
-import { getProviderBranding, getProviderLogoUrl } from "@/lib/providerUtils";
+import { CACHE_DURATIONS } from "@faster-chat/shared";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "preact/hooks";
+import ProviderLogo from "@/components/ui/ProviderLogo";
 
 const ModelSelector = ({ currentModel, onModelChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["models", "enabled"],
-    queryFn: () => providersClient.getEnabledModels(),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ["models", "text"],
+    queryFn: () => providersClient.getEnabledModelsByType("text"),
+    staleTime: CACHE_DURATIONS.IMAGE_MODELS,
   });
 
   const models = data?.models || [];
@@ -21,7 +22,6 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
     models[0];
   const currentProviderId =
     currentModelData?.provider_name || currentModelData?.provider?.toLowerCase();
-  const currentBranding = getProviderBranding(currentProviderId);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -47,20 +47,11 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="bg-theme-surface hover:bg-theme-surface-strong border-theme-border hover:border-theme-primary/50 text-theme-text flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold shadow-lg transition-all duration-200 hover:scale-105 active:scale-95">
         <span className="flex items-center gap-2">
-          <div
-            className={`flex h-5 w-5 items-center justify-center rounded-md ${
-              currentBranding.className || "from-theme-blue/10 to-theme-mauve/10 bg-gradient-to-br"
-            }`}
-            style={currentBranding.style}>
-            <img
-              src={getProviderLogoUrl(currentProviderId)}
-              alt={`${currentModelData.provider_display_name} logo`}
-              className="h-3 w-3 dark:brightness-90 dark:invert"
-              onError={(e) => {
-                e.target.parentElement.style.display = "none";
-              }}
-            />
-          </div>
+          <ProviderLogo
+            providerId={currentProviderId}
+            displayName={currentModelData.provider_display_name}
+            size="sm"
+          />
           {currentModelData.display_name}
         </span>
         <ChevronDown
@@ -73,7 +64,6 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
           <div className="max-h-96 overflow-y-auto p-1">
             {models.map((model) => {
               const providerId = model.provider_name || model.provider?.toLowerCase();
-              const branding = getProviderBranding(providerId);
 
               return (
                 <button
@@ -90,21 +80,11 @@ const ModelSelector = ({ currentModel, onModelChange }) => {
                   <div className="flex-1">
                     <div className="text-theme-text font-medium">{model.display_name}</div>
                     <div className="text-theme-text-muted flex items-center gap-1.5 text-xs">
-                      <div
-                        className={`flex h-4 w-4 items-center justify-center rounded-md ${
-                          branding.className ||
-                          "from-theme-blue/10 to-theme-mauve/10 bg-gradient-to-br"
-                        }`}
-                        style={branding.style}>
-                        <img
-                          src={getProviderLogoUrl(providerId)}
-                          alt={`${model.provider_display_name} logo`}
-                          className="h-2.5 w-2.5 dark:brightness-90 dark:invert"
-                          onError={(e) => {
-                            e.target.parentElement.style.display = "none";
-                          }}
-                        />
-                      </div>
+                      <ProviderLogo
+                        providerId={providerId}
+                        displayName={model.provider_display_name}
+                        size="xs"
+                      />
                       {model.provider_display_name}
                     </div>
                   </div>

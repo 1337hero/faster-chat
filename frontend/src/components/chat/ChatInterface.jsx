@@ -173,6 +173,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
             <MessageList
               messages={messages}
               isLoading={isLoading}
+              isGeneratingImage={isGenerating}
               status={status}
               onStop={stop}
               onRegenerate={regenerateResponse}
