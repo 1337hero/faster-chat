@@ -167,6 +167,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chats_archived ON chats(archived_at);
 `);
 
+const modelColumns = db.prepare("PRAGMA table_info(models)").all();
+const modelColumnNames = modelColumns.map((col) => col.name);
+
+if (!modelColumnNames.includes("model_type")) {
+  db.exec("ALTER TABLE models ADD COLUMN model_type TEXT DEFAULT 'text'");
+}
+
+db.exec("CREATE INDEX IF NOT EXISTS idx_models_type ON models(model_type)");
+
 function parseFileMeta(file) {
   if (file && file.meta) {
     try {
@@ -442,13 +451,13 @@ export const dbUtils = {
   /**
    * Create a new model
    */
-  createModel(providerId, modelId, displayName, enabled = true) {
+  createModel(providerId, modelId, displayName, enabled = true, modelType = 'text') {
     const now = Date.now();
     const stmt = db.prepare(`
-      INSERT INTO models (provider_id, model_id, display_name, enabled, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO models (provider_id, model_id, display_name, enabled, model_type, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    const result = stmt.run(providerId, modelId, displayName, enabled ? 1 : 0, now, now);
+    const result = stmt.run(providerId, modelId, displayName, enabled ? 1 : 0, modelType, now, now);
     return result.lastInsertRowid;
   },
 
@@ -478,6 +487,21 @@ export const dbUtils = {
     return stmt.all();
   },
 
+  getModelsByType(modelType) {
+    if (!modelType) {
+      return this.getAllModels();
+    }
+
+    const stmt = db.prepare(`
+      SELECT m.*, p.name as provider_name, p.display_name as provider_display_name
+      FROM models m
+      JOIN providers p ON m.provider_id = p.id
+      WHERE m.model_type = ?
+      ORDER BY p.name ASC, m.display_name ASC
+    `);
+    return stmt.all(modelType);
+  },
+
   /**
    * Get enabled models
    */
@@ -490,6 +514,21 @@ export const dbUtils = {
       ORDER BY p.name ASC, m.display_name ASC
     `);
     return stmt.all();
+  },
+
+  getEnabledModelsByType(modelType) {
+    if (!modelType) {
+      return this.getEnabledModels();
+    }
+
+    const stmt = db.prepare(`
+      SELECT m.*, p.name as provider_name, p.display_name as provider_display_name
+      FROM models m
+      JOIN providers p ON m.provider_id = p.id
+      WHERE m.enabled = 1 AND p.enabled = 1 AND m.model_type = ?
+      ORDER BY p.name ASC, m.display_name ASC
+    `);
+    return stmt.all(modelType);
   },
 
   /**
@@ -575,6 +614,14 @@ export const dbUtils = {
   },
 
   /**
+   * Set enabled flag for all models under a provider
+   */
+  setModelsEnabledForProvider(providerId, enabled) {
+    const stmt = db.prepare("UPDATE models SET enabled = ?, updated_at = ? WHERE provider_id = ?");
+    stmt.run(enabled ? 1 : 0, Date.now(), providerId);
+  },
+
+  /**
    * Get default model
    */
   getDefaultModel() {
@@ -614,13 +661,13 @@ export const dbUtils = {
 
     stmt.run(
       modelId,
-      metadata.contextWindow || null,
-      metadata.maxOutputTokens || null,
-      metadata.inputPrice || null,
-      metadata.outputPrice || null,
-      metadata.supportsStreaming ? 1 : 0,
-      metadata.supportsVision ? 1 : 0,
-      metadata.supportsTools ? 1 : 0
+      metadata.context_window ?? metadata.contextWindow ?? null,
+      metadata.max_output_tokens ?? metadata.maxOutputTokens ?? null,
+      metadata.input_price_per_1m ?? metadata.inputPrice ?? null,
+      metadata.output_price_per_1m ?? metadata.outputPrice ?? null,
+      (metadata.supports_streaming ?? metadata.supportsStreaming) ? 1 : 0,
+      (metadata.supports_vision ?? metadata.supportsVision) ? 1 : 0,
+      (metadata.supports_tools ?? metadata.supportsTools) ? 1 : 0
     );
   },
 

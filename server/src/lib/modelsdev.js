@@ -93,7 +93,6 @@ export async function getAvailableProviders() {
   // Add manual providers that aren't in models.dev
   // This includes local providers AND major providers like Anthropic
   const manualProviders = [
-    // Local providers
     {
       id: "ollama",
       name: "Ollama",
@@ -104,7 +103,7 @@ export async function getAvailableProviders() {
       api: null,
       npm: "@ai-sdk/openai-compatible",
       requiresBaseUrl: true,
-      modelCount: 0, // Fetched dynamically
+      modelCount: 0,
     },
     {
       id: "llama-cpp",
@@ -129,6 +128,34 @@ export async function getAvailableProviders() {
       npm: "@ai-sdk/openai-compatible",
       requiresBaseUrl: true,
       modelCount: 0,
+    },
+    {
+      id: "replicate",
+      name: "Replicate",
+      displayName: "Replicate",
+      description: "Image generation with Flux, Stable Diffusion, and more",
+      category: "community",
+      env: ["REPLICATE_API_TOKEN"],
+      api: "https://api.replicate.com/v1",
+      npm: "replicate",
+      requiresBaseUrl: false,
+      requiresApiKey: true,
+      modelCount: 4,
+      supportsImageGeneration: true,
+    },
+    {
+      id: "openrouter",
+      name: "OpenRouter",
+      displayName: "OpenRouter",
+      description: "Access 200+ models including image generation via unified API",
+      category: "community",
+      env: ["OPENROUTER_API_KEY"],
+      api: "https://openrouter.ai/api/v1",
+      npm: "@openrouter/ai-sdk-provider",
+      requiresBaseUrl: false,
+      requiresApiKey: true,
+      modelCount: 200,
+      supportsImageGeneration: true,
     },
   ];
 
@@ -174,6 +201,18 @@ function getProviderDescription(id, info) {
   return `${modelCount} model${modelCount !== 1 ? "s" : ""} available`;
 }
 
+function getModelType(modelData) {
+  const outputModalities = modelData.modalities?.output || ['text'];
+
+  if (outputModalities.includes('image') && outputModalities.includes('text')) {
+    return 'multimodal';
+  }
+  if (outputModalities.includes('image')) {
+    return 'image';
+  }
+  return 'text';
+}
+
 /**
  * Get models for a specific provider
  */
@@ -186,6 +225,8 @@ export async function getModelsForProvider(providerName) {
   return Object.entries(providerInfo.models).map(([id, model]) => ({
     model_id: id,
     display_name: model.name || id,
+    model_type: getModelType(model),
+    output_modalities: model.modalities?.output || ['text'],
     enabled: !model.experimental && model.status !== "deprecated",
     metadata: {
       context_window: model.limit?.context || 0,
@@ -194,7 +235,7 @@ export async function getModelsForProvider(providerName) {
       output_price_per_1m: model.cost?.output || 0,
       cache_read_price_per_1m: model.cost?.cache_read || 0,
       cache_write_price_per_1m: model.cost?.cache_write || 0,
-      supports_streaming: true, // Assume true for most models
+      supports_streaming: true,
       supports_vision: model.modalities?.input?.includes("image") || model.attachment,
       supports_tools: model.tool_call !== false,
       supports_reasoning: model.reasoning || false,
@@ -204,6 +245,123 @@ export async function getModelsForProvider(providerName) {
       status: model.status,
     },
   }));
+}
+
+export function getReplicateImageModels() {
+  return [
+    {
+      model_id: "black-forest-labs/flux-1.1-pro",
+      display_name: "Flux 1.1 Pro",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "black-forest-labs/flux-schnell",
+      display_name: "Flux Schnell",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "black-forest-labs/flux-dev",
+      display_name: "Flux Dev",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "stability-ai/sdxl",
+      display_name: "Stable Diffusion XL",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "black-forest-labs/flux-2-dev",
+      display_name: "Flux 2 Dev",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "google/nano-banana",
+      display_name: "Google Nano Banana",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "qwen/qwen-image",
+      display_name: "Qwen Image",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+    {
+      model_id: "black-forest-labs/flux-krea-dev",
+      display_name: "Flux Krea Dev",
+      model_type: "image",
+      output_modalities: ["image"],
+      enabled: true,
+      metadata: {
+        supports_vision: false,
+        supports_tools: false,
+        supports_streaming: false,
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+      },
+    },
+  ];
 }
 
 // Auto-fetch on startup with retry

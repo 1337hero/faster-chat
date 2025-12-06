@@ -12,6 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
+import ImageModelSelector from "./ImageModelSelector";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
@@ -23,6 +24,9 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   const createChatMutation = useCreateChatMutation();
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
+  const imageMode = useUiState((state) => state.imageMode);
+  const preferredImageModel = useUiState((state) => state.preferredImageModel);
+  const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
   const autoScroll = useUiState((state) => state.autoScroll);
 
   const handleNewChat = async () => {
@@ -85,7 +89,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
     // Generate image
     generateImage(
-      { prompt, chatId },
+      { prompt, chatId, model: preferredImageModel },
       {
         onSuccess: async (data) => {
           // Save assistant message with the generated image
@@ -141,7 +145,14 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
           </div>
 
           {/* Center: Model Selector */}
-          <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
+          {imageMode ? (
+            <ImageModelSelector
+              currentModel={preferredImageModel}
+              onModelChange={setPreferredImageModel}
+            />
+          ) : (
+            <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
+          )}
 
           {/* Right: Controls */}
           <ToolbarGroup>

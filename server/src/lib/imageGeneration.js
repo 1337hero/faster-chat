@@ -1,5 +1,5 @@
-import Replicate from "replicate";
 import { IMAGE_GENERATION, IMAGE_MODELS } from "@faster-chat/shared";
+import Replicate from "replicate";
 
 /**
  * Create a Replicate client with the provided API key
@@ -25,6 +25,8 @@ export async function generateImage(client, options) {
       aspect_ratio: aspectRatio,
       output_format: "webp",
       output_quality: 90,
+      safety_tolerance: 6,
+      prompt_upsampling: true,
     },
   });
 

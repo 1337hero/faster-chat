@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Server, Star, ChevronDown, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Server, Star, ChevronDown, ChevronRight, Pencil, Check, X, Eye, Wrench, Brain, AlertTriangle, Database } from "lucide-react";
 import { providersClient } from "@/lib/providersClient";
 import { getProviderLogoUrl, getProviderBranding } from "@/lib/providerUtils";
 import { Switch } from "@/components/ui/Switch";
@@ -27,6 +27,7 @@ const ModelsTab = () => {
       acc[provider] = {
         displayName: provider,
         providerId: model.provider_name || model.provider?.toLowerCase(),
+        providerDbId: model.provider_id,
         models: [],
       };
     }
@@ -47,6 +48,14 @@ const ModelsTab = () => {
   // Toggle model enabled
   const toggleMutation = useMutation({
     mutationFn: ({ modelId, enabled }) => providersClient.updateModel(modelId, { enabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
+    },
+  });
+
+  const bulkToggleMutation = useMutation({
+    mutationFn: ({ providerId, enabled }) =>
+      providersClient.setAllModelsEnabled(providerId, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
     },
@@ -204,6 +213,34 @@ const ModelsTab = () => {
                   <span>
                     {providerData.displayName} ({enabledCount}/{providerData.models.length} enabled)
                   </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        bulkToggleMutation.mutate({
+                          providerId: providerData.providerDbId,
+                          enabled: false,
+                        });
+                      }}
+                      disabled={bulkToggleMutation.isPending}
+                      className="text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors">
+                      Disable All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        bulkToggleMutation.mutate({
+                          providerId: providerData.providerDbId,
+                          enabled: true,
+                        });
+                      }}
+                      disabled={bulkToggleMutation.isPending}
+                      className="text-theme-blue hover:bg-theme-blue/10 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors">
+                      Enable All
+                    </button>
+                  </div>
                 </button>
 
                 {expanded && (
@@ -281,37 +318,42 @@ const ModelsTab = () => {
                                   </span>
                                 )}
                               {model.metadata?.cache_read_price_per_1m > 0 && (
-                                <span className="text-theme-green" title="Supports prompt caching">
-                                  💾 Cache: ${model.metadata.cache_read_price_per_1m.toFixed(2)}
+                                <span className="text-theme-green inline-flex items-center gap-1" title="Supports prompt caching">
+                                  <Database className="h-3 w-3" />
+                                  Cache: ${model.metadata.cache_read_price_per_1m.toFixed(2)}
                                 </span>
                               )}
                               <div className="flex items-center gap-2">
-                                {model.metadata?.supports_reasoning && (
+                                {!!model.metadata?.supports_reasoning && (
                                   <span
-                                    className="bg-theme-mauve/20 text-theme-mauve rounded px-1.5 py-0.5 text-xs font-medium"
+                                    className="bg-theme-mauve/20 text-theme-mauve inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
                                     title="Extended thinking / reasoning model">
-                                    🧠 Reasoning
+                                    <Brain className="h-3 w-3" />
+                                    Reasoning
                                   </span>
                                 )}
-                                {model.metadata?.supports_vision && (
+                                {!!model.metadata?.supports_vision && (
                                   <span
-                                    className="bg-theme-surface rounded px-1.5 py-0.5 text-xs"
+                                    className="bg-theme-surface inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
                                     title="Supports vision / image inputs">
-                                    👁️ Vision
+                                    <Eye className="h-3 w-3" />
+                                    Vision
                                   </span>
                                 )}
-                                {model.metadata?.supports_tools && (
+                                {!!model.metadata?.supports_tools && (
                                   <span
-                                    className="bg-theme-surface rounded px-1.5 py-0.5 text-xs"
+                                    className="bg-theme-surface inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
                                     title="Supports function calling / tools">
-                                    🔧 Tools
+                                    <Wrench className="h-3 w-3" />
+                                    Tools
                                   </span>
                                 )}
-                                {model.metadata?.experimental && (
+                                {!!model.metadata?.experimental && (
                                   <span
-                                    className="bg-theme-yellow/20 text-theme-yellow rounded px-1.5 py-0.5 text-xs font-medium"
+                                    className="bg-theme-yellow/20 text-theme-yellow inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
                                     title="Experimental model">
-                                    ⚠️ Experimental
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Experimental
                                   </span>
                                 )}
                               </div>

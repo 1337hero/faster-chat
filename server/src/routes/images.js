@@ -12,7 +12,7 @@ import {
   calculateFileHash,
   FILE_CONFIG,
 } from "../lib/fileUtils.js";
-import { createReplicateClient, generateImage, downloadImage } from "../lib/imageGeneration.js";
+import { generateImageForProvider } from "../lib/imageProviderFactory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,24 +47,12 @@ imagesRouter.post("/generate", async (c) => {
   try {
     const user = c.get("user");
     const body = await c.req.json();
-    const { prompt, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO, chatId } = body;
+    const { prompt, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO, chatId, modelId } = body;
 
-    // Validate prompt
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
       return c.json({ error: "Prompt is required" }, HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Get API key from environment (Phase 1: hardcoded source)
-    // Phase 2: Will fetch from encrypted provider credentials in database
-    const apiKey = process.env.REPLICATE_API_KEY;
-    if (!apiKey) {
-      return c.json(
-        { error: "Image generation is not configured. Please set REPLICATE_API_KEY." },
-        HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
-    // Validate aspect ratio
     if (!IMAGE_GENERATION.ASPECT_RATIOS.includes(aspectRatio)) {
       return c.json(
         { error: `Invalid aspect ratio. Allowed: ${IMAGE_GENERATION.ASPECT_RATIOS.join(", ")}` },
@@ -72,17 +60,40 @@ imagesRouter.post("/generate", async (c) => {
       );
     }
 
-    // Create Replicate client and generate image
-    const client = createReplicateClient(apiKey);
-    const imageUrls = await generateImage(client, { prompt, aspectRatio });
+    let providerName = "replicate";
+    let apiKey = process.env.REPLICATE_API_KEY;
+    let modelIdentifier = IMAGE_MODELS.DEFAULT;
+    let modelDisplayName = IMAGE_MODELS.DISPLAY_NAME;
 
-    if (!imageUrls || imageUrls.length === 0) {
-      return c.json({ error: "No images generated" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    if (modelId) {
+      const model = dbUtils.getEnabledModelWithProvider(modelId);
+      if (model) {
+        providerName = model.provider_name;
+        modelIdentifier = model.model_id;
+        modelDisplayName = model.display_name;
+        if (model.provider_encrypted_key) {
+          const { decryptApiKey } = await import("../lib/encryption.js");
+          apiKey = decryptApiKey(
+            model.provider_encrypted_key,
+            model.provider_iv,
+            model.provider_auth_tag
+          );
+        }
+      }
     }
 
-    // Download and save the first image (Phase 1: single image only)
-    const imageUrl = imageUrls[0];
-    const { buffer, mimeType } = await downloadImage(imageUrl);
+    if (!apiKey) {
+      return c.json(
+        { error: "Image generation is not configured. Please add a provider with image models." },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const { buffer, mimeType } = await generateImageForProvider(providerName, apiKey, {
+      prompt: prompt.trim(),
+      aspectRatio,
+      model: modelIdentifier,
+    });
 
     // Generate file metadata
     const fileId = generateFileId();
@@ -115,10 +126,10 @@ imagesRouter.post("/generate", async (c) => {
       {
         type: "generated",
         prompt: prompt.trim(),
-        model: IMAGE_MODELS.DEFAULT,
-        modelDisplayName: IMAGE_MODELS.DISPLAY_NAME,
+        model: modelIdentifier,
+        modelDisplayName,
         aspectRatio,
-        source: "replicate",
+        source: providerName,
         generatedAt: Date.now(),
         chatId: chatId || null,
       }
@@ -133,17 +144,16 @@ imagesRouter.post("/generate", async (c) => {
       filename,
       size: buffer.length,
       mimeType,
-      model: IMAGE_MODELS.DEFAULT,
-      modelDisplayName: IMAGE_MODELS.DISPLAY_NAME,
+      model: modelIdentifier,
+      modelDisplayName,
       prompt: prompt.trim(),
       aspectRatio,
     });
   } catch (error) {
     console.error("Image generation error:", error);
 
-    // Handle specific Replicate errors
-    if (error.message?.includes("Invalid API token")) {
-      return c.json({ error: "Invalid Replicate API key" }, HTTP_STATUS.UNAUTHORIZED);
+    if (error.message?.includes("Invalid API token") || error.message?.includes("authentication")) {
+      return c.json({ error: "Invalid API key" }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     if (error.message?.includes("rate limit")) {

@@ -3,7 +3,6 @@ import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-react";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
-import ImageModeIndicator from "./ImageModeIndicator";
 import { useUiState } from "@/state/useUiState";
 
 const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls, onImageSubmit }) => {
@@ -90,9 +89,6 @@ const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceCont
       />
 
       <ErrorBanner message={uploadError} className="mb-2" />
-
-      {/* Image Mode Indicator */}
-      {imageMode && <ImageModeIndicator onClose={() => setImageMode(false)} />}
 
       {/* File Previews */}
       {!imageMode && <FilePreviewList files={selectedFiles} onRemove={removeFile} />}
