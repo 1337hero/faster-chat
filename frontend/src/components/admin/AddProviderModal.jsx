@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { categorizeProvider, getProviderType } from "@faster-chat/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
@@ -28,22 +29,31 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     ? availableProviders.filter(
         (p) =>
           (p.name || p.displayName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (p.description || "").toLowerCase().includes(searchTerm.toLowerCase())
       )
     : availableProviders;
 
-  const groupedProviders = {
-    // Local: native openai-compatible + community local
-    local: filteredProviders.filter(
-      (p) => p.type === "openai-compatible" || p.category === "local"
-    ),
-    // Official: native official + community official
-    official: filteredProviders.filter((p) => p.type === "official" || p.category === "official"),
-    // Community: only community providers (not local/official)
-    community: filteredProviders.filter((p) => p.category === "community"),
-  };
+  const resolveCategory = (provider) =>
+    provider.category || categorizeProvider(provider.id || provider.name || "");
+
+  const groupedProviders = filteredProviders.reduce(
+    (groups, provider) => {
+      const category = resolveCategory(provider);
+      if (category === "local") {
+        groups.local.push(provider);
+        return groups;
+      }
+      if (category === "official") {
+        groups.official.push(provider);
+        return groups;
+      }
+      groups.community.push(provider);
+      return groups;
+    },
+    { local: [], official: [], community: [] }
+  );
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -52,7 +62,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
         !selectedProvider.requiresApiKey || selectedProvider.category === "local";
       const finalApiKey = isLocalProvider && !apiKey ? "local" : apiKey;
       const finalBaseUrl = baseUrl || null;
-      const providerType = getProviderType(selectedProvider);
+      const providerType = getProviderType(selectedProvider.id, selectedProvider);
 
       return providersClient.createProvider(
         selectedProvider.id,
@@ -129,17 +139,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const getProviderType = (provider) => {
-    // Native providers have 'type' field
-    if (provider.type) return provider.type;
-    // Community providers - determine from category or ID
-    if (provider.id === "openai" || provider.id === "anthropic") return "official";
-    return "openai-compatible";
-  };
-
   const getTypeBadge = (provider) => {
     // Determine badge type from provider data
-    const badgeType = provider.type || provider.category;
+    const badgeType = provider.type || provider.category || resolveCategory(provider);
 
     const badges = {
       "openai-compatible": (

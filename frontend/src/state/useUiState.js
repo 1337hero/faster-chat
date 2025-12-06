@@ -7,6 +7,7 @@ export const useUiState = create(
       sidebarOpen: true,
       sidebarCollapsed: false,
       preferredModel: "claude-sonnet-4-5",
+      preferredImageModel: null,
       theme: "dark",
       autoScroll: true,
       imageMode: false,
@@ -16,6 +17,7 @@ export const useUiState = create(
       setSidebarCollapsed: (isCollapsed) => set({ sidebarCollapsed: isCollapsed }),
       toggleSidebarCollapse: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setPreferredModel: (modelId) => set({ preferredModel: modelId }),
+      setPreferredImageModel: (modelId) => set({ preferredImageModel: modelId }),
       toggleTheme: () => set((state) => ({ theme: state.theme === "light" ? "dark" : "light" })),
       setAutoScroll: (enabled) => set({ autoScroll: enabled }),
       setImageMode: (enabled) => set({ imageMode: enabled }),
@@ -27,9 +29,9 @@ export const useUiState = create(
         sidebarOpen: state.sidebarOpen,
         sidebarCollapsed: state.sidebarCollapsed,
         preferredModel: state.preferredModel,
+        preferredImageModel: state.preferredImageModel,
         theme: state.theme,
         autoScroll: state.autoScroll,
-        // imageMode intentionally not persisted - resets on page load
       }),
     }
   )

@@ -63,12 +63,24 @@ class ProvidersClient {
     });
   }
 
+  async setAllModelsEnabled(providerId, enabled) {
+    return this._fetch(`/api/admin/providers/${providerId}/models/enable`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
   async getAllModels() {
     return this._fetch("/api/admin/models");
   }
 
   async getEnabledModels() {
     return this._fetch("/api/models");
+  }
+
+  async getEnabledModelsByType(modelType) {
+    const params = modelType ? `?type=${modelType}` : '';
+    return this._fetch(`/api/models${params}`);
   }
 
   async updateModel(modelId, updates) {

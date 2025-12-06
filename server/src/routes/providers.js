@@ -7,18 +7,30 @@ import {
   getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
   getProviderInfo,
+  getReplicateImageModels,
 } from "../lib/modelsdev.js";
 import {
   getAvailableProviders as getNativeProviders,
   PROVIDERS,
-  getProviderType,
+  categorizeProvider,
 } from "@faster-chat/shared";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+
+const BulkEnableSchema = z.object({
+  enabled: z.boolean(),
+});
 
 export const providersRouter = new Hono();
 
 // All provider routes require admin role
 providersRouter.use("*", ensureSession, requireRole("admin"));
+
+function getDefaultEnabledForProvider(providerName, fallbackEnabled) {
+  if (providerName === "openrouter") {
+    return false;
+  }
+  return fallbackEnabled;
+}
 
 // Validation schemas
 const CreateProviderSchema = z.object({
@@ -43,7 +55,10 @@ const UpdateProviderSchema = z.object({
 providersRouter.get("/available", async (c) => {
   try {
     // Get native providers from our curated list
-    const nativeProviders = getNativeProviders();
+    const nativeProviders = getNativeProviders().map((provider) => ({
+      ...provider,
+      category: categorizeProvider(provider.id),
+    }));
 
     // Get community providers from models.dev
     const communityProviders = await getModelsDevProviders();
@@ -54,12 +69,13 @@ providersRouter.get("/available", async (c) => {
     // Filter community providers to exclude ones with native SDK support
     const filteredCommunity = communityProviders.filter((p) => !nativeProviderIds.has(p.id));
 
-    // Split native into local and official
+    // Split native into local, official, and community (from PROVIDERS constant)
     const localProviders = nativeProviders.filter((p) => p.type === "openai-compatible");
     const officialProviders = nativeProviders.filter((p) => p.type === "official");
+    const nativeCommunityProviders = nativeProviders.filter((p) => p.type === "community");
 
-    // Combine: LOCAL → NATIVE → COMMUNITY
-    const allProviders = [...localProviders, ...officialProviders, ...filteredCommunity];
+    // Combine: LOCAL → OFFICIAL → NATIVE COMMUNITY → MODELS.DEV COMMUNITY
+    const allProviders = [...localProviders, ...officialProviders, ...nativeCommunityProviders, ...filteredCommunity];
 
     return c.json({ providers: allProviders });
   } catch (error) {
@@ -145,26 +161,24 @@ providersRouter.post("/", async (c) => {
     let models = [];
     try {
       if (name === "ollama") {
-        // Ollama: fetch from local instance
         models = await fetchOllamaModels(baseUrl);
       } else if (name === "lmstudio") {
-        // LM Studio: fetch from local instance via OpenAI-compatible API
         models = await fetchLMStudioModels(baseUrl);
+      } else if (name === "replicate") {
+        models = getReplicateImageModels();
       } else {
-        // All other providers: use models.dev data
         models = await getModelsForProvider(name);
       }
 
-      // Save models to database
       for (const model of models) {
         const modelId = dbUtils.createModel(
           providerId,
           model.model_id,
           model.display_name,
-          model.enabled
+          getDefaultEnabledForProvider(name, model.enabled),
+          model.model_type || 'text'
         );
 
-        // Add metadata if available
         if (model.metadata) {
           dbUtils.setModelMetadata(modelId, model.metadata);
         }
@@ -232,6 +246,32 @@ providersRouter.put("/:id", async (c) => {
 });
 
 /**
+ * POST /api/admin/providers/:id/models/enable
+ * Enable or disable all models for a provider
+ */
+providersRouter.post("/:id/models/enable", async (c) => {
+  try {
+    const providerId = parseInt(c.req.param("id"), 10);
+    const { enabled } = BulkEnableSchema.parse(await c.req.json());
+
+    const provider = dbUtils.getProviderById(providerId);
+    if (!provider) {
+      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    dbUtils.setModelsEnabledForProvider(providerId, enabled);
+
+    return c.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
+    }
+    console.error("Bulk enable models error:", error);
+    return c.json({ error: "Failed to update models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
  * POST /api/admin/providers/:id/refresh-models
  * Refresh models for a provider
  */
@@ -252,17 +292,15 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     // Fetch models
     let models = [];
     if (provider.name === "ollama") {
-      // Ollama: fetch from local instance
       models = await fetchOllamaModels(provider.base_url);
     } else if (provider.name === "lmstudio") {
-      // LM Studio: fetch from local instance via OpenAI-compatible API
       models = await fetchLMStudioModels(provider.base_url);
+    } else if (provider.name === "replicate") {
+      models = getReplicateImageModels();
     } else {
-      // All other providers: use models.dev data
       models = await getModelsForProvider(provider.name);
     }
 
-    // Delete existing models and add new ones
     dbUtils.deleteModelsForProvider(providerId);
 
     for (const model of models) {
@@ -270,7 +308,8 @@ providersRouter.post("/:id/refresh-models", async (c) => {
         providerId,
         model.model_id,
         model.display_name,
-        model.enabled
+        getDefaultEnabledForProvider(provider.name, model.enabled),
+        model.model_type || 'text'
       );
 
       if (model.metadata) {

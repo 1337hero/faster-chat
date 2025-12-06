@@ -11,15 +11,18 @@ import {
   XCircle,
   CheckCircle,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
+import EditProviderModal from "./EditProviderModal";
 
 // Lazy load modal component - only load when needed
 const AddProviderModal = lazy(() => import("./AddProviderModal"));
 
 const ConnectionsTab = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState(null);
   const queryClient = useQueryClient();
 
   // Fetch providers
@@ -152,6 +155,13 @@ const ConnectionsTab = () => {
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setEditingProvider(provider)}
+                    className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
+                    title="Edit API key or base URL">
+                    <Pencil className="h-5 w-5" />
+                  </button>
+
+                  <button
                     onClick={() => refreshMutation.mutate(provider.id)}
                     disabled={refreshMutation.isPending}
                     className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
@@ -206,6 +216,13 @@ const ConnectionsTab = () => {
           <AddProviderModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
         )}
       </Suspense>
+
+      {editingProvider && (
+        <EditProviderModal
+          provider={editingProvider}
+          onClose={() => setEditingProvider(null)}
+        />
+      )}
     </div>
   );
 };
