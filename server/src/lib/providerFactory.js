@@ -62,6 +62,12 @@ const PROVIDER_FACTORIES = {
       baseURL: config.baseUrl || PROVIDER_DEFAULTS.OLLAMA_BASE_URL,
       apiKey: config.apiKey || "ollama",
     }),
+
+  openrouter: (config) =>
+    createOpenAI({
+      baseURL: config.baseUrl || "https://openrouter.ai/api/v1",
+      apiKey: config.apiKey,
+    }),
 };
 
 /**

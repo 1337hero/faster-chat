@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Server, Star, ChevronDown, ChevronRight, Pencil, Check, X, Eye, Wrench, Brain, AlertTriangle, Database } from "lucide-react";
+import { formatPrice, formatContextWindow } from "@faster-chat/shared";
 import { providersClient } from "@/lib/providersClient";
-import { getProviderLogoUrl, getProviderBranding } from "@/lib/providerUtils";
 import { Switch } from "@/components/ui/Switch";
+import ProviderLogo from "@/components/ui/ProviderLogo";
 
 const ModelsTab = () => {
   const queryClient = useQueryClient();
@@ -11,6 +12,7 @@ const ModelsTab = () => {
   const [editingModelId, setEditingModelId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const inputRef = useRef(null);
+  const [bulkPendingProviderId, setBulkPendingProviderId] = useState(null);
 
   // Fetch all models
   const { data, isLoading, error } = useQuery({
@@ -58,6 +60,12 @@ const ModelsTab = () => {
       providersClient.setAllModelsEnabled(providerId, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
+    },
+    onMutate: ({ providerId }) => {
+      setBulkPendingProviderId(providerId);
+    },
+    onSettled: () => {
+      setBulkPendingProviderId(null);
     },
   });
 
@@ -111,18 +119,6 @@ const ModelsTab = () => {
     } else if (e.key === "Escape") {
       cancelEditing();
     }
-  };
-
-  const formatPrice = (price) => {
-    if (!price) return "Free";
-    return `$${price.toFixed(2)}`;
-  };
-
-  const formatContextWindow = (tokens) => {
-    if (!tokens) return "Unknown";
-    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
-    return tokens.toString();
   };
 
   if (isLoading) {
@@ -183,8 +179,6 @@ const ModelsTab = () => {
           {Object.entries(modelsByProvider).map(([provider, providerData]) => {
             const expanded = isExpanded(provider);
             const enabledCount = providerData.models.filter((m) => m.enabled).length;
-            const logoUrl = getProviderLogoUrl(providerData.providerId);
-            const branding = getProviderBranding(providerData.providerId);
 
             return (
               <div key={provider}>
@@ -196,20 +190,11 @@ const ModelsTab = () => {
                   ) : (
                     <ChevronRight className="h-4 w-4" />
                   )}
-                  <div
-                    className={`flex h-6 w-6 items-center justify-center rounded-md ${
-                      branding.className || "from-theme-blue/10 to-theme-mauve/10 bg-gradient-to-br"
-                    }`}
-                    style={branding.style}>
-                    <img
-                      src={logoUrl}
-                      alt={`${providerData.displayName} logo`}
-                      className="h-4 w-4 dark:brightness-90 dark:invert"
-                      onError={(e) => {
-                        e.target.parentElement.style.display = "none";
-                      }}
-                    />
-                  </div>
+                  <ProviderLogo
+                    providerId={providerData.providerId}
+                    displayName={providerData.displayName}
+                    size="md"
+                  />
                   <span>
                     {providerData.displayName} ({enabledCount}/{providerData.models.length} enabled)
                   </span>
@@ -224,6 +209,10 @@ const ModelsTab = () => {
                         });
                       }}
                       disabled={bulkToggleMutation.isPending}
+                      data-pending={bulkPendingProviderId === providerData.providerDbId}
+                      className={`text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors ${
+                        bulkPendingProviderId === providerData.providerDbId ? "opacity-60" : ""
+                      }`}>
                       className="text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors">
                       Disable All
                     </button>
@@ -237,7 +226,10 @@ const ModelsTab = () => {
                         });
                       }}
                       disabled={bulkToggleMutation.isPending}
-                      className="text-theme-blue hover:bg-theme-blue/10 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors">
+                      data-pending={bulkPendingProviderId === providerData.providerDbId}
+                      className={`text-theme-blue hover:bg-theme-blue/10 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                        bulkPendingProviderId === providerData.providerDbId ? "opacity-60" : ""
+                      }`}>
                       Enable All
                     </button>
                   </div>

@@ -110,13 +110,34 @@ export function getProviderType(providerId, providerInfo) {
 }
 
 /**
+ * Check if provider is a local provider (runs on user's machine)
+ * @param {string} providerId - Provider identifier
+ * @param {object} provider - Optional provider object with category/type fields
+ * @returns {boolean}
+ */
+export function isLocalProvider(providerId, provider = null) {
+  // Check provider object fields first
+  if (provider?.category === "local") return true;
+  if (provider?.type === "openai-compatible") return true;
+  if (provider?.requiresApiKey === false) return true;
+
+  // Fall back to ID-based detection
+  return categorizeProvider(providerId) === "local";
+}
+
+/**
  * Check if provider requires API key
  * Local providers typically don't require API keys
  * @param {string} providerId - Provider identifier
+ * @param {object} provider - Optional provider object
  * @returns {boolean}
  */
-export function requiresApiKey(providerId) {
-  return categorizeProvider(providerId) !== "local";
+export function requiresApiKey(providerId, provider = null) {
+  // Explicit flag takes precedence
+  if (provider?.requiresApiKey === false) return false;
+  if (provider?.requiresApiKey === true) return true;
+
+  return !isLocalProvider(providerId, provider);
 }
 
 /**
@@ -138,4 +159,42 @@ export function requiresBaseUrl(providerId, providerInfo) {
   }
 
   return false;
+}
+
+/**
+ * Get the appropriate base URL for a provider based on environment
+ * @param {object} provider - Provider object with baseUrlPlaceholder, baseUrlPlaceholderDev, api, id
+ * @param {boolean} isDev - Whether running in development mode
+ * @returns {string} The base URL to use
+ */
+export function getProviderBaseUrl(provider, isDev = false) {
+  // Provider has explicit placeholder
+  if (provider.baseUrlPlaceholder) {
+    return isDev && provider.baseUrlPlaceholderDev
+      ? provider.baseUrlPlaceholderDev
+      : provider.baseUrlPlaceholder;
+  }
+
+  // Provider has API endpoint from models.dev
+  if (provider.api) {
+    return provider.api;
+  }
+
+  // Special case defaults for known local providers
+  const localDefaults = {
+    ollama: isDev ? "http://localhost:11434" : "http://host.docker.internal:11434",
+    lmstudio: "http://127.0.0.1:1234/v1",
+  };
+
+  const id = (provider.id || provider.name || "").toLowerCase();
+  if (localDefaults[id]) {
+    return localDefaults[id];
+  }
+
+  // OpenRouter special case
+  if (id === "openrouter") {
+    return "https://openrouter.ai/api/v1";
+  }
+
+  return "";
 }

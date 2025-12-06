@@ -14,6 +14,10 @@ import {
 let cachedDatabase = null;
 let lastFetchTime = null;
 const CACHE_DURATION = CACHE_DURATIONS.MODELS_DEV;
+const OPENROUTER_IMAGE_MODELS = new Set([
+  "openai/gpt-image-1",
+  "openai/gpt-5-image",
+]);
 
 /**
  * Fetch the models.dev database
@@ -202,15 +206,25 @@ function getProviderDescription(id, info) {
 }
 
 function getModelType(modelData) {
-  const outputModalities = modelData.modalities?.output || ['text'];
+  const outputModalities = modelData.modalities?.output || ["text"];
 
-  if (outputModalities.includes('image') && outputModalities.includes('text')) {
-    return 'multimodal';
+  // If a model can generate images, treat it as an image model so it doesn't show in text lists
+  if (outputModalities.includes("image")) return "image";
+  return "text";
+}
+
+function coerceModelForProvider(providerName, modelId) {
+  if (providerName === "openrouter" && OPENROUTER_IMAGE_MODELS.has(modelId)) {
+    return {
+      model_type: "image",
+      output_modalities: ["image"],
+      metadataOverrides: {
+        supports_streaming: false,
+        supports_vision: true,
+      },
+    };
   }
-  if (outputModalities.includes('image')) {
-    return 'image';
-  }
-  return 'text';
+  return null;
 }
 
 /**
@@ -225,8 +239,11 @@ export async function getModelsForProvider(providerName) {
   return Object.entries(providerInfo.models).map(([id, model]) => ({
     model_id: id,
     display_name: model.name || id,
-    model_type: getModelType(model),
-    output_modalities: model.modalities?.output || ['text'],
+    model_type: coerceModelForProvider(providerName, id)?.model_type || getModelType(model),
+    output_modalities:
+      coerceModelForProvider(providerName, id)?.output_modalities ||
+      model.modalities?.output ||
+      ["text"],
     enabled: !model.experimental && model.status !== "deprecated",
     metadata: {
       context_window: model.limit?.context || 0,
@@ -235,8 +252,13 @@ export async function getModelsForProvider(providerName) {
       output_price_per_1m: model.cost?.output || 0,
       cache_read_price_per_1m: model.cost?.cache_read || 0,
       cache_write_price_per_1m: model.cost?.cache_write || 0,
-      supports_streaming: true,
-      supports_vision: model.modalities?.input?.includes("image") || model.attachment,
+      supports_streaming:
+        coerceModelForProvider(providerName, id)?.metadataOverrides?.supports_streaming ??
+        (model.modalities?.output || ["text"]).includes("text"),
+      supports_vision:
+        coerceModelForProvider(providerName, id)?.metadataOverrides?.supports_vision ??
+        model.modalities?.input?.includes("image") ||
+        model.attachment,
       supports_tools: model.tool_call !== false,
       supports_reasoning: model.reasoning || false,
       release_date: model.release_date,

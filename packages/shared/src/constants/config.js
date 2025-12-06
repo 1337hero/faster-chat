@@ -14,6 +14,7 @@ export const TIMEOUTS = {
 export const CACHE_DURATIONS = {
   MODELS_DEV: 60 * 60 * 1000, // 1 hour - Cache models.dev database
   PROVIDER_LIST: 60 * 60 * 1000, // 1 hour - Cache available providers list
+  IMAGE_MODELS: 5 * 60 * 1000, // 5 minutes - Cache image model list
 };
 
 /** Provider Default Configuration Values */

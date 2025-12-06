@@ -3,12 +3,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 
-async function generateImage({ prompt, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO, chatId }) {
+async function generateImage({ prompt, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO, chatId, model }) {
   const response = await fetch(`${API_BASE}/api/images/generate`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, aspectRatio, chatId }),
+    body: JSON.stringify({ prompt, aspectRatio, chatId, modelId: model }),
   });
 
   const data = await response.json();
