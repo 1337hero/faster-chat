@@ -22,6 +22,9 @@ export const IMPORT_CONSTANTS = {
     VALIDATE: '/api/import/validate',
     CHATGPT: '/api/import/chatgpt',
   },
+
+  // Preview Settings
+  PREVIEW_LENGTH: 100, // Characters to show in message preview
 };
 
 // Valid message roles for imported conversations

@@ -1,10 +1,25 @@
 import { useState, useRef, useEffect } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Server, Star, ChevronDown, ChevronRight, Pencil, Check, X, Eye, Wrench, Brain, AlertTriangle, Database } from "lucide-react";
+import {
+  Server,
+  Star,
+  ChevronDown,
+  ChevronRight,
+  Pencil,
+  Check,
+  X,
+  Eye,
+  Wrench,
+  Brain,
+  AlertTriangle,
+  Database,
+  Download,
+} from "lucide-react";
 import { formatPrice, formatContextWindow } from "@faster-chat/shared";
 import { providersClient } from "@/lib/providersClient";
 import { Switch } from "@/components/ui/Switch";
 import ProviderLogo from "@/components/ui/ProviderLogo";
+import PullModelModal from "@/components/admin/PullModelModal";
 
 const ModelsTab = () => {
   const queryClient = useQueryClient();
@@ -13,6 +28,8 @@ const ModelsTab = () => {
   const [editingName, setEditingName] = useState("");
   const inputRef = useRef(null);
   const [bulkPendingProviderId, setBulkPendingProviderId] = useState(null);
+  const [pullModalOpen, setPullModalOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
 
   // Fetch all models
   const { data, isLoading, error } = useQuery({
@@ -20,7 +37,14 @@ const ModelsTab = () => {
     queryFn: () => providersClient.getAllModels(),
   });
 
+  // Fetch providers to get full provider details (for base_url in pull modal)
+  const { data: providersData } = useQuery({
+    queryKey: ["admin", "providers"],
+    queryFn: () => providersClient.getProviders(),
+  });
+
   const models = data?.models || [];
+  const providers = providersData?.providers || [];
 
   // Group models by provider
   const modelsByProvider = models.reduce((acc, model) => {
@@ -121,6 +145,34 @@ const ModelsTab = () => {
     }
   };
 
+  const handlePullModel = (providerDbId) => {
+    // Find full provider details from providers list
+    const provider = providers.find((p) => p.id === providerDbId);
+    if (provider) {
+      setSelectedProvider(provider);
+      setPullModalOpen(true);
+    }
+  };
+
+  const handlePullSuccess = async () => {
+    // Sync with Ollama to pick up the new model, then refresh the UI
+    if (selectedProvider?.id) {
+      try {
+        await providersClient.refreshModels(selectedProvider.id);
+      } catch (err) {
+        console.error("Failed to refresh models after pull:", err);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "providers"] });
+
+    // Close modal after a brief delay to show success
+    setTimeout(() => {
+      setPullModalOpen(false);
+      setSelectedProvider(null);
+    }, 2000);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -199,6 +251,19 @@ const ModelsTab = () => {
                     {providerData.displayName} ({enabledCount}/{providerData.models.length} enabled)
                   </span>
                   <div className="ml-auto flex items-center gap-2">
+                    {/* Show Pull Model button for Ollama providers */}
+                    {providerData.providerId === "ollama" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePullModel(providerData.providerDbId);
+                        }}
+                        className="text-theme-green hover:bg-theme-green/10 flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold tracking-wide uppercase transition-colors">
+                        <Download className="h-3 w-3" />
+                        Pull Model
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -210,10 +275,9 @@ const ModelsTab = () => {
                       }}
                       disabled={bulkToggleMutation.isPending}
                       data-pending={bulkPendingProviderId === providerData.providerDbId}
-                      className={`text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors ${
+                      className={`text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium tracking-wide uppercase transition-colors ${
                         bulkPendingProviderId === providerData.providerDbId ? "opacity-60" : ""
                       }`}>
-                      className="text-theme-text-muted hover:text-theme-text rounded px-2 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors">
                       Disable All
                     </button>
                     <button
@@ -227,7 +291,7 @@ const ModelsTab = () => {
                       }}
                       disabled={bulkToggleMutation.isPending}
                       data-pending={bulkPendingProviderId === providerData.providerDbId}
-                      className={`text-theme-blue hover:bg-theme-blue/10 rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                      className={`text-theme-blue hover:bg-theme-blue/10 rounded px-2 py-1 text-[11px] font-semibold tracking-wide uppercase transition-colors ${
                         bulkPendingProviderId === providerData.providerDbId ? "opacity-60" : ""
                       }`}>
                       Enable All
@@ -310,7 +374,9 @@ const ModelsTab = () => {
                                   </span>
                                 )}
                               {model.metadata?.cache_read_price_per_1m > 0 && (
-                                <span className="text-theme-green inline-flex items-center gap-1" title="Supports prompt caching">
+                                <span
+                                  className="text-theme-green inline-flex items-center gap-1"
+                                  title="Supports prompt caching">
                                   <Database className="h-3 w-3" />
                                   Cache: ${model.metadata.cache_read_price_per_1m.toFixed(2)}
                                 </span>
@@ -386,6 +452,17 @@ const ModelsTab = () => {
           })}
         </div>
       </div>
+
+      {/* Pull Model Modal */}
+      <PullModelModal
+        isOpen={pullModalOpen}
+        onClose={() => {
+          setPullModalOpen(false);
+          setSelectedProvider(null);
+        }}
+        provider={selectedProvider}
+        onSuccess={handlePullSuccess}
+      />
     </div>
   );
 };
