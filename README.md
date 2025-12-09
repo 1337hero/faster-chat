@@ -50,6 +50,7 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 - ⚡ **Blazingly fast** - 3KB Preact runtime, zero SSR overhead, instant responses
 - 🗄️ **Server-side SQLite storage** - Conversations persist across devices and browser tabs
 - 🤖 Multi-provider support: OpenAI, Anthropic, Ollama, Groq, Mistral, custom APIs
+- 📥 **Import conversations** from ChatGPT exports (more formats coming soon)
 - 📎 File attachments with preview and download
 - 📝 Markdown rendering with syntax highlighting (Shiki) and LaTeX support
 - 🎨 **Themable UI** - Dark/light themes, custom fonts, customizable syntax highlighting
@@ -60,6 +61,7 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 **Administration**
 - 🔐 Multi-user authentication with role-based access (admin/member/readonly)
 - 🔌 **Provider Hub**: Auto-discover models with [models.dev](https://models.dev) integration
+- ⬇️ **Pull Ollama models** directly from Admin Panel with progress streaming (no CLI needed)
 - 🛡️ Admin panel for user management (CRUD, password reset, role changes)
 - 🔑 Encrypted API key storage with server-side encryption
 - 🎭 **White labeling** - Customize app name and logo icon for your organization
@@ -138,11 +140,11 @@ bun run dev
 # Install Ollama (macOS/Linux)
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Pull a model
-ollama pull llama3.2
-
-# In Faster Chat: Admin Panel → Providers → Search "Ollama" → Add
+# In Faster Chat: Admin Panel → Connections → Search "Ollama" → Add
+# Then: Admin Panel → Models → Click "Pull Model" on Ollama row → Enter model name
 ```
+
+You can pull models directly from the Admin Panel—no CLI needed! Just click **Pull Model** next to your Ollama provider, enter a model name (e.g., `llama3.2`, `mistral`, `codellama`), and watch the download progress in real-time.
 
 The Provider Hub auto-discovers 50+ providers including Ollama, LM Studio, OpenAI, Anthropic, Groq, Mistral, OpenRouter, and more. Just search and add.
 
@@ -237,6 +239,8 @@ docker compose up -d
 - Voice input/output (speech-to-text, text-to-speech)
 - Settings UI improvements (tabbed interface for user preferences)
 - White labeling (custom app name, custom logo icon selection)
+- **ChatGPT conversation import** (drag-drop JSON export files)
+- **Ollama model pull UI** (download models directly from Admin Panel)
 
 ### In Progress 🚧
 - [ ] Tool calling implementation (infrastructure ready)
@@ -248,7 +252,8 @@ docker compose up -d
 
 **Settings & UX**
 - [ ] Conversation branching (explore alternative responses)
-- [ ] Import & Export Data Functionality (JSON, Markdown, CSV)
+- [ ] Export conversations (JSON, Markdown, CSV)
+- [ ] Import from more sources (Claude, other AI assistants)
 - [ ] Auto title generation for chats
 - [ ] Message regeneration
 - [ ] Advanced message features (inline editing, rating)
