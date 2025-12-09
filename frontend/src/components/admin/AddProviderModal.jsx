@@ -36,7 +36,7 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     ? availableProviders.filter(
         (p) =>
           (p.name || p.displayName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (p.description || "").toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -133,7 +133,6 @@ const AddProviderModal = ({ isOpen, onClose }) => {
       setBaseUrl(defaultUrl);
     }
   };
-
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add Connection">
@@ -272,7 +271,8 @@ const AddProviderModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Base URL (if required) */}
-            {(selectedProvider.requiresBaseUrl || isLocalProvider(selectedProvider.id, selectedProvider)) && (
+            {(selectedProvider.requiresBaseUrl ||
+              isLocalProvider(selectedProvider.id, selectedProvider)) && (
               <div>
                 <label className="text-theme-text block text-sm font-medium">
                   {selectedProvider.baseUrlLabel || "Base URL"}
@@ -281,7 +281,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
                   type="text"
                   value={baseUrl}
                   onInput={(e) => setBaseUrl(e.target.value)}
-                  placeholder={getProviderBaseUrl(selectedProvider, import.meta.env.DEV) || "https://..."}
+                  placeholder={
+                    getProviderBaseUrl(selectedProvider, import.meta.env.DEV) || "https://..."
+                  }
                   className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
                 />
                 <p className="text-theme-text-muted mt-1 text-xs">

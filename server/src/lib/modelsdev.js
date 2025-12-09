@@ -14,10 +14,7 @@ import {
 let cachedDatabase = null;
 let lastFetchTime = null;
 const CACHE_DURATION = CACHE_DURATIONS.MODELS_DEV;
-const OPENROUTER_IMAGE_MODELS = new Set([
-  "openai/gpt-image-1",
-  "openai/gpt-5-image",
-]);
+const OPENROUTER_IMAGE_MODELS = new Set(["openai/gpt-image-1", "openai/gpt-5-image"]);
 
 /**
  * Fetch the models.dev database
@@ -240,10 +237,8 @@ export async function getModelsForProvider(providerName) {
     model_id: id,
     display_name: model.name || id,
     model_type: coerceModelForProvider(providerName, id)?.model_type || getModelType(model),
-    output_modalities:
-      coerceModelForProvider(providerName, id)?.output_modalities ||
-      model.modalities?.output ||
-      ["text"],
+    output_modalities: coerceModelForProvider(providerName, id)?.output_modalities ||
+      model.modalities?.output || ["text"],
     enabled: !model.experimental && model.status !== "deprecated",
     metadata: {
       context_window: model.limit?.context || 0,
@@ -257,8 +252,7 @@ export async function getModelsForProvider(providerName) {
         (model.modalities?.output || ["text"]).includes("text"),
       supports_vision:
         coerceModelForProvider(providerName, id)?.metadataOverrides?.supports_vision ??
-        model.modalities?.input?.includes("image") ||
-        model.attachment,
+        (model.modalities?.input?.includes("image") || model.attachment),
       supports_tools: model.tool_call !== false,
       supports_reasoning: model.reasoning || false,
       release_date: model.release_date,

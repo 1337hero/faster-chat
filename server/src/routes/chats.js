@@ -420,17 +420,18 @@ async function generateChatTitle(userMessage, modelId) {
           content: userMessage,
         },
       ],
-      system: "Create a 2-5 word title summarizing the user's request. Return ONLY the title, no explanation.",
+      system:
+        "Create a 2-5 word title summarizing the user's request. Return ONLY the title, no explanation.",
       maxTokens: 20,
     });
 
     let title = result.text.trim();
 
     // Remove thinking blocks if present (for models like o1)
-    title = title.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    title = title.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
     // Clean up any quotes or asterisks from the response
-    title = title.replace(/^["\*]+|["\*]+$/g, '').trim();
+    title = title.replace(/^["\*]+|["\*]+$/g, "").trim();
 
     // Ensure title is within max length
     if (title.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) {
@@ -439,16 +440,23 @@ async function generateChatTitle(userMessage, modelId) {
 
     // Fallback to sliced message if title generation fails or returns empty
     if (!title) {
-      title = userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-              (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS : "");
+      title =
+        userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
+        (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
+          ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
+          : "");
     }
 
     return title;
   } catch (error) {
     // If title generation fails, fall back to slicing the message
     console.warn("Title generation failed, using message slice fallback:", error);
-    return userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-           (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS : "");
+    return (
+      userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
+      (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
+        ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
+        : "")
+    );
   }
 }
 

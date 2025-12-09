@@ -79,7 +79,7 @@ class ProvidersClient {
   }
 
   async getEnabledModelsByType(modelType) {
-    const params = modelType ? `?type=${modelType}` : '';
+    const params = modelType ? `?type=${modelType}` : "";
     return this._fetch(`/api/models${params}`);
   }
 

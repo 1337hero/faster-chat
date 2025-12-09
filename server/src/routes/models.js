@@ -28,9 +28,7 @@ const UpdateModelSchema = z.object({
 publicRouter.get("/", async (c) => {
   try {
     const type = c.req.query("type");
-    const models = type
-      ? dbUtils.getEnabledModelsByType(type)
-      : dbUtils.getEnabledModels();
+    const models = type ? dbUtils.getEnabledModelsByType(type) : dbUtils.getEnabledModels();
 
     const modelsWithMetadata = models.map((model) => {
       const metadata = dbUtils.getModelMetadata(model.id);
@@ -38,7 +36,7 @@ publicRouter.get("/", async (c) => {
         id: model.id,
         model_id: model.model_id,
         display_name: model.display_name,
-        model_type: model.model_type || 'text',
+        model_type: model.model_type || "text",
         provider: model.provider_name,
         provider_display_name: model.provider_display_name,
         is_default: model.is_default === 1,
@@ -60,9 +58,7 @@ publicRouter.get("/", async (c) => {
 adminRouter.get("/", async (c) => {
   try {
     const type = c.req.query("type");
-    const models = type
-      ? dbUtils.getModelsByType(type)
-      : dbUtils.getAllModels();
+    const models = type ? dbUtils.getModelsByType(type) : dbUtils.getAllModels();
 
     const modelsWithMetadata = models.map((model) => {
       const metadata = dbUtils.getModelMetadata(model.id);
@@ -73,7 +69,7 @@ adminRouter.get("/", async (c) => {
         provider_display_name: model.provider_display_name,
         model_id: model.model_id,
         display_name: model.display_name,
-        model_type: model.model_type || 'text',
+        model_type: model.model_type || "text",
         enabled: model.enabled === 1,
         is_default: model.is_default === 1,
         metadata: metadata || {},

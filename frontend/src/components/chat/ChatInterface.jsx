@@ -119,13 +119,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   return (
     <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">
       {/* Sonner Toast Container */}
-      <Toaster
-        position="top-center"
-        theme="dark"
-        richColors
-        expand
-        visibleToasts={3}
-      />
+      <Toaster position="top-center" theme="dark" richColors expand visibleToasts={3} />
 
       {/* Main Content Area - Absolute positioning for scroll-behind effect */}
       <div className="relative flex-1">

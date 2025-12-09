@@ -57,7 +57,7 @@ export default function MessageAttachment({ fileId }) {
         {/* Overlay with download button and generated badge */}
         <div className="absolute inset-0 flex items-start justify-between rounded-lg bg-black/0 p-2 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
           {isGenerated && (
-            <span className="bg-theme-pink/90 text-white flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium">
+            <span className="bg-theme-pink/90 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white">
               <Sparkles size={12} />
               Generated
             </span>

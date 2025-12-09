@@ -83,7 +83,12 @@ providersRouter.get("/available", async (c) => {
     const nativeCommunityProviders = nativeProviders.filter((p) => p.type === "community");
 
     // Combine: LOCAL → OFFICIAL → NATIVE COMMUNITY → MODELS.DEV COMMUNITY
-    const allProviders = [...localProviders, ...officialProviders, ...nativeCommunityProviders, ...filteredCommunity];
+    const allProviders = [
+      ...localProviders,
+      ...officialProviders,
+      ...nativeCommunityProviders,
+      ...filteredCommunity,
+    ];
 
     return c.json({ providers: allProviders });
   } catch (error) {
@@ -177,7 +182,7 @@ providersRouter.post("/", async (c) => {
           model.model_id,
           model.display_name,
           getDefaultEnabledForProvider(name, model.enabled),
-          model.model_type || 'text'
+          model.model_type || "text"
         );
 
         if (model.metadata) {
@@ -306,7 +311,7 @@ providersRouter.post("/:id/refresh-models", async (c) => {
         model.model_id,
         model.display_name,
         getDefaultEnabledForProvider(provider.name, model.enabled),
-        model.model_type || 'text'
+        model.model_type || "text"
       );
 
       if (model.metadata) {

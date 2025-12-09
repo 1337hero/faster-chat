@@ -5,7 +5,14 @@ import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
 import { useUiState } from "@/state/useUiState";
 
-const InputArea = ({ input, handleInputChange, handleSubmit, disabled, voiceControls, onImageSubmit }) => {
+const InputArea = ({
+  input,
+  handleInputChange,
+  handleSubmit,
+  disabled,
+  voiceControls,
+  onImageSubmit,
+}) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
