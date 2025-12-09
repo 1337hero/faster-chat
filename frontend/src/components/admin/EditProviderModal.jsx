@@ -69,9 +69,7 @@ const EditProviderModal = ({ provider, onClose }) => {
         </div>
 
         {error && (
-          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">
-            {error}
-          </div>
+          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
         )}
 
         <div className="flex justify-end gap-3 pt-2">

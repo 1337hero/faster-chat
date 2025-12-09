@@ -218,10 +218,7 @@ const ConnectionsTab = () => {
       </Suspense>
 
       {editingProvider && (
-        <EditProviderModal
-          provider={editingProvider}
-          onClose={() => setEditingProvider(null)}
-        />
+        <EditProviderModal provider={editingProvider} onClose={() => setEditingProvider(null)} />
       )}
     </div>
   );

@@ -1,4 +1,8 @@
-import { createReplicateClient, generateImage as replicateGenerate, downloadImage } from "./imageGeneration.js";
+import {
+  createReplicateClient,
+  generateImage as replicateGenerate,
+  downloadImage,
+} from "./imageGeneration.js";
 
 export async function generateImageForProvider(providerName, apiKey, options) {
   const { prompt, aspectRatio, model } = options;
@@ -127,7 +131,7 @@ async function generateWithOpenAI(apiKey, options) {
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -145,6 +149,6 @@ async function generateWithOpenAI(apiKey, options) {
   const base64Data = data.data[0]?.b64_json;
   if (!base64Data) throw new Error("No image in response");
 
-  const buffer = Buffer.from(base64Data, 'base64');
-  return { buffer, mimeType: 'image/png' };
+  const buffer = Buffer.from(base64Data, "base64");
+  return { buffer, mimeType: "image/png" };
 }

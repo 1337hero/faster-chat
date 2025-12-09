@@ -18,7 +18,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PROJECT_ROOT = path.resolve(__dirname, "../../..");
-const GENERATED_DIR = path.join(PROJECT_ROOT, "server/data/uploads", IMAGE_GENERATION.GENERATED_DIR);
+const GENERATED_DIR = path.join(
+  PROJECT_ROOT,
+  "server/data/uploads",
+  IMAGE_GENERATION.GENERATED_DIR
+);
 
 export const imagesRouter = new Hono();
 
@@ -157,7 +161,10 @@ imagesRouter.post("/generate", async (c) => {
     }
 
     if (error.message?.includes("rate limit")) {
-      return c.json({ error: "Rate limit exceeded. Please try again later." }, HTTP_STATUS.TOO_MANY_REQUESTS);
+      return c.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        HTTP_STATUS.TOO_MANY_REQUESTS
+      );
     }
 
     return c.json(
