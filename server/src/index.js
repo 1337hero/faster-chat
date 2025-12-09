@@ -20,6 +20,7 @@ import { modelsRouter } from "./routes/models.js";
 import { providersRouter } from "./routes/providers.js";
 import { settingsRouter } from "./routes/settings.js";
 import { imagesRouter } from "./routes/images.js";
+import { importRouter } from "./routes/import.js";
 
 const app = new Hono();
 
@@ -62,6 +63,9 @@ app.route("/api/settings", settingsRouter);
 
 // Images routes (image generation)
 app.route("/api/images", imagesRouter);
+
+// Import routes (conversation import from other platforms)
+app.route("/api/import", importRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

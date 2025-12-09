@@ -451,7 +451,7 @@ export const dbUtils = {
   /**
    * Create a new model
    */
-  createModel(providerId, modelId, displayName, enabled = true, modelType = 'text') {
+  createModel(providerId, modelId, displayName, enabled = true, modelType = "text") {
     const now = Date.now();
     const stmt = db.prepare(`
       INSERT INTO models (provider_id, model_id, display_name, enabled, model_type, created_at, updated_at)
@@ -888,6 +888,11 @@ export const dbUtils = {
     const now = Date.now();
     const stmt = db.prepare("UPDATE chats SET updated_at = ? WHERE id = ?");
     stmt.run(now, chatId);
+  },
+
+  updateChatTimestampTo(chatId, timestamp) {
+    const stmt = db.prepare("UPDATE chats SET updated_at = ? WHERE id = ?");
+    stmt.run(timestamp, chatId);
   },
 
   softDeleteChat(chatId) {
