@@ -33,12 +33,13 @@ export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
     const content = extractTextContent(lastMessage);
     lastSpokenMessageRef.current = lastMessage.id;
 
+    // Check processing state but don't depend on it - we care about new messages, not state changes
     if (voice.isProcessing) {
       voice.completeProcessing();
     }
 
     voice.speakStream(content);
-  }, [messages, voice.isActive, voice.isProcessing, isLoading]);
+  }, [messages, voice.isActive, isLoading]);
 
   return { voice };
 }
