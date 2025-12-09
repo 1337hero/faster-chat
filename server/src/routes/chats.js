@@ -47,7 +47,7 @@ chatsRouter.get("/", async (c) => {
 
 /**
  * POST /api/chats
- * Create a new chat
+ * Create a new chat (optionally in a folder)
  */
 chatsRouter.post("/", async (c) => {
   try {
@@ -55,13 +55,23 @@ chatsRouter.post("/", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const title = body.title || null;
     const chatId = body.id || crypto.randomUUID();
+    const folderId = body.folder_id || null;
 
-    const chat = dbUtils.createChat(chatId, user.id, title);
+    // Validate folder belongs to user if provided
+    if (folderId) {
+      const folder = dbUtils.getFolderByIdAndUser(folderId, user.id);
+      if (!folder) {
+        return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
+      }
+    }
+
+    const chat = dbUtils.createChat(chatId, user.id, title, folderId);
 
     return c.json(
       {
         id: chat.id,
         title: chat.title,
+        folder_id: chat.folder_id,
         createdAt: chat.created_at,
         updatedAt: chat.updated_at,
       },
