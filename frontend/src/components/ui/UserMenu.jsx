@@ -1,6 +1,6 @@
 import { useAuthState } from "@/state/useAuthState";
 import { useNavigate } from "@tanstack/react-router";
-import { LogOut, Settings, Shield, User } from "lucide-react";
+import { Download, LogOut, Settings, Shield, User } from "lucide-react";
 import { useEffect, useRef, useState } from "preact/hooks";
 
 export const UserMenu = () => {
@@ -70,6 +70,12 @@ export const UserMenu = () => {
               className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
               <Settings size={16} />
               <span>Settings</span>
+            </button>
+            <button
+              onClick={() => handleNavigate("/import")}
+              className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
+              <Download size={16} />
+              <span>Import Chats</span>
             </button>
             <button
               onClick={handleLogout}
