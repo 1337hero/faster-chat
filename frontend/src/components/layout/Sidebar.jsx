@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "@preact/compat";
+import { useNavigate } from "@tanstack/react-router";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSidebarState } from "@/hooks/useSidebarState";
 import { useAppSettings } from "@/state/useAppSettings";
 import { useUiState } from "@/state/useUiState";
@@ -8,12 +10,15 @@ import {
   useArchiveChatMutation,
   useUpdateChatMutation,
 } from "@/hooks/useChatsQuery";
+import { useFolders } from "@/hooks/useFolders";
 import { searchWithHighlights } from "@/lib/search";
 import { toast } from "sonner";
-import { LOGO_ICON_NAMES, UI_CONSTANTS } from "@faster-chat/shared";
+import { LOGO_ICON_NAMES, UI_CONSTANTS, FOLDER_CONSTANTS } from "@faster-chat/shared";
 import * as LucideIcons from "lucide-react";
-import { PanelLeftClose, Pin, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
+import { ChevronRight, Folder, FolderPlus, PanelLeftClose, Pin, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
 import ChatContextMenu from "./ChatContextMenu";
+
+const CHAT_ITEM_HEIGHT = 44; // Height of each chat item in pixels
 
 // Build icon map from shared names
 const LOGO_ICONS = LOGO_ICON_NAMES.reduce((acc, name) => {
@@ -115,12 +120,142 @@ const ChatItem = ({
   );
 };
 
+// Folder item component for sidebar
+const FolderItem = ({ folder, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`group ease-snappy flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors duration-75 ${
+      isActive
+        ? "bg-theme-primary/10 text-theme-primary font-medium"
+        : "text-theme-text-muted hover:text-theme-text hover:bg-white/5"
+    }`}
+  >
+    <Folder size={16} style={{ color: folder.color || FOLDER_CONSTANTS.DEFAULT_COLOR }} />
+    <span className="flex-1 truncate text-sm">{folder.name}</span>
+    <ChevronRight size={14} className="opacity-0 group-hover:opacity-50" />
+  </button>
+);
+
+// Isolated input component - prevents Sidebar re-renders on every keystroke
+const NewFolderInput = ({ onCreate, onCancel, isCreating }) => {
+  const [name, setName] = useState("");
+
+  const handleSubmit = () => {
+    if (name.trim()) {
+      onCreate(name.trim());
+    }
+  };
+
+  return (
+    <div className="mb-2 flex items-center gap-2 px-2">
+      <Folder size={16} className="text-theme-text-muted flex-shrink-0" />
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Escape") onCancel();
+        }}
+        onBlur={() => {
+          if (!name.trim()) onCancel();
+        }}
+        placeholder="Folder name..."
+        autoFocus
+        disabled={isCreating}
+        maxLength={FOLDER_CONSTANTS.MAX_NAME_LENGTH}
+        className="bg-theme-surface text-theme-text border-theme-border focus:ring-theme-primary flex-1 rounded-lg border px-2 py-1 text-sm focus:outline-none focus:ring-1"
+      />
+    </div>
+  );
+};
+
+// Virtualized chat list for performance with large lists
+const VirtualizedChatList = ({
+  chats,
+  pathname,
+  renamingChatId,
+  renameValue,
+  onSelect,
+  onContextMenu,
+  onDelete,
+  onPin,
+  onUnpin,
+  onRenameChange,
+  onRenameSubmit,
+  onRenameKeyDown,
+}) => {
+  const parentRef = useRef(null);
+
+  const virtualizer = useVirtualizer({
+    count: chats.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => CHAT_ITEM_HEIGHT,
+    overscan: 10, // Render 10 extra items above/below viewport
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  return (
+    <div
+      ref={parentRef}
+      className="min-h-0 flex-1 overflow-y-auto"
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {items.map((virtualRow) => {
+          const { item: chat, highlighted } = chats[virtualRow.index];
+          return (
+            <div
+              key={chat.id}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <ChatItem
+                chat={chat}
+                highlighted={highlighted}
+                isActive={pathname === `/chat/${chat.id}`}
+                isRenaming={renamingChatId === chat.id}
+                renameValue={renameValue}
+                onSelect={onSelect}
+                onContextMenu={onContextMenu}
+                onDelete={onDelete}
+                onPin={onPin}
+                onUnpin={onUnpin}
+                onRenameChange={onRenameChange}
+                onRenameSubmit={onRenameSubmit}
+                onRenameKeyDown={onRenameKeyDown}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const Sidebar = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState(null); // { chat, position: {x, y} }
   const [renamingChatId, setRenamingChatId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [showNewFolder, setShowNewFolder] = useState(false);
   const searchInputRef = useRef(null);
+
+  // Folders hook
+  const { folders, createFolder, isCreating } = useFolders();
 
   // Listen for focus-sidebar-search event (triggered by Ctrl+K)
   useEffect(() => {
@@ -220,6 +355,22 @@ const Sidebar = () => {
       setRenamingChatId(null);
       setRenameValue("");
     }
+  };
+
+  const handleCreateFolder = async (name) => {
+    try {
+      const result = await createFolder({ name });
+      setShowNewFolder(false);
+      toast.success("Folder created");
+      navigate({ to: `/folder/${result.folder.id}` });
+    } catch (err) {
+      toast.error(err.message || "Failed to create folder");
+    }
+  };
+
+  const handleFolderClick = (folderId) => {
+    navigate({ to: `/folder/${folderId}` });
+    if (isMobile) setIsSidebarOpen(false);
   };
 
   // On desktop: slide off-screen when collapsed
@@ -329,8 +480,55 @@ const Sidebar = () => {
         {/* Divider */}
         <div className="bg-theme-surface mx-6 my-4 h-px" />
 
-        {/* History List */}
-        <div className="flex-1 space-y-1 overflow-y-auto px-4">
+        {/* Folders, Pinned, and Headers */}
+        <div className="shrink-0 space-y-1 px-4">
+          {/* Folders Section */}
+          {!searchQuery && (
+            <div className="mb-2">
+              <div className="flex items-center justify-between px-2 py-2">
+                <span className="text-theme-overlay text-xs font-bold tracking-widest uppercase opacity-70">
+                  Folders
+                </span>
+                <button
+                  onClick={() => setShowNewFolder(true)}
+                  className="text-theme-text-muted hover:text-theme-text hover:bg-white/5 ease-snappy rounded p-1 transition-colors"
+                  title="New Folder"
+                >
+                  <FolderPlus size={14} />
+                </button>
+              </div>
+
+              {/* New folder input - isolated component to prevent parent re-renders */}
+              {showNewFolder && (
+                <NewFolderInput
+                  onCreate={handleCreateFolder}
+                  onCancel={() => setShowNewFolder(false)}
+                  isCreating={isCreating}
+                />
+              )}
+
+              {/* Folder list */}
+              {folders.length > 0 ? (
+                <div className="space-y-0.5">
+                  {folders.map((folder) => (
+                    <FolderItem
+                      key={folder.id}
+                      folder={folder}
+                      isActive={pathname === `/folder/${folder.id}`}
+                      onClick={() => handleFolderClick(folder.id)}
+                    />
+                  ))}
+                </div>
+              ) : !showNewFolder ? (
+                <div className="text-theme-text-muted px-3 py-2 text-xs italic">
+                  No folders yet
+                </div>
+              ) : null}
+
+              <div className="bg-theme-surface mx-2 my-3 h-px" />
+            </div>
+          )}
+
           {/* Pinned Section */}
           {pinnedChats.length > 0 && !searchQuery && (
             <>
@@ -359,7 +557,7 @@ const Sidebar = () => {
             </>
           )}
 
-          {/* Recent/Results Section */}
+          {/* Recent/Results Section Header */}
           <div className="text-theme-overlay px-2 py-2 text-xs font-bold tracking-widest uppercase opacity-70">
             {searchQuery ? `Results (${filteredChats.length})` : "Recent"}
           </div>
@@ -369,14 +567,15 @@ const Sidebar = () => {
               {searchQuery ? "No matching chats found." : "No history found."}
             </div>
           )}
+        </div>
 
-          {(searchQuery ? filteredChats : recentChats).map(({ item: chat, highlighted }) => (
-            <ChatItem
-              key={chat.id}
-              chat={chat}
-              highlighted={highlighted}
-              isActive={pathname === `/chat/${chat.id}`}
-              isRenaming={renamingChatId === chat.id}
+        {/* Virtualized Chat List - needs explicit flex-1 with min-h-0 for virtualization to work */}
+        {(searchQuery ? filteredChats : recentChats).length > 0 && (
+          <div className="flex min-h-0 flex-1 flex-col px-4">
+            <VirtualizedChatList
+              chats={searchQuery ? filteredChats : recentChats}
+              pathname={pathname}
+              renamingChatId={renamingChatId}
               renameValue={renameValue}
               onSelect={handleSelectChat}
               onContextMenu={handleContextMenu}
@@ -387,8 +586,8 @@ const Sidebar = () => {
               onRenameSubmit={handleRenameSubmit}
               onRenameKeyDown={handleRenameKeyDown}
             />
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Context Menu */}
         {contextMenu && (

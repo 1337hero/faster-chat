@@ -21,6 +21,7 @@ import { providersRouter } from "./routes/providers.js";
 import { settingsRouter } from "./routes/settings.js";
 import { imagesRouter } from "./routes/images.js";
 import { importRouter } from "./routes/import.js";
+import { foldersRouter } from "./routes/folders.js";
 
 const app = new Hono();
 
@@ -66,6 +67,9 @@ app.route("/api/images", imagesRouter);
 
 // Import routes (conversation import from other platforms)
 app.route("/api/import", importRouter);
+
+// Folders routes (chat organization)
+app.route("/api/folders", foldersRouter);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

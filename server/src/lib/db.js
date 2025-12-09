@@ -105,11 +105,28 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);
   CREATE INDEX IF NOT EXISTS idx_files_hash ON files(hash);
 
+  -- Folders for organizing chats
+  CREATE TABLE IF NOT EXISTS folders (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT,
+    position INTEGER NOT NULL DEFAULT 0,
+    is_collapsed INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_folders_user_id ON folders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_folders_position ON folders(user_id, position);
+
   -- Chats table for conversation persistence
   CREATE TABLE IF NOT EXISTS chats (
     id TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
     title TEXT,
+    folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     deleted_at INTEGER,
@@ -160,11 +177,15 @@ if (!columnNames.includes("pinned_at")) {
 if (!columnNames.includes("archived_at")) {
   db.exec("ALTER TABLE chats ADD COLUMN archived_at INTEGER");
 }
+if (!columnNames.includes("folder_id")) {
+  db.exec("ALTER TABLE chats ADD COLUMN folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL");
+}
 
-// Create indexes for pinned/archived queries
+// Create indexes for pinned/archived/folder queries
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chats_pinned ON chats(pinned_at);
   CREATE INDEX IF NOT EXISTS idx_chats_archived ON chats(archived_at);
+  CREATE INDEX IF NOT EXISTS idx_chats_folder ON chats(folder_id);
 `);
 
 const modelColumns = db.prepare("PRAGMA table_info(models)").all();
@@ -835,14 +856,14 @@ export const dbUtils = {
   // CHAT UTILITIES
   // ========================================
 
-  createChat(id, userId, title = null) {
+  createChat(id, userId, title = null, folderId = null) {
     const now = Date.now();
     const stmt = db.prepare(`
-      INSERT INTO chats (id, user_id, title, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO chats (id, user_id, title, folder_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(id, userId, title, now, now);
-    return { id, user_id: userId, title, created_at: now, updated_at: now, deleted_at: null };
+    stmt.run(id, userId, title, folderId, now, now);
+    return { id, user_id: userId, title, folder_id: folderId, created_at: now, updated_at: now, deleted_at: null };
   },
 
   getChatById(chatId) {
@@ -1022,6 +1043,151 @@ export const dbUtils = {
   getMessageCountByChat(chatId) {
     const stmt = db.prepare("SELECT COUNT(*) as count FROM messages WHERE chat_id = ?");
     const result = stmt.get(chatId);
+    return result.count;
+  },
+
+  // ========================================
+  // FOLDER UTILITIES
+  // ========================================
+
+  /**
+   * Create a new folder
+   */
+  createFolder(id, userId, name, color = null, position = 0) {
+    const now = Date.now();
+    const stmt = db.prepare(`
+      INSERT INTO folders (id, user_id, name, color, position, is_collapsed, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+    `);
+    stmt.run(id, userId, name, color, position, now, now);
+    return this.getFolderById(id);
+  },
+
+  /**
+   * Get folder by ID
+   */
+  getFolderById(folderId) {
+    const stmt = db.prepare("SELECT * FROM folders WHERE id = ?");
+    return stmt.get(folderId);
+  },
+
+  /**
+   * Get folder by ID and user (for security)
+   */
+  getFolderByIdAndUser(folderId, userId) {
+    const stmt = db.prepare("SELECT * FROM folders WHERE id = ? AND user_id = ?");
+    return stmt.get(folderId, userId);
+  },
+
+  /**
+   * Get all folders for a user
+   */
+  getFoldersByUserId(userId) {
+    const stmt = db.prepare(`
+      SELECT * FROM folders
+      WHERE user_id = ?
+      ORDER BY position ASC, created_at ASC
+    `);
+    return stmt.all(userId);
+  },
+
+  /**
+   * Update a folder
+   */
+  updateFolder(folderId, userId, updates) {
+    const folder = this.getFolderByIdAndUser(folderId, userId);
+    if (!folder) return null;
+
+    const fieldMap = { name: "name", color: "color", position: "position", is_collapsed: "is_collapsed" };
+    const { fields, values } = buildUpdateFields(updates, fieldMap);
+
+    if (fields.length === 0) return folder;
+
+    fields.push("updated_at = ?");
+    values.push(Date.now());
+    values.push(folderId);
+
+    const stmt = db.prepare(`UPDATE folders SET ${fields.join(", ")} WHERE id = ?`);
+    stmt.run(...values);
+
+    return this.getFolderByIdAndUser(folderId, userId);
+  },
+
+  /**
+   * Delete a folder (chats in folder get unassigned)
+   */
+  deleteFolder(folderId, userId) {
+    // First, unassign all chats from this folder
+    const unassignStmt = db.prepare("UPDATE chats SET folder_id = NULL WHERE folder_id = ? AND user_id = ?");
+    unassignStmt.run(folderId, userId);
+
+    // Then delete the folder
+    const stmt = db.prepare("DELETE FROM folders WHERE id = ? AND user_id = ?");
+    const result = stmt.run(folderId, userId);
+    return result.changes > 0;
+  },
+
+  /**
+   * Toggle folder collapsed state
+   */
+  toggleFolderCollapse(folderId, userId) {
+    const folder = this.getFolderByIdAndUser(folderId, userId);
+    if (!folder) return null;
+
+    const newState = folder.is_collapsed ? 0 : 1;
+    const stmt = db.prepare(`
+      UPDATE folders SET is_collapsed = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `);
+    stmt.run(newState, Date.now(), folderId, userId);
+
+    return this.getFolderByIdAndUser(folderId, userId);
+  },
+
+  /**
+   * Move chat to folder
+   */
+  moveChatToFolder(chatId, userId, folderId) {
+    // Verify chat belongs to user
+    const chat = this.getChatByIdAndUser(chatId, userId);
+    if (!chat) return null;
+
+    // If folderId is provided, verify folder belongs to user
+    if (folderId) {
+      const folder = this.getFolderByIdAndUser(folderId, userId);
+      if (!folder) return null;
+    }
+
+    const stmt = db.prepare(`
+      UPDATE chats SET folder_id = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `);
+    stmt.run(folderId, Date.now(), chatId, userId);
+
+    return this.getChatByIdAndUser(chatId, userId);
+  },
+
+  /**
+   * Get chats in a folder
+   */
+  getChatsByFolder(folderId, userId) {
+    const stmt = db.prepare(`
+      SELECT * FROM chats
+      WHERE folder_id = ? AND user_id = ? AND deleted_at IS NULL AND archived_at IS NULL
+      ORDER BY
+        CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
+        pinned_at DESC,
+        updated_at DESC
+    `);
+    return stmt.all(folderId, userId);
+  },
+
+  /**
+   * Get folder count for a user
+   */
+  getFolderCount(userId) {
+    const stmt = db.prepare("SELECT COUNT(*) as count FROM folders WHERE user_id = ?");
+    const result = stmt.get(userId);
     return result.count;
   },
 

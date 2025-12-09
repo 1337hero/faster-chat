@@ -2,15 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatsClient } from "@/lib/chatsClient";
 import { useAuthState } from "@/state/useAuthState";
 import { getMessageTimestamp } from "@/lib/messageUtils";
+import { chatKeys, folderKeys } from "./queryKeys";
 
-// Query key factory - includes userId to prevent cache bleed between users
-export const chatKeys = {
-  all: (userId) => ["chats", userId],
-  list: (userId) => [...chatKeys.all(userId), "list"],
-  details: (userId) => [...chatKeys.all(userId), "detail"],
-  detail: (userId, id) => [...chatKeys.details(userId), id],
-  messages: (userId, chatId) => [...chatKeys.detail(userId, chatId), "messages"],
-};
+// Re-export for backward compatibility
+export { chatKeys };
 
 export function useChatsQuery() {
   const userId = useAuthState((state) => state.user?.id ?? null);
@@ -57,12 +52,16 @@ export function useCreateChatMutation() {
   const userId = useAuthState((state) => state.user?.id ?? null);
 
   return useMutation({
-    mutationFn: ({ id, title }) => chatsClient.createChat(id, title),
-    onSuccess: (newChat) => {
+    mutationFn: ({ id, title, folderId } = {}) => chatsClient.createChat(id, title, folderId),
+    onSuccess: (newChat, { folderId } = {}) => {
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
         if (!old) return [newChat];
         return [newChat, ...old];
       });
+      // Invalidate folder chats if created in a folder
+      if (folderId) {
+        queryClient.invalidateQueries({ queryKey: folderKeys.chats(userId, folderId) });
+      }
     },
   });
 }

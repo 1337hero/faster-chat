@@ -15,6 +15,7 @@ export * from "./constants/settings.js";
 export * from "./constants/shortcuts.js";
 export * from "./constants/imageGeneration.js";
 export * from "./constants/import.js";
+export * from "./constants/folders.js";
 
 // Data
 export * from "./data/languages.js";

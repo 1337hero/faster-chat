@@ -26,7 +26,9 @@ function toCamelCase(obj) {
                   ? "chatId"
                   : key === "user_id"
                     ? "userId"
-                    : key;
+                    : key === "folder_id"
+                      ? "folderId"
+                      : key;
     transformed[camelKey] = toCamelCase(value);
   }
   return transformed;
@@ -62,10 +64,10 @@ export const chatsClient = {
     return chatsFetch(`/${chatId}`);
   },
 
-  async createChat(id = null, title = null) {
+  async createChat(id = null, title = null, folderId = null) {
     return chatsFetch("", {
       method: "POST",
-      body: JSON.stringify({ id, title }),
+      body: JSON.stringify({ id, title, folder_id: folderId }),
     });
   },
 

@@ -18,6 +18,7 @@ const Chat = lazy(() => import("@/pages/authenticated/Chat"));
 const Admin = lazy(() => import("@/pages/authenticated/Admin"));
 const Settings = lazy(() => import("@/pages/authenticated/Settings"));
 const Import = lazy(() => import("@/pages/authenticated/Import"));
+const Folder = lazy(() => import("@/pages/authenticated/Folder"));
 
 // Loading component
 const LoadingSpinner = () => {
@@ -134,10 +135,23 @@ const importRoute = createRoute({
   ),
 });
 
+const folderRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/folder/$folderId",
+  component: () => {
+    const { folderId } = folderRoute.useParams();
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Folder folderId={folderId} />
+      </Suspense>
+    );
+  },
+});
+
 // Route Tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  protectedRoute.addChildren([indexRoute, chatRoute, adminRoute, settingsRoute, importRoute]),
+  protectedRoute.addChildren([indexRoute, chatRoute, adminRoute, settingsRoute, importRoute, folderRoute]),
 ]);
 
 // Create Router
