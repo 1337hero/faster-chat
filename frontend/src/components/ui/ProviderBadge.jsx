@@ -1,4 +1,4 @@
-import { MapPin, BadgeCheck, Users } from "lucide-react";
+import { MapPin, BadgeCheck, Users } from "lucide-preact";
 import { categorizeProvider } from "@faster-chat/shared";
 
 const BADGE_CONFIGS = {

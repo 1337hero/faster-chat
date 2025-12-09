@@ -1,7 +1,7 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownRenderer";
 import { extractTextContent } from "@/utils/message/messageUtils";
 import { memo } from "@preact/compat";
-import { Brain, ChevronDown, Cpu, Sparkles } from "lucide-react";
+import { Brain, ChevronDown, Cpu, Sparkles } from "lucide-preact";
 import MessageAttachment from "./MessageAttachment";
 
 /**

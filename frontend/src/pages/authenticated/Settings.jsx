@@ -3,7 +3,7 @@ import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 import { KEYBOARD_SHORTCUTS } from "@faster-chat/shared";
-import { LayoutGrid, Keyboard } from "lucide-react";
+import { LayoutGrid, Keyboard } from "lucide-preact";
 
 const KeyboardShortcut = ({ keys, label }) => (
   <div className="flex items-center justify-between py-2">

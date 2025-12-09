@@ -863,7 +863,15 @@ export const dbUtils = {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
     stmt.run(id, userId, title, folderId, now, now);
-    return { id, user_id: userId, title, folder_id: folderId, created_at: now, updated_at: now, deleted_at: null };
+    return {
+      id,
+      user_id: userId,
+      title,
+      folder_id: folderId,
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
+    };
   },
 
   getChatById(chatId) {
@@ -1098,7 +1106,12 @@ export const dbUtils = {
     const folder = this.getFolderByIdAndUser(folderId, userId);
     if (!folder) return null;
 
-    const fieldMap = { name: "name", color: "color", position: "position", is_collapsed: "is_collapsed" };
+    const fieldMap = {
+      name: "name",
+      color: "color",
+      position: "position",
+      is_collapsed: "is_collapsed",
+    };
     const { fields, values } = buildUpdateFields(updates, fieldMap);
 
     if (fields.length === 0) return folder;
@@ -1118,7 +1131,9 @@ export const dbUtils = {
    */
   deleteFolder(folderId, userId) {
     // First, unassign all chats from this folder
-    const unassignStmt = db.prepare("UPDATE chats SET folder_id = NULL WHERE folder_id = ? AND user_id = ?");
+    const unassignStmt = db.prepare(
+      "UPDATE chats SET folder_id = NULL WHERE folder_id = ? AND user_id = ?"
+    );
     unassignStmt.run(folderId, userId);
 
     // Then delete the folder

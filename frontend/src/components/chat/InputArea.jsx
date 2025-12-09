@@ -1,6 +1,6 @@
 import { useRef, useState } from "preact/hooks";
 import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
-import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-react";
+import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
 import { useUiState } from "@/state/useUiState";

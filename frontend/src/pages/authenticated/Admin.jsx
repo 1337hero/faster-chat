@@ -2,7 +2,7 @@ import { useAuthState } from "@/state/useAuthState";
 import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
 import { lazy, Suspense } from "preact/compat";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "lucide-preact";
 
 // Lazy load admin tab components for better code splitting
 const UsersTab = lazy(() => import("@/components/admin/UsersTab"));

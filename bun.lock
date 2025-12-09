@@ -28,7 +28,7 @@
         "ai": "^5.0.97",
         "clsx": "^2.1.1",
         "katex": "^0.16.25",
-        "lucide-react": "^0.554.0",
+        "lucide-preact": "^0.554.0",
         "nanoid": "^5.0.0",
         "preact": "^10.25.5",
         "react-markdown": "^9.0.1",
@@ -709,7 +709,7 @@
 
     "lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
 
-    "lucide-react": ["lucide-react@0.554.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-St+z29uthEJVx0Is7ellNkgTEhaeSoA42I7JjOCBCrc5X6LYMGSv0P/2uS5HDLTExP5tpiqRD2PyUEOS6s9UXA=="],
+    "lucide-preact": ["lucide-preact@0.554.0", "", { "peerDependencies": { "preact": "^10.5.13" } }, "sha512-+d6euadQLdgeUyoHYDYdFi4jTfAD7G+S5vE03I2PxeETek0R+G4Z3eS8/X77EAf+2Nfzx3iLS8sAR3Jt9zzxMQ=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Download, File, Sparkles } from "lucide-react";
+import { Download, File, Sparkles } from "lucide-preact";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 

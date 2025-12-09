@@ -1,5 +1,5 @@
 import { useThemeStore } from "@/state/useThemeStore";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-preact";
 import { useRef } from "preact/hooks";
 
 const CLICK_SOUND_PATH = "/sounds/light-on.mp3";

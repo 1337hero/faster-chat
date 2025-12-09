@@ -1,6 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { useThemeStore } from "@/state/useThemeStore";
-import { Check, Moon, Sun } from "lucide-react";
+import { Check, Moon, Sun } from "lucide-preact";
 
 // Mini color swatches showing the theme's personality
 const ThemeSwatch = ({ colors, mode }) => {

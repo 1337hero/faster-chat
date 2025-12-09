@@ -1,6 +1,6 @@
 import { useAuthState } from "@/state/useAuthState";
 import { useNavigate } from "@tanstack/react-router";
-import { Download, LogOut, Settings, Shield, User } from "lucide-react";
+import { Download, LogOut, Settings, Shield, User } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
 export const UserMenu = () => {

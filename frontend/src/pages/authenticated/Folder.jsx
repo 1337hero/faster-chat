@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "preact/hooks";
-import { Folder as FolderIcon, MessageSquare, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Folder as FolderIcon, MessageSquare, Plus, Trash2, Pencil, Check, X } from "lucide-preact";
 import { useFolder, useFolderChats, useFolders } from "@/hooks/useFolders";
 import { useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { toast } from "sonner";
@@ -21,13 +21,10 @@ const formatDate = (timestamp) => {
 const ChatItem = ({ chat, onClick }) => (
   <button
     onClick={onClick}
-    className="hover:bg-theme-surface-hover ease-snappy group flex w-full flex-col gap-1 rounded-lg p-4 text-left transition-colors"
-  >
+    className="hover:bg-theme-surface-hover ease-snappy group flex w-full flex-col gap-1 rounded-lg p-4 text-left transition-colors">
     <div className="flex items-start justify-between gap-2">
-      <h3 className="text-theme-text line-clamp-1 font-medium">
-        {chat.title || "Untitled Chat"}
-      </h3>
-      <span className="text-theme-text-muted whitespace-nowrap text-xs">
+      <h3 className="text-theme-text line-clamp-1 font-medium">{chat.title || "Untitled Chat"}</h3>
+      <span className="text-theme-text-muted text-xs whitespace-nowrap">
         {formatDate(chat.updated_at)}
       </span>
     </div>
@@ -44,14 +41,11 @@ const EmptyState = ({ folderName, onNewChat }) => (
     </div>
     <div className="text-center">
       <h3 className="text-theme-text mb-1 text-lg font-medium">No chats yet</h3>
-      <p className="text-theme-text-muted text-sm">
-        Start a conversation in {folderName}
-      </p>
+      <p className="text-theme-text-muted text-sm">Start a conversation in {folderName}</p>
     </div>
     <button
       onClick={onNewChat}
-      className="bg-theme-primary hover:bg-theme-primary/90 ease-snappy flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors"
-    >
+      className="bg-theme-primary hover:bg-theme-primary/90 ease-snappy flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors">
       <Plus size={18} />
       New Chat
     </button>
@@ -93,8 +87,7 @@ const FolderHeader = ({ folder, onUpdate, onDelete }) => {
       <div className="flex items-center gap-3">
         <div
           className="rounded-lg p-2"
-          style={{ backgroundColor: `${folder.color}${FOLDER_CONSTANTS.ICON_BG_OPACITY}` }}
-        >
+          style={{ backgroundColor: `${folder.color}${FOLDER_CONSTANTS.ICON_BG_OPACITY}` }}>
           <FolderIcon size={24} style={{ color: folder.color || FOLDER_CONSTANTS.DEFAULT_COLOR }} />
         </div>
 
@@ -110,18 +103,16 @@ const FolderHeader = ({ folder, onUpdate, onDelete }) => {
               }}
               autoFocus
               maxLength={FOLDER_CONSTANTS.MAX_NAME_LENGTH}
-              className="bg-theme-surface text-theme-text border-theme-border focus:ring-theme-primary rounded-lg border px-3 py-1.5 text-xl font-semibold focus:outline-none focus:ring-2"
+              className="bg-theme-surface text-theme-text border-theme-border focus:ring-theme-primary rounded-lg border px-3 py-1.5 text-xl font-semibold focus:ring-2 focus:outline-none"
             />
             <button
               onClick={handleSubmit}
-              className="text-theme-text-muted hover:text-green-500 ease-snappy p-1 transition-colors"
-            >
+              className="text-theme-text-muted ease-snappy p-1 transition-colors hover:text-green-500">
               <Check size={18} />
             </button>
             <button
               onClick={() => setIsEditing(false)}
-              className="text-theme-text-muted hover:text-red-500 ease-snappy p-1 transition-colors"
-            >
+              className="text-theme-text-muted ease-snappy p-1 transition-colors hover:text-red-500">
               <X size={18} />
             </button>
           </div>
@@ -139,15 +130,13 @@ const FolderHeader = ({ folder, onUpdate, onDelete }) => {
                 setIsEditing(true);
               }}
               className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface ease-snappy rounded-lg p-2 transition-colors"
-              title="Rename folder"
-            >
+              title="Rename folder">
               <Pencil size={18} />
             </button>
             <button
               onClick={handleDelete}
-              className="text-theme-text-muted hover:bg-red-500/10 hover:text-red-500 ease-snappy rounded-lg p-2 transition-colors"
-              title="Delete folder"
-            >
+              className="text-theme-text-muted ease-snappy rounded-lg p-2 transition-colors hover:bg-red-500/10 hover:text-red-500"
+              title="Delete folder">
               <Trash2 size={18} />
             </button>
           </>
@@ -198,8 +187,7 @@ export default function Folder({ folderId }) {
         <h2 className="text-theme-text text-xl font-medium">Folder not found</h2>
         <button
           onClick={() => navigate({ to: "/" })}
-          className="text-theme-primary hover:underline"
-        >
+          className="text-theme-primary hover:underline">
           Go back home
         </button>
       </div>
@@ -208,18 +196,13 @@ export default function Folder({ folderId }) {
 
   return (
     <div className="flex h-full flex-col">
-      <FolderHeader
-        folder={folder}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
+      <FolderHeader folder={folder} onUpdate={handleUpdate} onDelete={handleDelete} />
 
       {/* New Chat Input */}
       <div className="border-theme-border border-b px-6 py-4">
         <button
           onClick={handleNewChat}
-          className="bg-theme-surface hover:bg-theme-surface-hover border-theme-border ease-snappy flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
-        >
+          className="bg-theme-surface hover:bg-theme-surface-hover border-theme-border ease-snappy flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-colors">
           <Plus size={20} className="text-theme-text-muted" />
           <span className="text-theme-text-muted">New chat in {folder.name}</span>
         </button>
@@ -234,11 +217,7 @@ export default function Folder({ folderId }) {
         ) : chats?.length > 0 ? (
           <div className="space-y-1">
             {chats.map((chat) => (
-              <ChatItem
-                key={chat.id}
-                chat={chat}
-                onClick={() => handleChatClick(chat.id)}
-              />
+              <ChatItem key={chat.id} chat={chat} onClick={() => handleChatClick(chat.id)} />
             ))}
           </div>
         ) : (

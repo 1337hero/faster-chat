@@ -308,7 +308,7 @@ See WIKI for detailed coding principles and architecture documentation.
 
 **UI & Styling**
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [lucide-react](https://lucide.dev/) - Beautiful icon library
+- [lucide-preact](https://lucide.dev/guide/packages/lucide-preact) - Beautiful icon library
 - [Catppuccin](https://github.com/catppuccin/catppuccin) - Soothing pastel theme
 
 **External API Calls**

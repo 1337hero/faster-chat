@@ -151,7 +151,14 @@ const folderRoute = createRoute({
 // Route Tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  protectedRoute.addChildren([indexRoute, chatRoute, adminRoute, settingsRoute, importRoute, folderRoute]),
+  protectedRoute.addChildren([
+    indexRoute,
+    chatRoute,
+    adminRoute,
+    settingsRoute,
+    importRoute,
+    folderRoute,
+  ]),
 ]);
 
 // Create Router

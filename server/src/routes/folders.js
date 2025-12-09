@@ -86,7 +86,10 @@ foldersRouter.post("/", async (c) => {
     }
 
     if (name.length > FOLDER_CONSTANTS.MAX_NAME_LENGTH) {
-      return c.json({ error: `Name must be ${FOLDER_CONSTANTS.MAX_NAME_LENGTH} characters or less` }, HTTP_STATUS.BAD_REQUEST);
+      return c.json(
+        { error: `Name must be ${FOLDER_CONSTANTS.MAX_NAME_LENGTH} characters or less` },
+        HTTP_STATUS.BAD_REQUEST
+      );
     }
 
     if (color && !FOLDER_VALIDATION.HEX_COLOR_REGEX.test(color)) {
@@ -128,7 +131,10 @@ foldersRouter.put("/:id", async (c) => {
     const { name, color, position, is_collapsed } = body;
 
     if (name !== undefined && name.length > FOLDER_CONSTANTS.MAX_NAME_LENGTH) {
-      return c.json({ error: `Name must be ${FOLDER_CONSTANTS.MAX_NAME_LENGTH} characters or less` }, HTTP_STATUS.BAD_REQUEST);
+      return c.json(
+        { error: `Name must be ${FOLDER_CONSTANTS.MAX_NAME_LENGTH} characters or less` },
+        HTTP_STATUS.BAD_REQUEST
+      );
     }
 
     if (color !== undefined && color !== null && !FOLDER_VALIDATION.HEX_COLOR_REGEX.test(color)) {
