@@ -1,4 +1,4 @@
-import { Mic, Loader2, Volume2 } from "lucide-react";
+import { Mic, Loader2, Volume2 } from "lucide-preact";
 import { CHAT_STATES } from "@faster-chat/shared";
 
 export const VOICE_STATE_CONFIG = {

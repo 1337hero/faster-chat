@@ -12,7 +12,7 @@ import {
   CheckCircle,
   Trash2,
   Pencil,
-} from "lucide-react";
+} from "lucide-preact";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
 import EditProviderModal from "./EditProviderModal";

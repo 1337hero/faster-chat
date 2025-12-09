@@ -4,7 +4,7 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import { toast } from "sonner";
-import { Copy, Check, ExternalLink, Download, WrapText } from "lucide-react";
+import { Copy, Check, ExternalLink, Download, WrapText } from "lucide-preact";
 import { highlightCode } from "@/lib/shiki";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 import "katex/dist/katex.min.css";

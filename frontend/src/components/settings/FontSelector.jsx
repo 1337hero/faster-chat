@@ -1,5 +1,5 @@
 import { useThemeStore, FONT_PRESETS, FONT_SIZE_PRESETS } from "@/state/useThemeStore";
-import { Check } from "lucide-react";
+import { Check } from "lucide-preact";
 
 // Font card component - shows preview in actual font
 const FontCard = ({ font, isSelected, onSelect }) => {

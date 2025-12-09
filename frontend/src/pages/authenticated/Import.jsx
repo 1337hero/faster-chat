@@ -4,7 +4,7 @@ import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { useAuthState } from "@/state/useAuthState";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
 import { chatKeys } from "@/hooks/useChatsQuery";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, LayoutGrid } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, LayoutGrid } from "lucide-preact";
 import { toast } from "sonner";
 import { validateImportFile, importChatGPTConversations } from "@/utils/importConversation";
 import { IMPORT_CONSTANTS } from "@faster-chat/shared";

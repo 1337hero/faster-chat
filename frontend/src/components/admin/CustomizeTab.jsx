@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
-import * as LucideIcons from "lucide-react";
-import { Check, ChevronRight, RotateCcw, Zap } from "lucide-react";
+import * as LucideIcons from "lucide-preact";
+import { Check, ChevronRight, RotateCcw, Zap } from "lucide-preact";
 import { useAppSettings } from "@/state/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { LOGO_ICON_NAMES, UI_CONSTANTS, ICON_SIZE } from "@faster-chat/shared";

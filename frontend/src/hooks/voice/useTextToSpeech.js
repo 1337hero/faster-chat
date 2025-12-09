@@ -1,8 +1,7 @@
 import { useRef } from "preact/hooks";
 import { VOICE_CONSTANTS, CHAT_STATES } from "@faster-chat/shared";
 
-const splitIntoSentences = (text) =>
-  text.match(VOICE_CONSTANTS.SENTENCE_SPLIT_PATTERN) || [text];
+const splitIntoSentences = (text) => text.match(VOICE_CONSTANTS.SENTENCE_SPLIT_PATTERN) || [text];
 
 const enqueueCleanedSentences = (sentences, queueRef) => {
   sentences.forEach((sentence) => {
@@ -11,8 +10,7 @@ const enqueueCleanedSentences = (sentences, queueRef) => {
   });
 };
 
-const isSpeakingState = (stateRef) =>
-  stateRef.current === CHAT_STATES.SPEAKING;
+const isSpeakingState = (stateRef) => stateRef.current === CHAT_STATES.SPEAKING;
 
 export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, currentStateRef }) {
   const ttsQueueRef = useRef([]);

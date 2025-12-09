@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   Database,
   Download,
-} from "lucide-react";
+} from "lucide-preact";
 import { formatPrice, formatContextWindow } from "@faster-chat/shared";
 import { providersClient } from "@/lib/providersClient";
 import { Switch } from "@/components/ui/Switch";

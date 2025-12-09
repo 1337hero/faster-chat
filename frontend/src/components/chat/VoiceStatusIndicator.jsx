@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { Settings } from "lucide-preact";
 import { VOICE_STATE_CONFIG } from "@/constants/voiceStateConfig";
 
 /**

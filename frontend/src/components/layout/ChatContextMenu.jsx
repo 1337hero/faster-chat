@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "preact/hooks";
-import { Pin, PinOff, Archive, Trash2, ExternalLink, TextCursor } from "lucide-react";
+import { Pin, PinOff, Archive, Trash2, ExternalLink, TextCursor } from "lucide-preact";
 
 /**
  * Context menu for chat items in sidebar.

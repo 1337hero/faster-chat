@@ -1,7 +1,7 @@
 import MessageItem from "./MessageItem";
 import { getMessageTimestamp } from "@/lib/messageUtils";
 import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-preact";
 
 function sortMessagesWithUserFirst(messages) {
   return [...messages].sort((a, b) => {

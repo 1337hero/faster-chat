@@ -14,8 +14,19 @@ import { useFolders } from "@/hooks/useFolders";
 import { searchWithHighlights } from "@/lib/search";
 import { toast } from "sonner";
 import { LOGO_ICON_NAMES, UI_CONSTANTS, FOLDER_CONSTANTS } from "@faster-chat/shared";
-import * as LucideIcons from "lucide-react";
-import { ChevronRight, Folder, FolderPlus, PanelLeftClose, Pin, Search, SquarePen, Trash2, X, Zap } from "lucide-react";
+import * as LucideIcons from "lucide-preact";
+import {
+  ChevronRight,
+  Folder,
+  FolderPlus,
+  PanelLeftClose,
+  Pin,
+  Search,
+  SquarePen,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-preact";
 import ChatContextMenu from "./ChatContextMenu";
 
 const CHAT_ITEM_HEIGHT = 44; // Height of each chat item in pixels
@@ -128,8 +139,7 @@ const FolderItem = ({ folder, isActive, onClick }) => (
       isActive
         ? "bg-theme-primary/10 text-theme-primary font-medium"
         : "text-theme-text-muted hover:text-theme-text hover:bg-white/5"
-    }`}
-  >
+    }`}>
     <Folder size={16} style={{ color: folder.color || FOLDER_CONSTANTS.DEFAULT_COLOR }} />
     <span className="flex-1 truncate text-sm">{folder.name}</span>
     <ChevronRight size={14} className="opacity-0 group-hover:opacity-50" />
@@ -164,7 +174,7 @@ const NewFolderInput = ({ onCreate, onCancel, isCreating }) => {
         autoFocus
         disabled={isCreating}
         maxLength={FOLDER_CONSTANTS.MAX_NAME_LENGTH}
-        className="bg-theme-surface text-theme-text border-theme-border focus:ring-theme-primary flex-1 rounded-lg border px-2 py-1 text-sm focus:outline-none focus:ring-1"
+        className="bg-theme-surface text-theme-text border-theme-border focus:ring-theme-primary flex-1 rounded-lg border px-2 py-1 text-sm focus:ring-1 focus:outline-none"
       />
     </div>
   );
@@ -197,17 +207,13 @@ const VirtualizedChatList = ({
   const items = virtualizer.getVirtualItems();
 
   return (
-    <div
-      ref={parentRef}
-      className="min-h-0 flex-1 overflow-y-auto"
-    >
+    <div ref={parentRef} className="min-h-0 flex-1 overflow-y-auto">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
           width: "100%",
           position: "relative",
-        }}
-      >
+        }}>
         {items.map((virtualRow) => {
           const { item: chat, highlighted } = chats[virtualRow.index];
           return (
@@ -220,8 +226,7 @@ const VirtualizedChatList = ({
                 width: "100%",
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
+              }}>
               <ChatItem
                 chat={chat}
                 highlighted={highlighted}
@@ -491,9 +496,8 @@ const Sidebar = () => {
                 </span>
                 <button
                   onClick={() => setShowNewFolder(true)}
-                  className="text-theme-text-muted hover:text-theme-text hover:bg-white/5 ease-snappy rounded p-1 transition-colors"
-                  title="New Folder"
-                >
+                  className="text-theme-text-muted hover:text-theme-text ease-snappy rounded p-1 transition-colors hover:bg-white/5"
+                  title="New Folder">
                   <FolderPlus size={14} />
                 </button>
               </div>
@@ -520,9 +524,7 @@ const Sidebar = () => {
                   ))}
                 </div>
               ) : !showNewFolder ? (
-                <div className="text-theme-text-muted px-3 py-2 text-xs italic">
-                  No folders yet
-                </div>
+                <div className="text-theme-text-muted px-3 py-2 text-xs italic">No folders yet</div>
               ) : null}
 
               <div className="bg-theme-surface mx-2 my-3 h-px" />

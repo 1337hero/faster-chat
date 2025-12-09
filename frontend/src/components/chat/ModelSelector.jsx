@@ -1,7 +1,7 @@
 import { providersClient } from "@/lib/providersClient";
 import { CACHE_DURATIONS } from "@faster-chat/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import ProviderLogo from "@/components/ui/ProviderLogo";
 

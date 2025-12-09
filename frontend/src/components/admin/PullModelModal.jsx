@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "preact/hooks";
-import { X, Download, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { X, Download, CheckCircle, AlertCircle, Loader } from "lucide-preact";
 
 const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
   const [modelName, setModelName] = useState("");

@@ -1,7 +1,7 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from "preact/compat";
 import { FILE_CONSTANTS, formatFileSize } from "@faster-chat/shared";
 import { toast } from "sonner";
-import { X, File } from "lucide-react";
+import { X, File } from "lucide-preact";
 
 const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
 

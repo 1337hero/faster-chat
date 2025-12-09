@@ -42,7 +42,7 @@ export const UI_CONSTANTS = {
   ICON_PICKER_COLUMNS: 10,
 };
 
-// Semantic icon sizes for lucide-react (in pixels)
+// Semantic icon sizes for lucide-preact (in pixels)
 export const ICON_SIZE = {
   XS: 12,
   SM: 14,

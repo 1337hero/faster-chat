@@ -9,7 +9,7 @@ import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChat
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { useNavigate } from "@tanstack/react-router";
-import { Menu } from "lucide-react";
+import { Menu } from "lucide-preact";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
 import ImageModelSelector from "./ImageModelSelector";

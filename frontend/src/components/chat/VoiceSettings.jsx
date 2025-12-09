@@ -1,4 +1,4 @@
-import { Volume2, X } from "lucide-react";
+import { Volume2, X } from "lucide-preact";
 import { getLanguageName } from "@faster-chat/shared";
 
 const VoiceSettings = ({ voiceControls, onClose }) => {

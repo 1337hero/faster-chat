@@ -1,6 +1,6 @@
 import { ToolbarButton, ToolbarGroup } from "@/components/ui/ToolbarGroup";
 import { useUiState } from "@/state/useUiState";
-import { PanelLeft, Plus, Search } from "lucide-react";
+import { PanelLeft, Plus, Search } from "lucide-preact";
 
 const SidebarToolbar = ({ onNewChat, onSearch }) => {
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
