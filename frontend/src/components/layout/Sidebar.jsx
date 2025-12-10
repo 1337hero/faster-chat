@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { LOGO_ICON_NAMES, UI_CONSTANTS, FOLDER_CONSTANTS } from "@faster-chat/shared";
 import * as LucideIcons from "lucide-preact";
 import {
+  ChevronDown,
   ChevronRight,
   Folder,
   FolderPlus,
@@ -28,6 +29,7 @@ import {
   Zap,
 } from "lucide-preact";
 import ChatContextMenu from "./ChatContextMenu";
+import MoveToFolderModal from "./MoveToFolderModal";
 
 const CHAT_ITEM_HEIGHT = 44; // Height of each chat item in pixels
 
@@ -36,6 +38,69 @@ const LOGO_ICONS = LOGO_ICON_NAMES.reduce((acc, name) => {
   acc[name] = LucideIcons[name];
   return acc;
 }, {});
+
+const DATE_HEADER_HEIGHT = 32;
+
+const DATE_GROUP_ORDER = ["today", "yesterday", "previousWeek", "previousMonth", "older"];
+const DATE_GROUP_LABELS = {
+  today: "Today",
+  yesterday: "Yesterday",
+  previousWeek: "Previous 7 Days",
+  previousMonth: "Previous 30 Days",
+  older: "Older",
+};
+
+/**
+ * Create a flat list of chats with date headers for virtualization.
+ * Returns array of { type: 'header' | 'chat', ... }
+ */
+const createVirtualizedListWithHeaders = (chats) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const monthAgo = new Date(today);
+  monthAgo.setDate(monthAgo.getDate() - 30);
+
+  const groups = {
+    today: [],
+    yesterday: [],
+    previousWeek: [],
+    previousMonth: [],
+    older: [],
+  };
+
+  chats.forEach((chatItem) => {
+    const chatDate = new Date(chatItem.item.updatedAt || chatItem.item.createdAt);
+
+    if (chatDate >= today) {
+      groups.today.push(chatItem);
+    } else if (chatDate >= yesterday) {
+      groups.yesterday.push(chatItem);
+    } else if (chatDate >= weekAgo) {
+      groups.previousWeek.push(chatItem);
+    } else if (chatDate >= monthAgo) {
+      groups.previousMonth.push(chatItem);
+    } else {
+      groups.older.push(chatItem);
+    }
+  });
+
+  // Build flat list with headers
+  const items = [];
+  DATE_GROUP_ORDER.forEach((groupKey) => {
+    if (groups[groupKey].length > 0) {
+      items.push({ type: "header", label: DATE_GROUP_LABELS[groupKey], key: groupKey });
+      groups[groupKey].forEach((chatItem) => {
+        items.push({ type: "chat", ...chatItem });
+      });
+    }
+  });
+
+  return items;
+};
 
 // Chat item component - extracted for reuse in pinned and recent sections
 const ChatItem = ({
@@ -184,8 +249,7 @@ const NewFolderInput = ({ onCreate, onCancel, isCreating }) => {
 const VirtualizedChatList = ({
   chats,
   pathname,
-  renamingChatId,
-  renameValue,
+  renaming,
   onSelect,
   onContextMenu,
   onDelete,
@@ -194,14 +258,23 @@ const VirtualizedChatList = ({
   onRenameChange,
   onRenameSubmit,
   onRenameKeyDown,
+  showDateHeaders = false,
 }) => {
   const parentRef = useRef(null);
 
+  // Create list with headers if enabled
+  const listItems = showDateHeaders ? createVirtualizedListWithHeaders(chats) : chats;
+
   const virtualizer = useVirtualizer({
-    count: chats.length,
+    count: listItems.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => CHAT_ITEM_HEIGHT,
-    overscan: 10, // Render 10 extra items above/below viewport
+    estimateSize: (index) => {
+      if (showDateHeaders && listItems[index]?.type === "header") {
+        return DATE_HEADER_HEIGHT;
+      }
+      return CHAT_ITEM_HEIGHT;
+    },
+    overscan: 10,
   });
 
   const items = virtualizer.getVirtualItems();
@@ -215,7 +288,30 @@ const VirtualizedChatList = ({
           position: "relative",
         }}>
         {items.map((virtualRow) => {
-          const { item: chat, highlighted } = chats[virtualRow.index];
+          const listItem = listItems[virtualRow.index];
+
+          // Render date header
+          if (listItem.type === "header") {
+            return (
+              <div
+                key={listItem.key}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}>
+                <div className="text-theme-overlay flex h-full items-center px-2 text-xs font-bold tracking-widest uppercase opacity-70">
+                  {listItem.label}
+                </div>
+              </div>
+            );
+          }
+
+          // Render chat item
+          const { item: chat, highlighted } = showDateHeaders ? listItem : listItem;
           return (
             <div
               key={chat.id}
@@ -231,8 +327,8 @@ const VirtualizedChatList = ({
                 chat={chat}
                 highlighted={highlighted}
                 isActive={pathname === `/chat/${chat.id}`}
-                isRenaming={renamingChatId === chat.id}
-                renameValue={renameValue}
+                isRenaming={renaming?.chatId === chat.id}
+                renameValue={renaming?.value || ""}
                 onSelect={onSelect}
                 onContextMenu={onContextMenu}
                 onDelete={onDelete}
@@ -254,10 +350,13 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState(null); // { chat, position: {x, y} }
-  const [renamingChatId, setRenamingChatId] = useState(null);
-  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(null); // null or { chatId, value }
   const [showNewFolder, setShowNewFolder] = useState(false);
+  const [movingChat, setMovingChat] = useState(null); // Chat being moved to folder
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
   const searchInputRef = useRef(null);
+
+  const MAX_VISIBLE_FOLDERS = 6;
 
   // Folders hook
   const { folders, createFolder, isCreating } = useFolders();
@@ -330,23 +429,18 @@ const Sidebar = () => {
   const handleRename = (chatId) => {
     const chat = chats?.find((c) => c.id === chatId);
     if (chat) {
-      setRenamingChatId(chatId);
-      setRenameValue(chat.title || "");
+      setRenaming({ chatId, value: chat.title || "" });
     }
   };
 
   const handleRenameSubmit = async (chatId) => {
-    // Prevent double submission
-    if (!renamingChatId) return;
+    if (!renaming) return;
 
-    const trimmedValue = renameValue.trim();
+    const trimmedValue = renaming.value.trim();
     const originalChat = chats?.find((c) => c.id === chatId);
 
-    // Clear state first to prevent double calls
-    setRenamingChatId(null);
-    setRenameValue("");
+    setRenaming(null);
 
-    // Only update if value changed
     if (trimmedValue && trimmedValue !== originalChat?.title) {
       await updateChatMutation.mutateAsync({ chatId, updates: { title: trimmedValue } });
       toast.success("Chat renamed");
@@ -355,10 +449,9 @@ const Sidebar = () => {
 
   const handleRenameKeyDown = (e, chatId) => {
     if (e.key === "Enter") {
-      e.target.blur(); // This will trigger onBlur which calls handleRenameSubmit
+      e.target.blur();
     } else if (e.key === "Escape") {
-      setRenamingChatId(null);
-      setRenameValue("");
+      setRenaming(null);
     }
   };
 
@@ -514,14 +607,29 @@ const Sidebar = () => {
               {/* Folder list */}
               {folders.length > 0 ? (
                 <div className="space-y-0.5">
-                  {folders.map((folder) => (
-                    <FolderItem
-                      key={folder.id}
-                      folder={folder}
-                      isActive={pathname === `/folder/${folder.id}`}
-                      onClick={() => handleFolderClick(folder.id)}
-                    />
-                  ))}
+                  {(foldersExpanded ? folders : folders.slice(0, MAX_VISIBLE_FOLDERS)).map(
+                    (folder) => (
+                      <FolderItem
+                        key={folder.id}
+                        folder={folder}
+                        isActive={pathname === `/folder/${folder.id}`}
+                        onClick={() => handleFolderClick(folder.id)}
+                      />
+                    )
+                  )}
+                  {folders.length > MAX_VISIBLE_FOLDERS && (
+                    <button
+                      onClick={() => setFoldersExpanded(!foldersExpanded)}
+                      className="text-theme-text-muted hover:text-theme-text ease-snappy flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs transition-colors hover:bg-white/5">
+                      <ChevronDown
+                        size={14}
+                        className={`ease-snappy transition-transform ${foldersExpanded ? "rotate-180" : ""}`}
+                      />
+                      {foldersExpanded
+                        ? "Show less"
+                        : `Show ${folders.length - MAX_VISIBLE_FOLDERS} more`}
+                    </button>
+                  )}
                 </div>
               ) : !showNewFolder ? (
                 <div className="text-theme-text-muted px-3 py-2 text-xs italic">No folders yet</div>
@@ -543,14 +651,16 @@ const Sidebar = () => {
                   chat={chat}
                   highlighted={highlighted}
                   isActive={pathname === `/chat/${chat.id}`}
-                  isRenaming={renamingChatId === chat.id}
-                  renameValue={renameValue}
+                  isRenaming={renaming?.chatId === chat.id}
+                  renameValue={renaming?.value || ""}
                   onSelect={handleSelectChat}
                   onContextMenu={handleContextMenu}
                   onDelete={handleDeleteChat}
                   onPin={handlePin}
                   onUnpin={handleUnpin}
-                  onRenameChange={setRenameValue}
+                  onRenameChange={(value) =>
+                    setRenaming((prev) => (prev ? { ...prev, value } : null))
+                  }
                   onRenameSubmit={handleRenameSubmit}
                   onRenameKeyDown={handleRenameKeyDown}
                 />
@@ -559,10 +669,12 @@ const Sidebar = () => {
             </>
           )}
 
-          {/* Recent/Results Section Header */}
-          <div className="text-theme-overlay px-2 py-2 text-xs font-bold tracking-widest uppercase opacity-70">
-            {searchQuery ? `Results (${filteredChats.length})` : "Recent"}
-          </div>
+          {/* Search Results Header */}
+          {searchQuery && (
+            <div className="text-theme-overlay px-2 py-2 text-xs font-bold tracking-widest uppercase opacity-70">
+              Results ({filteredChats.length})
+            </div>
+          )}
 
           {recentChats.length === 0 && pinnedChats.length === 0 && (
             <div className="text-theme-overlay bg-theme-surface/20 border-theme-surface/30 mx-2 rounded-lg border border-dashed py-8 text-center text-sm italic">
@@ -571,22 +683,22 @@ const Sidebar = () => {
           )}
         </div>
 
-        {/* Virtualized Chat List - needs explicit flex-1 with min-h-0 for virtualization to work */}
+        {/* Virtualized Chat List with date headers */}
         {(searchQuery ? filteredChats : recentChats).length > 0 && (
           <div className="flex min-h-0 flex-1 flex-col px-4">
             <VirtualizedChatList
               chats={searchQuery ? filteredChats : recentChats}
               pathname={pathname}
-              renamingChatId={renamingChatId}
-              renameValue={renameValue}
+              renaming={renaming}
               onSelect={handleSelectChat}
               onContextMenu={handleContextMenu}
               onDelete={handleDeleteChat}
               onPin={handlePin}
               onUnpin={handleUnpin}
-              onRenameChange={setRenameValue}
+              onRenameChange={(value) => setRenaming((prev) => (prev ? { ...prev, value } : null))}
               onRenameSubmit={handleRenameSubmit}
               onRenameKeyDown={handleRenameKeyDown}
+              showDateHeaders={!searchQuery}
             />
           </div>
         )}
@@ -604,8 +716,12 @@ const Sidebar = () => {
               handleDeleteChat({ preventDefault: () => {}, stopPropagation: () => {} }, chatId);
             }}
             onRename={handleRename}
+            onMoveToFolder={setMovingChat}
           />
         )}
+
+        {/* Move to Folder Modal */}
+        {movingChat && <MoveToFolderModal chat={movingChat} onClose={() => setMovingChat(null)} />}
 
         {/* Footer */}
         <div className="mt-auto p-4"></div>
