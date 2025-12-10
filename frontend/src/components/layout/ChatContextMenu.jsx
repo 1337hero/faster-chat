@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "preact/hooks";
-import { Pin, PinOff, Archive, Trash2, ExternalLink, TextCursor } from "lucide-preact";
+import { Pin, PinOff, Archive, Trash2, ExternalLink, TextCursor, FolderInput } from "lucide-preact";
 
-/**
- * Context menu for chat items in sidebar.
- * Triggered by right-click on chat items.
- */
 const ChatContextMenu = ({
   chat,
   position,
@@ -14,20 +10,22 @@ const ChatContextMenu = ({
   onArchive,
   onDelete,
   onRename,
+  onMoveToFolder,
 }) => {
   const menuRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  // Close on click outside or Escape
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
       }
     };
 
@@ -38,7 +36,7 @@ const ChatContextMenu = ({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, []);
 
   // Adjust position to keep menu on screen
   const adjustedPosition = { ...position };
@@ -68,6 +66,14 @@ const ChatContextMenu = ({
       label: "Rename",
       onClick: () => {
         onRename(chat.id);
+        onClose();
+      },
+    },
+    {
+      icon: FolderInput,
+      label: "Move to Folder",
+      onClick: () => {
+        onMoveToFolder(chat);
         onClose();
       },
     },

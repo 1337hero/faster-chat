@@ -889,7 +889,7 @@ export const dbUtils = {
   getChatsByUserId(userId, includeArchived = false) {
     const stmt = db.prepare(`
       SELECT * FROM chats
-      WHERE user_id = ? AND deleted_at IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
+      WHERE user_id = ? AND deleted_at IS NULL AND folder_id IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
       ORDER BY
         CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
         pinned_at DESC,
