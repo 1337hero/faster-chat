@@ -31,12 +31,12 @@ const InputArea = ({
     handleInputChange(e);
   };
 
-  const hasContent = () => input.trim() || selectedFiles.length > 0;
+  const hasContent = input.trim() || selectedFiles.length > 0;
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && hasContent()) {
+      if (!disabled && hasContent) {
         handleFormSubmit(e);
       }
     }
@@ -83,7 +83,7 @@ const InputArea = ({
     setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
-  const isSubmitDisabled = !hasContent() || disabled;
+  const isSubmitDisabled = !hasContent || disabled;
 
   return (
     <div className="flex w-full flex-col">
@@ -107,6 +107,7 @@ const InputArea = ({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={imageMode ? "Describe the image you want to generate..." : "Ask anything..."}
+        aria-label="Message input"
         disabled={disabled}
         rows={1}
         className="text-theme-text placeholder-theme-muted max-h-[200px] w-full resize-none border-none bg-transparent px-4 py-3 text-base focus:ring-0 focus:outline-none"
@@ -121,6 +122,7 @@ const InputArea = ({
             onClick={() => fileUploadRef.current?.handleButtonClick?.()}
             className="text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-lg p-2 transition-colors"
             title="Add Attachment"
+            aria-label="Add attachment"
             disabled={disabled}>
             <Paperclip size={18} />
           </button>
@@ -133,6 +135,7 @@ const InputArea = ({
                 : "text-theme-muted hover:bg-theme-pink/10 hover:text-theme-pink"
             }`}
             title={imageMode ? "Exit Image Mode" : "Generate Image"}
+            aria-label={imageMode ? "Exit image mode" : "Generate image"}
             disabled={disabled}>
             <Image size={18} />
           </button>
@@ -140,6 +143,7 @@ const InputArea = ({
             type="button"
             className="text-theme-muted hover:bg-theme-green/10 hover:text-theme-green rounded-lg p-2 transition-colors"
             title="Search Web"
+            aria-label="Search web"
             disabled={disabled}>
             <Globe size={18} />
           </button>
@@ -163,6 +167,13 @@ const InputArea = ({
                     ? "Voice Active - Click to Stop"
                     : "Click to Start Voice Chat"
               }
+              aria-label={
+                !voiceControls.isSupported
+                  ? "Voice not supported in this browser"
+                  : voiceControls.isActive
+                    ? "Voice Active - Click to Stop"
+                    : "Click to Start Voice Chat"
+              }
               disabled={disabled || !voiceControls.isSupported}>
               {voiceControls.isActive ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
@@ -174,6 +185,7 @@ const InputArea = ({
           onClick={handleFormSubmit}
           disabled={isSubmitDisabled}
           type="button"
+          aria-label="Send message"
           className={`rounded-xl p-2 transition-all duration-200 ${
             isSubmitDisabled
               ? "bg-theme-surface-strong text-theme-muted cursor-not-allowed"

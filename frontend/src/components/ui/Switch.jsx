@@ -33,6 +33,8 @@ export const Switch = ({ color = "blue", value, label, onChange, disabled, ...pr
       })}
       {...props}>
       <div
+        role="switch"
+        aria-checked={value}
         tabIndex={disabled ? -1 : 0}
         onKeyDown={onKeyEvent}
         className={clsx(

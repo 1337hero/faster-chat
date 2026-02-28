@@ -258,10 +258,11 @@ const AddProviderModal = ({ isOpen, onClose }) => {
 
             {/* Display Name */}
             <div>
-              <label className="text-theme-text block text-sm font-medium">
+              <label htmlFor="add-provider-display-name" className="text-theme-text block text-sm font-medium">
                 Display Name (optional)
               </label>
               <input
+                id="add-provider-display-name"
                 type="text"
                 value={displayName}
                 onInput={(e) => setDisplayName(e.target.value)}
@@ -274,10 +275,11 @@ const AddProviderModal = ({ isOpen, onClose }) => {
             {(selectedProvider.requiresBaseUrl ||
               isLocalProvider(selectedProvider.id, selectedProvider)) && (
               <div>
-                <label className="text-theme-text block text-sm font-medium">
+                <label htmlFor="add-provider-base-url" className="text-theme-text block text-sm font-medium">
                   {selectedProvider.baseUrlLabel || "Base URL"}
                 </label>
                 <input
+                  id="add-provider-base-url"
                   type="text"
                   value={baseUrl}
                   onInput={(e) => setBaseUrl(e.target.value)}
@@ -299,8 +301,9 @@ const AddProviderModal = ({ isOpen, onClose }) => {
             {/* API Key - show for non-local providers or when explicitly required */}
             {!isLocalProvider(selectedProvider.id, selectedProvider) && (
               <div>
-                <label className="text-theme-text block text-sm font-medium">API Key</label>
+                <label htmlFor="add-provider-api-key" className="text-theme-text block text-sm font-medium">API Key</label>
                 <input
+                  id="add-provider-api-key"
                   type="password"
                   value={apiKey}
                   onInput={(e) => setApiKey(e.target.value)}

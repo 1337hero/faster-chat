@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense } from "preact/compat";
 import { adminClient } from "@/lib/adminClient";
 import { Button } from "@/components/ui/button";
+import { formatDateLong, formatRelativeTime } from "@/lib/formatters";
 
 // Lazy load modal components - only load when needed
 const CreateUserModal = lazy(() => import("./CreateUserModal"));
@@ -33,33 +34,6 @@ const UsersTab = () => {
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "Never";
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatRelativeTime = (dateString) => {
-    if (!dateString) return "Never";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "a few seconds ago";
-    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? "minute" : "minutes"} ago`;
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
-    if (diffDays === 1) return "1 day ago";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return formatDate(dateString);
-  };
 
   if (isLoading) {
     return (
@@ -127,6 +101,7 @@ const UsersTab = () => {
 
       {/* Users table */}
       <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-theme-surface border-b">
@@ -177,7 +152,7 @@ const UsersTab = () => {
                 <td className="text-theme-text-muted py-4">
                   {formatRelativeTime(user.last_active)}
                 </td>
-                <td className="text-theme-text-muted py-4">{formatDate(user.created_at)}</td>
+                <td className="text-theme-text-muted py-4">{formatDateLong(user.created_at)}</td>
                 <td className="py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
@@ -237,6 +212,7 @@ const UsersTab = () => {
             ))}
           </tbody>
         </table>
+        </div>
 
         {filteredUsers.length === 0 && (
           <div className="text-theme-text-muted py-12 text-center">No users found</div>

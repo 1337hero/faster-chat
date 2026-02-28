@@ -47,9 +47,10 @@ export const Avatar = ({
       )}
       {...props}>
       {src ? (
-        <span
-          className="absolute inset-0 rounded-full bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('${src}')` }}
+        <img
+          src={src}
+          alt={name || "Avatar"}
+          className="absolute inset-0 h-full w-full rounded-full object-cover"
         />
       ) : (
         <span>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "preact/hooks";
 import { useThemeStore } from "@/state/useThemeStore";
+import { useQuery } from "@tanstack/react-query";
 import { Check, Moon, Sun } from "lucide-preact";
 
 // Mini color swatches showing the theme's personality
@@ -129,15 +129,11 @@ export const ThemeSelector = () => {
 
 // Separate component that loads its own theme data for preview
 const ThemeCardWithData = ({ themeId, themeName, themePath, isSelected, onSelect, mode }) => {
-  // Load theme data for preview
-  const [themeData, setThemeData] = useState(null);
-
-  useEffect(() => {
-    fetch(themePath)
-      .then((res) => res.json())
-      .then(setThemeData)
-      .catch(console.error);
-  }, [themePath]);
+  const { data: themeData } = useQuery({
+    queryKey: ["theme-preview", themeId],
+    queryFn: () => fetch(themePath).then((res) => res.json()),
+    staleTime: Infinity,
+  });
 
   const colors = themeData?.colors?.[mode];
 

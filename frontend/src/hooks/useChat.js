@@ -1,4 +1,4 @@
-import { extractTextContent } from "@/utils/message/messageUtils";
+import { extractTextContent } from "@/lib/messageUtils";
 import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";

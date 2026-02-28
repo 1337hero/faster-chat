@@ -1,5 +1,5 @@
 import * as Headless from "@headlessui/react";
-import { clsx } from "@/lib/clsx";
+import clsx from "clsx";
 import { forwardRef } from "@preact/compat";
 
 export const Textarea = forwardRef(function Textarea(
@@ -12,7 +12,7 @@ export const Textarea = forwardRef(function Textarea(
       {...props}
       className={clsx([
         className,
-        "text-theme-text w-full resize-none bg-transparent text-base leading-6 outline-none disabled:opacity-0",
+        "text-theme-text w-full resize-none bg-transparent text-base leading-6 outline-none disabled:opacity-50",
         resizable ? "resize-y" : "resize-none",
       ])}
     />

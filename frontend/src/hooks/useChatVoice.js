@@ -1,7 +1,7 @@
 import { useVoice } from "@/hooks/useVoice";
 import { showErrorToast } from "@/lib/errorHandler";
-import { extractTextContent, hasTextContent } from "@/utils/message/messageUtils";
-import { useLayoutEffect, useRef } from "preact/hooks";
+import { extractTextContent, hasTextContent } from "@/lib/messageUtils";
+import { useEffect, useRef } from "preact/hooks";
 
 const shouldSpeakMessage = (message, lastSpokenId) => {
   if (!message) return false;
@@ -24,7 +24,7 @@ export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
     },
   });
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!voice.isActive || messages.length === 0 || isLoading) return;
 
     const lastMessage = messages[messages.length - 1];

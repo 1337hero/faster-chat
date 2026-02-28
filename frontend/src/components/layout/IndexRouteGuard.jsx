@@ -49,6 +49,9 @@ export function IndexRouteGuard() {
               replace: true,
             });
           },
+          onError: () => {
+            hasStartedNavigation.current = false;
+          },
         }
       );
     }
