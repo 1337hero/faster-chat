@@ -53,7 +53,7 @@ const EditProviderModal = ({ provider, onClose }) => {
             className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none"
           />
           <p className="text-theme-text-muted mt-1 text-xs">
-            Current key: {provider.masked_key || "Not set"}
+            {provider.has_key ? "API key configured" : "No API key set"}
           </p>
         </div>
 

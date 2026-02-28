@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { dbUtils } from "../lib/db.js";
-import { encryptApiKey, decryptApiKey, maskApiKey } from "../lib/encryption.js";
+import { encryptApiKey, decryptApiKey } from "../lib/encryption.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import { getClientIP } from "../lib/requestUtils.js";
 import {
   getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
@@ -16,6 +17,7 @@ import {
   TIMEOUTS,
 } from "@faster-chat/shared";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import db from "../lib/db.js";
 
 const BulkEnableSchema = z.object({
   enabled: z.boolean(),
@@ -38,6 +40,21 @@ function normalizeBaseUrl(providerName, baseUrl) {
     return baseUrl || "https://openrouter.ai/api/v1";
   }
   return baseUrl || null;
+}
+
+/**
+ * Validate provider base URL to prevent SSRF
+ */
+function validateProviderUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const blockedHosts = ["169.254.169.254", "metadata.google.internal", "100.100.100.200"];
+    if (blockedHosts.includes(parsed.hostname)) return false;
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Validation schemas
@@ -102,7 +119,7 @@ providersRouter.get("/available", async (c) => {
 
 /**
  * GET /api/admin/providers
- * List all providers
+ * List all providers — does NOT decrypt API keys
  */
 providersRouter.get("/", async (c) => {
   try {
@@ -119,9 +136,6 @@ providersRouter.get("/", async (c) => {
         base_url: provider.base_url,
         enabled: provider.enabled === 1,
         has_key: !!provider.encrypted_key,
-        masked_key: provider.encrypted_key
-          ? maskApiKey(decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag))
-          : null,
         model_count: models.length,
         created_at: provider.created_at,
       };
@@ -151,6 +165,11 @@ providersRouter.post("/", async (c) => {
     const { name, displayName, providerType, baseUrl, apiKey } = CreateProviderSchema.parse(body);
     const normalizedBaseUrl = normalizeBaseUrl(name, baseUrl);
 
+    // SSRF validation for local provider base URLs
+    if (normalizedBaseUrl && !validateProviderUrl(normalizedBaseUrl)) {
+      return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
+    }
+
     // Check if provider already exists
     const existing = dbUtils.getProviderByName(name);
     if (existing) {
@@ -169,6 +188,15 @@ providersRouter.post("/", async (c) => {
       encryptedKey,
       iv,
       authTag
+    );
+
+    dbUtils.createAuditLog(
+      c.get("user").id,
+      "provider_created",
+      "provider",
+      String(providerId),
+      name,
+      getClientIP(c)
     );
 
     // Auto-fetch models based on provider type
@@ -230,6 +258,13 @@ providersRouter.put("/:id", async (c) => {
       return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
+    // SSRF validation if base URL is being updated
+    if (updates.baseUrl && !validateProviderUrl(updates.baseUrl)) {
+      return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const apiKeyChanged = !!updates.apiKey;
+
     // If updating API key, encrypt it
     if (updates.apiKey) {
       const { encryptedKey, iv, authTag } = encryptApiKey(updates.apiKey);
@@ -240,6 +275,17 @@ providersRouter.put("/:id", async (c) => {
     }
 
     dbUtils.updateProvider(providerId, updates);
+
+    if (apiKeyChanged) {
+      dbUtils.createAuditLog(
+        c.get("user").id,
+        "api_key_changed",
+        "provider",
+        String(providerId),
+        provider.name,
+        getClientIP(c)
+      );
+    }
 
     return c.json({ success: true });
   } catch (error) {
@@ -279,7 +325,7 @@ providersRouter.post("/:id/models/enable", async (c) => {
 
 /**
  * POST /api/admin/providers/:id/refresh-models
- * Refresh models for a provider
+ * Refresh models for a provider (atomic transaction)
  */
 providersRouter.post("/:id/refresh-models", async (c) => {
   try {
@@ -303,21 +349,23 @@ providersRouter.post("/:id/refresh-models", async (c) => {
 
     const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl);
 
-    dbUtils.deleteModelsForProvider(providerId);
-
-    for (const model of models) {
-      const modelId = dbUtils.createModel(
-        providerId,
-        model.model_id,
-        model.display_name,
-        getDefaultEnabledForProvider(provider.name, model.enabled),
-        model.model_type || "text"
-      );
-
-      if (model.metadata) {
-        dbUtils.setModelMetadata(modelId, model.metadata);
+    // Atomic model refresh
+    const refreshModels = db.transaction(() => {
+      dbUtils.deleteModelsForProvider(providerId);
+      for (const model of models) {
+        const modelId = dbUtils.createModel(
+          providerId,
+          model.model_id,
+          model.display_name,
+          getDefaultEnabledForProvider(provider.name, model.enabled),
+          model.model_type || "text"
+        );
+        if (model.metadata) {
+          dbUtils.setModelMetadata(modelId, model.metadata);
+        }
       }
-    }
+    });
+    refreshModels();
 
     return c.json({
       success: true,
@@ -325,10 +373,7 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     });
   } catch (error) {
     console.error("Refresh models error:", error);
-    return c.json(
-      { error: "Failed to refresh models: " + error.message },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
+    return c.json({ error: "Failed to refresh models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
 
@@ -347,6 +392,15 @@ providersRouter.delete("/:id", async (c) => {
 
     dbUtils.deleteProvider(providerId);
 
+    dbUtils.createAuditLog(
+      c.get("user").id,
+      "provider_deleted",
+      "provider",
+      String(providerId),
+      provider.name,
+      getClientIP(c)
+    );
+
     return c.json({ success: true });
   } catch (error) {
     console.error("Delete provider error:", error);
@@ -360,7 +414,6 @@ providersRouter.delete("/:id", async (c) => {
 
 /**
  * Model fetcher factory - maps provider names to their fetch functions
- * Eliminates duplicate if/else chains for model fetching
  */
 const MODEL_FETCHERS = {
   ollama: fetchOllamaModels,
@@ -370,9 +423,6 @@ const MODEL_FETCHERS = {
 
 /**
  * Fetch models for a provider using the appropriate fetcher
- * @param {string} providerName - The provider identifier
- * @param {string} baseUrl - The base URL for local providers
- * @returns {Promise<Array>} Array of model objects
  */
 async function fetchModelsForProvider(providerName, baseUrl) {
   const fetcher = MODEL_FETCHERS[providerName];
@@ -384,9 +434,11 @@ async function fetchModelsForProvider(providerName, baseUrl) {
 
 /**
  * Fetch models from Ollama
- * This is the only provider that dynamically fetches from the instance
  */
 async function fetchOllamaModels(baseUrl) {
+  if (!validateProviderUrl(baseUrl)) {
+    throw new Error("Invalid Ollama base URL");
+  }
   try {
     const response = await fetch(`${baseUrl.replace("/v1", "")}/api/tags`, {
       signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
@@ -426,9 +478,11 @@ async function fetchOllamaModels(baseUrl) {
 
 /**
  * Fetch models from LM Studio
- * Uses OpenAI-compatible /v1/models endpoint
  */
 async function fetchLMStudioModels(baseUrl) {
+  if (!validateProviderUrl(baseUrl)) {
+    throw new Error("Invalid LM Studio base URL");
+  }
   try {
     const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
 

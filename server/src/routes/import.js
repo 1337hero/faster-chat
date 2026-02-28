@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { dbUtils } from "../lib/db.js";
+import db from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { IMPORT_CONSTANTS } from "@faster-chat/shared";
@@ -129,24 +130,26 @@ importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
       );
     }
 
-    // Import each conversation
+    // Import all conversations atomically
     const importedChatIds = [];
     let totalMessages = 0;
 
-    for (const conversation of parseResult.conversations) {
-      try {
+    const importAll = db.transaction(() => {
+      for (const conversation of parseResult.conversations) {
         const { chatId, messageCount } = importConversation(conversation, user.id);
         importedChatIds.push(chatId);
         totalMessages += messageCount;
-      } catch (error) {
-        console.error("[Import] Failed to import conversation:", {
-          title: conversation.title,
-          originalId: conversation.originalId,
-          messageCount: conversation.messages.length,
-          error: error.message,
-        });
-        // Continue with remaining conversations
       }
+    });
+
+    try {
+      importAll();
+    } catch (error) {
+      console.error("[Import] Transaction failed:", error.message);
+      return c.json(
+        { error: "Failed to import conversations", details: error.message },
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
     }
 
     return c.json(

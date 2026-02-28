@@ -5,7 +5,9 @@ import { fileURLToPath } from "url";
 import { IMAGE_GENERATION, IMAGE_MODELS } from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
+import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   generateFileId,
   createStoredFilename,
@@ -47,7 +49,7 @@ async function ensureGeneratedDirectory() {
  * POST /api/images/generate
  * Generate an image using Replicate
  */
-imagesRouter.post("/generate", async (c) => {
+imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN), async (c) => {
   try {
     const user = c.get("user");
     const body = await c.req.json();

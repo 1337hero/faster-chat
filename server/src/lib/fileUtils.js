@@ -16,13 +16,12 @@ const UPLOAD_DIR = path.join(PROJECT_ROOT, "server/data/uploads");
 export const FILE_CONFIG = {
   MAX_SIZE: FILE_CONSTANTS.MAX_FILE_SIZE_BYTES,
   ALLOWED_TYPES: [
-    // Images
+    // Images (SVG excluded — stored XSS vector; served as attachment if bypassed)
     "image/jpeg",
     "image/jpg",
     "image/png",
     "image/gif",
     "image/webp",
-    "image/svg+xml",
     // Documents
     "application/pdf",
     "text/plain",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { streamText } from "ai";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
+import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import {
   UI_CONSTANTS,
@@ -15,19 +16,40 @@ import { getModelInstance } from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
+import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 
 export const chatsRouter = new Hono();
 
 chatsRouter.use("/*", ensureSession);
 
+// Validation schemas
+const MessageSchema = z.object({
+  id: z.string().optional(),
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().max(100000),
+  model: z.string().optional(),
+  fileIds: z.array(z.string()).optional(),
+});
+
+const PatchChatSchema = z.object({
+  title: z.string().max(200).optional(),
+});
+
+function truncateToTitle(text) {
+  if (text.length <= UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) return text;
+  return text.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) + UI_CONSTANTS.CHAT_TITLE_ELLIPSIS;
+}
+
 /**
  * GET /api/chats
- * List all chats for the current user
+ * List chats for the current user (paginated)
  */
 chatsRouter.get("/", async (c) => {
   try {
     const user = c.get("user");
-    const chats = dbUtils.getChatsByUserId(user.id);
+    const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
+    const offset = parseInt(c.req.query("offset") || "0", 10);
+    const chats = dbUtils.getChatsByUserIdPaginated(user.id, limit, offset);
 
     return c.json({
       chats: chats.map((chat) => ({
@@ -38,6 +60,8 @@ chatsRouter.get("/", async (c) => {
         createdAt: chat.created_at,
         updatedAt: chat.updated_at,
       })),
+      limit,
+      offset,
     });
   } catch (error) {
     console.error("List chats error:", error);
@@ -118,14 +142,15 @@ chatsRouter.patch("/:chatId", async (c) => {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
     const body = await c.req.json();
+    const validated = PatchChatSchema.parse(body);
 
     const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
     if (!chat) {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
-    if (body.title !== undefined) {
-      dbUtils.updateChatTitle(chatId, body.title);
+    if (validated.title !== undefined) {
+      dbUtils.updateChatTitle(chatId, validated.title);
     }
 
     const updatedChat = dbUtils.getChatById(chatId);
@@ -136,6 +161,9 @@ chatsRouter.patch("/:chatId", async (c) => {
       updatedAt: updatedChat.updated_at,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
+    }
     console.error("Update chat error:", error);
     return c.json({ error: "Failed to update chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
@@ -248,7 +276,7 @@ chatsRouter.delete("/:chatId/archive", async (c) => {
 
 /**
  * GET /api/chats/:chatId/messages
- * Get all messages for a chat
+ * Get messages for a chat (paginated)
  */
 chatsRouter.get("/:chatId/messages", async (c) => {
   try {
@@ -260,7 +288,9 @@ chatsRouter.get("/:chatId/messages", async (c) => {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
-    const messages = dbUtils.getMessagesByChatAndUser(chatId, user.id);
+    const limit = Math.min(parseInt(c.req.query("limit") || "200", 10), 500);
+    const offset = parseInt(c.req.query("offset") || "0", 10);
+    const messages = dbUtils.getMessagesByChatAndUserPaginated(chatId, user.id, limit, offset);
 
     return c.json({
       messages: messages.map((msg) => ({
@@ -271,6 +301,8 @@ chatsRouter.get("/:chatId/messages", async (c) => {
         fileIds: msg.file_ids,
         createdAt: msg.created_at,
       })),
+      limit,
+      offset,
     });
   } catch (error) {
     console.error("Get messages error:", error);
@@ -287,26 +319,18 @@ chatsRouter.post("/:chatId/messages", async (c) => {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
     const body = await c.req.json();
-
-    if (!body.role || !body.content) {
-      return c.json({ error: "role and content are required" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    if (!["user", "assistant", "system"].includes(body.role)) {
-      return c.json({ error: "Invalid role" }, HTTP_STATUS.BAD_REQUEST);
-    }
+    const validated = MessageSchema.parse(body);
 
     const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
     if (!chat) {
-      // Hide existence of chats that belong to other users and do not auto-create
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
-    const messageId = body.id || crypto.randomUUID();
+    const messageId = validated.id || crypto.randomUUID();
     // Validate attachment ownership
-    if (body.fileIds && body.fileIds.length > 0) {
-      const userFiles = dbUtils.getFilesByIdsForUser(body.fileIds, user.id);
-      if (!userFiles || userFiles.length !== body.fileIds.length) {
+    if (validated.fileIds && validated.fileIds.length > 0) {
+      const userFiles = dbUtils.getFilesByIdsForUser(validated.fileIds, user.id);
+      if (!userFiles || userFiles.length !== validated.fileIds.length) {
         return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
       }
     }
@@ -315,26 +339,19 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       messageId,
       chatId,
       user.id,
-      body.role,
-      body.content,
-      body.model || null,
-      body.fileIds || null
+      validated.role,
+      validated.content,
+      validated.model || null,
+      validated.fileIds || null
     );
 
     const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
-    if (isFirstMessage && body.role === "user") {
-      // Generate AI-powered title for the first message
+    if (isFirstMessage && validated.role === "user") {
       let title;
-      if (body.model) {
-        // Use AI to generate a concise title
-        title = await generateChatTitle(body.content, body.model);
+      if (validated.model) {
+        title = await generateChatTitle(validated.content, validated.model);
       } else {
-        // Fallback to sliced message if no model provided
-        title =
-          body.content.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-          (body.content.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
-            ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
-            : "");
+        title = truncateToTitle(validated.content);
       }
       dbUtils.updateChatTitle(chatId, title);
     } else {
@@ -354,6 +371,9 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       HTTP_STATUS.CREATED
     );
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
+    }
     console.error("Create message error:", error);
     return c.json({ error: "Failed to create message" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
@@ -435,7 +455,7 @@ async function generateChatTitle(userMessage, modelId) {
       maxTokens: 20,
     });
 
-    let title = result.text.trim();
+    let title = (await result.text).trim();
 
     // Remove thinking blocks if present (for models like o1)
     title = title.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
@@ -450,23 +470,13 @@ async function generateChatTitle(userMessage, modelId) {
 
     // Fallback to sliced message if title generation fails or returns empty
     if (!title) {
-      title =
-        userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-        (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
-          ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
-          : "");
+      title = truncateToTitle(userMessage);
     }
 
     return title;
   } catch (error) {
-    // If title generation fails, fall back to slicing the message
     console.warn("Title generation failed, using message slice fallback:", error);
-    return (
-      userMessage.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) +
-      (userMessage.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH
-        ? UI_CONSTANTS.CHAT_TITLE_ELLIPSIS
-        : "")
-    );
+    return truncateToTitle(userMessage);
   }
 }
 
@@ -585,58 +595,55 @@ async function convertToModelMessages(messages, systemPrompt, fileIds = [], user
  * POST /api/chats/:chatId/completion
  * Stream an AI completion for a chat
  */
-chatsRouter.post("/:chatId/completion", async (c) => {
-  try {
-    const user = c.get("user");
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-    }
-
-    const chatId = c.req.param("chatId");
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    const body = await c.req.json();
-    const validated = CompletionRequestSchema.parse(body);
-
-    const modelId = validated.model;
-    const model = getModel(modelId);
-    const systemPrompt = getSystemPrompt(validated.systemPromptId);
-
-    let messages;
+chatsRouter.post(
+  "/:chatId/completion",
+  createRateLimiter(ENDPOINT_RATE_LIMITS.COMPLETION),
+  async (c) => {
     try {
-      messages = await convertToModelMessages(
-        validated.messages,
-        systemPrompt.content,
-        validated.fileIds || [],
-        user.id
-      );
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("not accessible")) {
-        return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+      const user = c.get("user");
+      const chatId = c.req.param("chatId");
+      const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+      if (!chat) {
+        return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
       }
-      throw err;
+
+      const body = await c.req.json();
+      const validated = CompletionRequestSchema.parse(body);
+
+      const modelId = validated.model;
+      const model = getModel(modelId);
+      const systemPrompt = getSystemPrompt(validated.systemPromptId);
+
+      let messages;
+      try {
+        messages = await convertToModelMessages(
+          validated.messages,
+          systemPrompt.content,
+          validated.fileIds || [],
+          user.id
+        );
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("not accessible")) {
+          return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+        }
+        throw err;
+      }
+
+      messages = applyCacheControl(messages, modelId);
+
+      const stream = await streamText({
+        model,
+        messages,
+        maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
+      });
+
+      return stream.toUIMessageStreamResponse();
+    } catch (error) {
+      console.error("Completion error:", error);
+      return c.json({ error: "Completion failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
-
-    messages = applyCacheControl(messages, modelId);
-
-    const stream = await streamText({
-      model,
-      messages,
-      maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
-    });
-
-    return stream.toUIMessageStreamResponse();
-  } catch (error) {
-    console.error("Completion error:", error);
-    return c.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
   }
-});
+);
 
 /**
  * GET /api/chats/:chatId/stream
