@@ -1,106 +1,76 @@
-const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
+import { apiFetch } from "@/lib/api";
 
-class ProvidersClient {
-  async _fetch(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      const error = new Error(data.error || "Request failed");
-      error.response = data;
-      error.status = response.status;
-      console.error("API Error:", {
-        endpoint,
-        status: response.status,
-        error: data.error,
-        details: data.details,
-      });
-      throw error;
-    }
-
-    return data;
-  }
-
+export const providersClient = {
   async getProviders() {
-    return this._fetch("/api/admin/providers");
-  }
+    return apiFetch("/api/admin/providers");
+  },
 
   async getAvailableProviders() {
-    return this._fetch("/api/admin/providers/available");
-  }
+    return apiFetch("/api/admin/providers/available");
+  },
 
   async createProvider(name, displayName, providerType, baseUrl, apiKey) {
-    return this._fetch("/api/admin/providers", {
+    return apiFetch("/api/admin/providers", {
       method: "POST",
       body: JSON.stringify({ name, displayName, providerType, baseUrl, apiKey }),
     });
-  }
+  },
 
   async updateProvider(providerId, updates) {
-    return this._fetch(`/api/admin/providers/${providerId}`, {
+    return apiFetch(`/api/admin/providers/${providerId}`, {
       method: "PUT",
       body: JSON.stringify(updates),
     });
-  }
+  },
 
   async refreshModels(providerId) {
-    return this._fetch(`/api/admin/providers/${providerId}/refresh-models`, {
+    return apiFetch(`/api/admin/providers/${providerId}/refresh-models`, {
       method: "POST",
     });
-  }
+  },
 
   async deleteProvider(providerId) {
-    return this._fetch(`/api/admin/providers/${providerId}`, {
+    return apiFetch(`/api/admin/providers/${providerId}`, {
       method: "DELETE",
     });
-  }
+  },
 
   async setAllModelsEnabled(providerId, enabled) {
-    return this._fetch(`/api/admin/providers/${providerId}/models/enable`, {
+    return apiFetch(`/api/admin/providers/${providerId}/models/enable`, {
       method: "POST",
       body: JSON.stringify({ enabled }),
     });
-  }
+  },
 
   async getAllModels() {
-    return this._fetch("/api/admin/models");
-  }
+    return apiFetch("/api/admin/models");
+  },
 
   async getEnabledModels() {
-    return this._fetch("/api/models");
-  }
+    return apiFetch("/api/models");
+  },
 
   async getEnabledModelsByType(modelType) {
     const params = modelType ? `?type=${modelType}` : "";
-    return this._fetch(`/api/models${params}`);
-  }
+    return apiFetch(`/api/models${params}`);
+  },
 
   async updateModel(modelId, updates) {
-    return this._fetch(`/api/admin/models/${modelId}`, {
+    return apiFetch(`/api/admin/models/${modelId}`, {
       method: "PUT",
       body: JSON.stringify(updates),
     });
-  }
+  },
 
   async setDefaultModel(modelId) {
-    return this._fetch(`/api/admin/models/${modelId}/default`, {
+    return apiFetch(`/api/admin/models/${modelId}/default`, {
       method: "PUT",
     });
-  }
+  },
 
   async deleteModel(modelId) {
-    return this._fetch(`/api/admin/models/${modelId}`, {
+    return apiFetch(`/api/admin/models/${modelId}`, {
       method: "DELETE",
     });
-  }
-}
-
-export const providersClient = new ProvidersClient();
+  },
+};

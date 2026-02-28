@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Download, File, Sparkles } from "lucide-preact";
-
-const API_BASE = import.meta.env.DEV ? "http://localhost:3001" : "";
+import { API_BASE, apiFetch } from "@/lib/api";
 
 export default function MessageAttachment({ fileId }) {
   const {
@@ -10,13 +9,7 @@ export default function MessageAttachment({ fileId }) {
     error,
   } = useQuery({
     queryKey: ["file", fileId],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE}/api/files/${fileId}`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to load file");
-      return response.json();
-    },
+    queryFn: () => apiFetch(`/api/files/${fileId}`),
   });
 
   const handleDownload = () => {

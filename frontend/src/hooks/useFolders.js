@@ -2,24 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthState } from "@/state/useAuthState";
 import { chatKeys, folderKeys } from "./queryKeys";
 import { FOLDER_CONSTANTS } from "@faster-chat/shared";
+import { apiFetch } from "@/lib/api";
 
 // Re-export for backward compatibility
 export { folderKeys };
-
-const API_BASE = "/api/folders";
-
-async function fetchJson(url, options = {}) {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(error.error || "Request failed");
-  }
-  return res.json();
-}
 
 /**
  * Hook for managing chat folders with optimistic updates
@@ -30,14 +16,14 @@ export function useFolders() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: folderKeys.list(userId),
-    queryFn: () => fetchJson(API_BASE),
+    queryFn: () => apiFetch("/api/folders"),
     select: (data) => data.folders || [],
     enabled: userId !== null,
   });
 
   const createMutation = useMutation({
     mutationFn: (folderData) =>
-      fetchJson(API_BASE, {
+      apiFetch("/api/folders", {
         method: "POST",
         body: JSON.stringify(folderData),
       }),
@@ -86,7 +72,7 @@ export function useFolders() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...updates }) =>
-      fetchJson(`${API_BASE}/${id}`, {
+      apiFetch(`/api/folders/${id}`, {
         method: "PUT",
         body: JSON.stringify(updates),
       }),
@@ -118,7 +104,7 @@ export function useFolders() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => fetchJson(`${API_BASE}/${id}`, { method: "DELETE" }),
+    mutationFn: (id) => apiFetch(`/api/folders/${id}`, { method: "DELETE" }),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: folderKeys.list(userId) });
       const previousFolders = queryClient.getQueryData(folderKeys.list(userId));
@@ -144,7 +130,7 @@ export function useFolders() {
 
   const moveChatMutation = useMutation({
     mutationFn: ({ chatId, folderId }) =>
-      fetchJson(`${API_BASE}/${folderId || "none"}/chats/${chatId}`, {
+      apiFetch(`/api/folders/${folderId || "none"}/chats/${chatId}`, {
         method: "PUT",
       }),
     onSettled: (_, __, { folderId }) => {
@@ -179,7 +165,7 @@ export function useFolderChats(folderId) {
 
   return useQuery({
     queryKey: folderKeys.chats(userId, folderId),
-    queryFn: () => fetchJson(`${API_BASE}/${folderId}/chats`),
+    queryFn: () => apiFetch(`/api/folders/${folderId}/chats`),
     select: (data) => data.chats || [],
     enabled: userId !== null && !!folderId,
   });
@@ -193,7 +179,7 @@ export function useFolder(folderId) {
 
   return useQuery({
     queryKey: folderKeys.detail(userId, folderId),
-    queryFn: () => fetchJson(`${API_BASE}/${folderId}`),
+    queryFn: () => apiFetch(`/api/folders/${folderId}`),
     select: (data) => data.folder,
     enabled: userId !== null && !!folderId,
   });
