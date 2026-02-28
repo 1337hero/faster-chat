@@ -1,5 +1,6 @@
 import { useUiState } from "@/state/useUiState";
 import { useRouterState } from "@tanstack/react-router";
+import UpdateBanner from "./UpdateBanner";
 
 const MainLayout = ({ sidebar, children }) => {
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
@@ -17,6 +18,7 @@ const MainLayout = ({ sidebar, children }) => {
         className={`bg-theme-background ease-snappy relative z-0 flex h-full flex-1 flex-col transition-[margin] duration-300 ${
           effectiveCollapsed ? "ml-0" : "md:ml-72"
         }`}>
+        <UpdateBanner />
         {children}
       </main>
     </div>
