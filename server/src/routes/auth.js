@@ -24,6 +24,10 @@ const LoginSchema = z.object({
 // Simple in-memory rate limiting (per key)
 const loginAttempts = new Map();
 
+export function _resetRateLimits() {
+  loginAttempts.clear();
+}
+
 function checkRateLimit(bucketKey) {
   const now = Date.now();
   const attempts = loginAttempts.get(bucketKey) || [];
