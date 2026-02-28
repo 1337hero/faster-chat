@@ -19,7 +19,8 @@
     "clean": "rm -rf frontend/dist server/dist node_modules frontend/node_modules server/node_modules packages/*/node_modules",
     "install:all": "bun install",
     "format": "prettier --write \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\"",
-    "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\""
+    "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\"",
+    "test": "cd server && bun test"
   },
   "repository": {
     "type": "git",
