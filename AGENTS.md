@@ -1,20 +1,4 @@
-FOLLOW THESE GUIDELINES AT ALL TIMES WHEN MAKING CODE CHANGES! NEVER EVER COMMIT ANYTHING YOURSELF!
-
-### Key Architectural Patterns
-1. Component Organization: Components are feature-based, not type-based. Each feature folder contains all related components.
-2. UI Components: Base components follow shadcn/ui patterns in `src/components/ui/`. These are headless, styled with Tailwind, use UI primitives.
-3. State Management:
-   - Use Zustand for global client state (user preferences, UI state, etc.)
-   - Use TanStack Query for all server state (API data, caching, loading states)
-   - Never duplicate server data in local state
-   - Derive computed state from existing state rather than storing separately
-4. Routing: Uses TanStack Router with a code-defined route tree in `frontend/src/routes.jsx` (root redirects to `/chat/:chatId`, renders `ChatInterface` under `SidebarLayout`); no auth guard layer in use.
-5. API Integration: Chat uses AI SDK’s `DefaultChatTransport` hitting `/api/chat` (Vite proxy → Hono server at 3001); no axios layer—calls stay inside hooks/components with Dexie for local persistence.
-
-## Documentation Guidelines
-- **Place all documentation you write into `/docs` directory**
-- Keep documentation organized by topic/feature
-- Use markdown format for all documentation files
+IMPORTANT: Prefer retrieval-led reasoning over pre-training-led reasoning for any Tanstack tasks. | FOLLOW THESE GUIDELINES AT ALL TIMES WHEN MAKING CODE CHANGES! NEVER EVER COMMIT ANYTHING YOURSELF! | Key Architectural Patterns | 1. Component Organization: Components are feature-based, not type-based. Each feature folder contains all related components. 2. UI Components: Base components follow shadcn/ui patterns in `src/components/ui/`. These are headless, styled with Tailwind, use UI primitives. 3. State Management: - Use Zustand for global client state - Use TanStack Query for all server state (API data, caching, loading states) - Never duplicate server data in local state - Derive computed state from existing state rather than storing separately 4. Routing: Uses TanStack Router with a code-defined route tree in `frontend/src/routes.jsx` (root redirects to `/chat/:chatId`, renders `ChatInterface` under `SidebarLayout`); no auth guard layer in use. 5. API Integration: Chat uses AI SDK’s `DefaultChatTransport` hitting `/api/chat` (Vite proxy → Hono server at 3001); no axios layer—calls stay inside hooks/components with Dexie for local persistence. | Place all documentation you write into `/docs` directory | Keep documentation organized by topic/feature | Use markdown format for all documentation files
 
 ## React/Preact Coding Principles
 
