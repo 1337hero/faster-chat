@@ -20,6 +20,7 @@ import { filesRouter } from "./routes/files.js";
 import { modelsRouter } from "./routes/models.js";
 import { providersRouter } from "./routes/providers.js";
 import { settingsRouter } from "./routes/settings.js";
+import { versionRouter } from "./routes/version.js";
 import { imagesRouter } from "./routes/images.js";
 import { importRouter } from "./routes/import.js";
 import { foldersRouter } from "./routes/folders.js";
@@ -78,6 +79,9 @@ app.route("/api/chats", chatsRouter);
 
 // Settings routes (public GET, admin-only PUT)
 app.route("/api/settings", settingsRouter);
+
+// Version route (public, no auth)
+app.route("/api/version", versionRouter);
 
 // Images routes (image generation)
 app.route("/api/images", imagesRouter);

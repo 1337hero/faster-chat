@@ -10,6 +10,7 @@ import { foldersRouter } from "../routes/folders.js";
 import { settingsRouter } from "../routes/settings.js";
 import { modelsRouter } from "../routes/models.js";
 import { importRouter } from "../routes/import.js";
+import { versionRouter } from "../routes/version.js";
 
 export function createTestApp() {
   const app = new Hono();
@@ -23,6 +24,7 @@ export function createTestApp() {
   app.route("/api/settings", settingsRouter);
   app.route("/api/import", importRouter);
   app.route("/api/folders", foldersRouter);
+  app.route("/api/version", versionRouter);
 
   return app;
 }
