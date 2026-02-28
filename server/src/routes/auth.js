@@ -5,6 +5,8 @@ import { dbUtils } from "../lib/db.js";
 import { hashPassword, verifyPassword } from "../lib/security.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { RATE_LIMIT, AUTH } from "../lib/constants.js";
+import { getClientIP } from "../lib/requestUtils.js";
+import { ensureSession } from "../middleware/auth.js";
 
 export const authRouter = new Hono();
 
@@ -38,25 +40,18 @@ function checkRateLimit(bucketKey) {
   return true;
 }
 
-// Helper to get client IP
-function getClientIP(c) {
-  if (AUTH.TRUST_PROXY) {
-    const forwarded = c.req.header("x-forwarded-for");
-    if (forwarded) {
-      return forwarded.split(",")[0].trim();
-    }
-    const real = c.req.header("x-real-ip");
-    if (real) {
-      return real;
+// Cleanup loginAttempts Map every 5 minutes — evict entries older than the rate limit window
+setInterval(() => {
+  const cutoff = Date.now() - RATE_LIMIT.WINDOW_MS;
+  for (const [key, timestamps] of loginAttempts.entries()) {
+    const fresh = timestamps.filter((t) => t > cutoff);
+    if (fresh.length === 0) {
+      loginAttempts.delete(key);
+    } else {
+      loginAttempts.set(key, fresh);
     }
   }
-
-  const incoming = c.env?.incoming;
-  const socket =
-    incoming?.socket || incoming?.connection || incoming?.req?.socket || incoming?.req?.connection;
-
-  return socket?.remoteAddress || "local";
-}
+}, 5 * 60 * 1000);
 
 // Cookie settings
 const COOKIE_NAME = "session";
@@ -100,7 +95,7 @@ authRouter.post("/register", async (c) => {
     // Check if username already exists
     const existingUser = dbUtils.getUserByUsername(username);
     if (existingUser) {
-      return c.json({ error: "Username already exists" }, HTTP_STATUS.BAD_REQUEST);
+      return c.json({ error: "Registration failed" }, HTTP_STATUS.BAD_REQUEST);
     }
 
     const role = "admin";
@@ -110,6 +105,8 @@ authRouter.post("/register", async (c) => {
 
     // Create user
     const userId = dbUtils.createUser(username, passwordHash, role);
+
+    dbUtils.createAuditLog(userId, "register", "user", String(userId), null, ip);
 
     // Create session
     const { sessionId, expiresAt } = dbUtils.createSession(userId);
@@ -163,14 +160,18 @@ authRouter.post("/login", async (c) => {
     // Get user
     const user = dbUtils.getUserByUsername(username);
     if (!user) {
+      dbUtils.createAuditLog(null, "login_failed", "user", null, `username: ${username}`, ip);
       return c.json({ error: "Invalid credentials" }, HTTP_STATUS.UNAUTHORIZED);
     }
 
     // Verify password
     const valid = await verifyPassword(user.password_hash, password);
     if (!valid) {
+      dbUtils.createAuditLog(user.id, "login_failed", "user", String(user.id), null, ip);
       return c.json({ error: "Invalid credentials" }, HTTP_STATUS.UNAUTHORIZED);
     }
+
+    dbUtils.createAuditLog(user.id, "login", "user", String(user.id), null, ip);
 
     // Create session
     const { sessionId, expiresAt } = dbUtils.createSession(user.id);
@@ -206,6 +207,10 @@ authRouter.post("/logout", async (c) => {
     const sessionId = getCookie(c, COOKIE_NAME);
 
     if (sessionId) {
+      const session = dbUtils.getSession(sessionId);
+      if (session) {
+        dbUtils.createAuditLog(session.user_id, "logout", "user", String(session.user_id), null, getClientIP(c));
+      }
       dbUtils.deleteSession(sessionId);
     }
 
@@ -262,5 +267,46 @@ authRouter.get("/session", async (c) => {
   } catch (error) {
     console.error("Session check error:", error);
     return c.json({ error: "Session check failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * PUT /api/auth/change-password
+ * Change own password (requires current password verification)
+ */
+authRouter.put("/change-password", ensureSession, async (c) => {
+  try {
+    const user = c.get("user");
+    const body = await c.req.json();
+    const { currentPassword, newPassword } = z
+      .object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8).max(100),
+      })
+      .parse(body);
+
+    const dbUser = dbUtils.getUserByUsername(user.username);
+    const valid = await verifyPassword(dbUser.password_hash, currentPassword);
+    if (!valid) {
+      return c.json({ error: "Current password is incorrect" }, HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const hash = await hashPassword(newPassword);
+    dbUtils.updateUserPassword(user.id, hash);
+
+    // Invalidate all sessions then re-create current one
+    dbUtils.deleteUserSessions(user.id);
+    const { sessionId, expiresAt } = dbUtils.createSession(user.id);
+    setCookie(c, COOKIE_NAME, sessionId, COOKIE_OPTIONS);
+
+    dbUtils.createAuditLog(user.id, "password_changed", "user", String(user.id), null, getClientIP(c));
+
+    return c.json({ success: true, session: { expiresAt } });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
+    }
+    console.error("Change password error:", error);
+    return c.json({ error: "Failed to change password" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });

@@ -164,6 +164,21 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   );
+
+  -- Audit log for security-relevant events
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id TEXT,
+    details TEXT,
+    ip_address TEXT,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 `);
 
 // Migration: Add pinned_at and archived_at columns to chats table
@@ -1252,6 +1267,63 @@ export const dbUtils = {
     const stmt = db.prepare("DELETE FROM settings WHERE key = ?");
     const result = stmt.run(key);
     return result.changes > 0;
+  },
+
+  // ========================================
+  // AUDIT LOG UTILITIES
+  // ========================================
+
+  createAuditLog(userId, action, targetType, targetId, details, ipAddress) {
+    const stmt = db.prepare(`
+      INSERT INTO audit_log (user_id, action, target_type, target_id, details, ip_address, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(userId, action, targetType, targetId, details, ipAddress, Date.now());
+  },
+
+  getAuditLogs(limit = 50, offset = 0) {
+    const stmt = db.prepare(`
+      SELECT al.*, u.username
+      FROM audit_log al
+      LEFT JOIN users u ON al.user_id = u.id
+      ORDER BY al.created_at DESC
+      LIMIT ? OFFSET ?
+    `);
+    return stmt.all(limit, offset);
+  },
+
+  // ========================================
+  // PAGINATED CHAT/MESSAGE UTILITIES
+  // ========================================
+
+  getChatsByUserIdPaginated(userId, limit = 50, offset = 0, includeArchived = false) {
+    const stmt = db.prepare(`
+      SELECT * FROM chats
+      WHERE user_id = ? AND deleted_at IS NULL AND folder_id IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
+      ORDER BY
+        CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
+        pinned_at DESC,
+        updated_at DESC
+      LIMIT ? OFFSET ?
+    `);
+    return stmt.all(userId, limit, offset);
+  },
+
+  getMessagesByChatAndUserPaginated(chatId, userId, limit = 100, offset = 0) {
+    const stmt = db.prepare(`
+      SELECT * FROM messages
+      WHERE chat_id = ? AND user_id = ?
+      ORDER BY created_at ASC
+      LIMIT ? OFFSET ?
+    `);
+    return stmt.all(chatId, userId, limit, offset).map(parseMessageFileIds);
+  },
+
+  purgeSoftDeletedChats(olderThanMs) {
+    const cutoff = Date.now() - olderThanMs;
+    const stmt = db.prepare("DELETE FROM chats WHERE deleted_at IS NOT NULL AND deleted_at < ?");
+    const result = stmt.run(cutoff);
+    return result.changes;
   },
 };
 

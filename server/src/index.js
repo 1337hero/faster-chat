@@ -12,6 +12,7 @@ config();
 // Import routes
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
 import { ensureSession } from "./middleware/auth.js";
+import { securityHeaders } from "./middleware/securityHeaders.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { chatsRouter } from "./routes/chats.js";
@@ -25,19 +26,35 @@ import { foldersRouter } from "./routes/folders.js";
 
 const app = new Hono();
 
-// Middleware
+// Security headers on all responses (before logger so they're always set)
+app.use("*", securityHeaders());
 app.use("*", logger());
+
+// Body size limit — reject oversized requests before hitting route handlers
+app.use("/api/*", async (c, next) => {
+  const contentLength = parseInt(c.req.header("content-length") || "0", 10);
+  if (contentLength > 50 * 1024 * 1024) {
+    return c.json({ error: "Request body too large" }, 413);
+  }
+  await next();
+});
+
 app.use(
   "/api/*",
   cors({
     origin: (origin) => {
-      // Allow localhost in development
-      if (process.env.NODE_ENV !== "production") {
-        return origin || "*";
+      if (process.env.NODE_ENV === "production") {
+        const allowedOrigin = process.env.APP_URL;
+        return origin === allowedOrigin ? origin : null;
       }
-      // In production, only allow configured origin
-      const allowedOrigin = process.env.APP_URL;
-      return origin === allowedOrigin ? origin : null;
+      // Dev: allow localhost origins only — no wildcard fallback
+      if (!origin) return null;
+      try {
+        const url = new URL(origin);
+        return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;
+      } catch {
+        return null;
+      }
     },
     credentials: true,
   })

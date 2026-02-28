@@ -3,7 +3,11 @@ import { z } from "zod";
 import { streamSSE } from "hono/streaming";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
+import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
+
+const debug = process.env.NODE_ENV !== "production";
 
 export const modelsRouter = new Hono();
 
@@ -201,7 +205,7 @@ adminRouter.delete("/:id", async (c) => {
  * Pull an Ollama model from the Ollama registry
  * Streams progress via Server-Sent Events
  */
-adminRouter.post("/ollama/pull", async (c) => {
+adminRouter.post("/ollama/pull", createRateLimiter(ENDPOINT_RATE_LIMITS.OLLAMA_PULL), async (c) => {
   try {
     const body = await c.req.json();
     const { providerId, modelName } = z
@@ -235,8 +239,8 @@ adminRouter.post("/ollama/pull", async (c) => {
     return streamSSE(c, async (stream) => {
       try {
         const pullUrl = `${ollamaBaseUrl}/api/pull`;
-        console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
-        console.log(`[Ollama Pull] URL: ${pullUrl}`);
+        if (debug) console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
+        if (debug) console.log(`[Ollama Pull] URL: ${pullUrl}`);
 
         const response = await fetch(pullUrl, {
           method: "POST",
@@ -244,7 +248,7 @@ adminRouter.post("/ollama/pull", async (c) => {
           body: JSON.stringify({ name: modelName, stream: true }),
         });
 
-        console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
+        if (debug) console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -263,12 +267,12 @@ adminRouter.post("/ollama/pull", async (c) => {
         let buffer = "";
         let chunkCount = 0;
 
-        console.log(`[Ollama Pull] Starting to read stream...`);
+        if (debug) console.log(`[Ollama Pull] Starting to read stream...`);
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
+            if (debug) console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
             break;
           }
 
@@ -276,7 +280,7 @@ adminRouter.post("/ollama/pull", async (c) => {
           const chunk = decoder.decode(value, { stream: true });
           buffer += chunk;
 
-          if (chunkCount <= 3) {
+          if (debug && chunkCount <= 3) {
             console.log(`[Ollama Pull] Chunk ${chunkCount}: ${chunk.substring(0, 200)}`);
           }
 
@@ -305,7 +309,7 @@ adminRouter.post("/ollama/pull", async (c) => {
               await stream.writeSSE({ data: JSON.stringify(data) });
 
               if (data.status === "success") {
-                console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
+                if (debug) console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
               }
             } catch (parseError) {
               console.error(
@@ -319,7 +323,7 @@ adminRouter.post("/ollama/pull", async (c) => {
 
         // Process any remaining buffer content
         if (buffer.trim()) {
-          console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
+          if (debug) console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
           try {
             const data = JSON.parse(buffer);
 
@@ -345,7 +349,7 @@ adminRouter.post("/ollama/pull", async (c) => {
           }
         }
 
-        console.log(`[Ollama Pull] Sending completed event`);
+        if (debug) console.log(`[Ollama Pull] Sending completed event`);
         await stream.writeSSE({ data: JSON.stringify({ status: "completed" }) });
       } catch (error) {
         console.error("Ollama pull error:", error);

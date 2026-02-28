@@ -130,10 +130,10 @@ const ConnectionsTab = () => {
                   </div>
 
                   <div className="mt-2 space-y-1 text-sm">
-                    {provider.masked_key && (
+                    {provider.has_key && (
                       <div className="text-theme-text-muted flex items-center gap-2">
                         <Key className="h-4 w-4" />
-                        API Key: {provider.masked_key}
+                        API key configured
                       </div>
                     )}
 

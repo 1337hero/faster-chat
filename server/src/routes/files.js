@@ -5,7 +5,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
+import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   generateFileId,
   sanitizeFilename,
@@ -32,7 +34,7 @@ filesRouter.use("/*", ensureSession);
  * POST /api/files
  * Upload a file
  */
-filesRouter.post("/", async (c) => {
+filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async (c) => {
   try {
     const user = c.get("user");
     const formData = await c.req.formData();
@@ -158,10 +160,11 @@ filesRouter.get("/:id/content", async (c) => {
     const filePath = path.join(PROJECT_ROOT, file.path);
     const fileContent = await readFile(filePath);
 
-    // Set appropriate headers
+    // Set appropriate headers — SVG must be served as attachment to prevent stored XSS
+    const disposition = file.mime_type === "image/svg+xml" ? "attachment" : "inline";
     c.header("Content-Type", file.mime_type || "application/octet-stream");
     c.header("Content-Length", file.size.toString());
-    c.header("Content-Disposition", `inline; filename="${encodeURIComponent(file.filename)}"`);
+    c.header("Content-Disposition", `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
 
     // Return file content
     return c.body(fileContent);

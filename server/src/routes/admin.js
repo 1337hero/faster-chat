@@ -4,6 +4,7 @@ import { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { hashPassword } from "../lib/security.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { getClientIP } from "../lib/requestUtils.js";
 
 export const adminRouter = new Hono();
 
@@ -61,6 +62,15 @@ adminRouter.post("/users", async (c) => {
     // Create user
     const userId = dbUtils.createUser(username, passwordHash, role, currentUser.id);
 
+    dbUtils.createAuditLog(
+      currentUser.id,
+      "user_created",
+      "user",
+      String(userId),
+      username,
+      getClientIP(c)
+    );
+
     return c.json(
       {
         user: {
@@ -109,6 +119,15 @@ adminRouter.put("/users/:id/role", async (c) => {
     // Invalidate all sessions for this user (force re-login to get new role)
     dbUtils.deleteUserSessions(userId);
 
+    dbUtils.createAuditLog(
+      currentUser.id,
+      "role_changed",
+      "user",
+      String(userId),
+      `${user.username} → ${role}`,
+      getClientIP(c)
+    );
+
     return c.json({
       user: {
         id: userId,
@@ -132,6 +151,7 @@ adminRouter.put("/users/:id/role", async (c) => {
 adminRouter.put("/users/:id/password", async (c) => {
   try {
     const userId = parseInt(c.req.param("id"), 10);
+    const currentUser = c.get("user");
     const body = await c.req.json();
     const { password } = ResetPasswordSchema.parse(body);
 
@@ -149,6 +169,15 @@ adminRouter.put("/users/:id/password", async (c) => {
 
     // Invalidate all sessions for this user (force re-login)
     dbUtils.deleteUserSessions(userId);
+
+    dbUtils.createAuditLog(
+      currentUser.id,
+      "password_reset",
+      "user",
+      String(userId),
+      user.username,
+      getClientIP(c)
+    );
 
     return c.json({ success: true });
   } catch (error) {
@@ -183,9 +212,49 @@ adminRouter.delete("/users/:id", async (c) => {
     // Delete user (sessions will cascade delete)
     dbUtils.deleteUser(userId);
 
+    dbUtils.createAuditLog(
+      currentUser.id,
+      "user_deleted",
+      "user",
+      String(userId),
+      user.username,
+      getClientIP(c)
+    );
+
     return c.json({ success: true });
   } catch (error) {
     console.error("Delete user error:", error);
     return c.json({ error: "Failed to delete user" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * GET /api/admin/audit-log
+ * View recent audit log entries
+ */
+adminRouter.get("/audit-log", async (c) => {
+  try {
+    const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
+    const offset = parseInt(c.req.query("offset") || "0", 10);
+    const logs = dbUtils.getAuditLogs(limit, offset);
+    return c.json({ logs, limit, offset });
+  } catch (error) {
+    console.error("Audit log error:", error);
+    return c.json({ error: "Failed to fetch audit log" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+/**
+ * DELETE /api/admin/chats/purge
+ * Hard-delete soft-deleted chats older than N days
+ */
+adminRouter.delete("/chats/purge", async (c) => {
+  try {
+    const olderThanDays = parseInt(c.req.query("days") || "30", 10);
+    const purged = dbUtils.purgeSoftDeletedChats(olderThanDays * 24 * 60 * 60 * 1000);
+    return c.json({ purged });
+  } catch (error) {
+    console.error("Purge chats error:", error);
+    return c.json({ error: "Failed to purge chats" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });

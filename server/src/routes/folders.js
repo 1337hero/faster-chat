@@ -11,12 +11,8 @@ foldersRouter.use("/*", ensureSession);
 
 // GET /api/folders - Get all folders for current user
 foldersRouter.get("/", async (c) => {
-  const user = c.get("user");
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
     const folders = dbUtils.getFoldersByUserId(user.id);
     return c.json({ folders });
   } catch (error) {
@@ -27,14 +23,10 @@ foldersRouter.get("/", async (c) => {
 
 // GET /api/folders/:id - Get specific folder
 foldersRouter.get("/:id", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("id");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("id");
+
     const folder = dbUtils.getFolderByIdAndUser(folderId, user.id);
     if (!folder) {
       return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
@@ -49,14 +41,10 @@ foldersRouter.get("/:id", async (c) => {
 
 // GET /api/folders/:id/chats - Get chats in a folder
 foldersRouter.get("/:id/chats", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("id");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("id");
+
     const folder = dbUtils.getFolderByIdAndUser(folderId, user.id);
     if (!folder) {
       return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
@@ -72,12 +60,8 @@ foldersRouter.get("/:id/chats", async (c) => {
 
 // POST /api/folders - Create new folder
 foldersRouter.post("/", async (c) => {
-  const user = c.get("user");
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
     const body = await c.req.json();
     const { name, color, position } = body;
 
@@ -114,14 +98,10 @@ foldersRouter.post("/", async (c) => {
 
 // PUT /api/folders/:id - Update folder
 foldersRouter.put("/:id", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("id");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("id");
+
     const existing = dbUtils.getFolderByIdAndUser(folderId, user.id);
     if (!existing) {
       return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
@@ -161,14 +141,10 @@ foldersRouter.put("/:id", async (c) => {
 
 // POST /api/folders/:id/toggle - Toggle folder collapse state
 foldersRouter.post("/:id/toggle", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("id");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("id");
+
     const folder = dbUtils.toggleFolderCollapse(folderId, user.id);
     if (!folder) {
       return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
@@ -183,14 +159,10 @@ foldersRouter.post("/:id/toggle", async (c) => {
 
 // DELETE /api/folders/:id - Delete folder
 foldersRouter.delete("/:id", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("id");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("id");
+
     const success = dbUtils.deleteFolder(folderId, user.id);
     if (!success) {
       return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
@@ -205,15 +177,11 @@ foldersRouter.delete("/:id", async (c) => {
 
 // PUT /api/folders/:folderId/chats/:chatId - Move chat to folder
 foldersRouter.put("/:folderId/chats/:chatId", async (c) => {
-  const user = c.get("user");
-  const folderId = c.req.param("folderId");
-  const chatId = c.req.param("chatId");
-
-  if (!user) {
-    return c.json({ error: "Unauthorized" }, HTTP_STATUS.UNAUTHORIZED);
-  }
-
   try {
+    const user = c.get("user");
+    const folderId = c.req.param("folderId");
+    const chatId = c.req.param("chatId");
+
     // Use null to remove from folder
     const targetFolderId = folderId === "none" ? null : folderId;
     const chat = dbUtils.moveChatToFolder(chatId, user.id, targetFolderId);
