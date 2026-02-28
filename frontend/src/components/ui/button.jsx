@@ -1,5 +1,5 @@
 import * as Headless from "@headlessui/react";
-import { clsx } from "@/lib/clsx";
+import clsx from "clsx";
 import { forwardRef } from "@preact/compat";
 import { Link } from "./link";
 

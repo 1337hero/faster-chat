@@ -4,7 +4,6 @@ import { Toaster } from "sonner";
 import { useEffect } from "preact/hooks";
 import { router } from "./router";
 import { useThemeStore } from "./state/useThemeStore";
-import { useAppSettings } from "./state/useAppSettings";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,12 +17,8 @@ export const queryClient = new QueryClient({
 const App = () => {
   const initializeTheme = useThemeStore((state) => state.initializeTheme);
   const mode = useThemeStore((state) => state.mode);
-  const fetchSettings = useAppSettings((state) => state.fetchSettings);
-
-  // Initialize theme and app settings on app mount
   useEffect(() => {
     initializeTheme();
-    fetchSettings();
   }, []);
 
   return (

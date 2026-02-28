@@ -18,18 +18,7 @@ import { toast } from "sonner";
 import { FOLDER_CONSTANTS, FOLDER_COLORS } from "@faster-chat/shared";
 import ChatContextMenu from "@/components/layout/ChatContextMenu";
 import MoveToFolderModal from "@/components/layout/MoveToFolderModal";
-
-const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: "short" });
-
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-};
+import { formatRelativeDate } from "@/lib/formatters";
 
 const ChatItem = ({ chat, onClick, onContextMenu }) => (
   <button
@@ -42,7 +31,7 @@ const ChatItem = ({ chat, onClick, onContextMenu }) => (
         <p className="text-theme-text-muted mt-0.5 truncate text-sm">{chat.preview}</p>
       )}
     </div>
-    <span className="text-theme-text-muted shrink-0 text-xs">{formatDate(chat.updated_at)}</span>
+    <span className="text-theme-text-muted shrink-0 text-xs">{formatRelativeDate(chat.updated_at)}</span>
   </button>
 );
 

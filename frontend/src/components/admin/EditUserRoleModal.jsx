@@ -32,8 +32,9 @@ const EditUserRoleModal = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={`Change Role: ${user?.username}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-theme-text block text-sm font-medium">Role</label>
+          <label htmlFor="edit-user-role" className="text-theme-text block text-sm font-medium">Role</label>
           <select
+            id="edit-user-role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none">

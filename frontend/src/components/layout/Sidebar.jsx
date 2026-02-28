@@ -2,14 +2,10 @@ import { useState, useRef, useEffect } from "@preact/compat";
 import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSidebarState } from "@/hooks/useSidebarState";
-import { useAppSettings } from "@/state/useAppSettings";
+import { useAppSettingsQuery } from "@/state/useAppSettings";
 import { useUiState } from "@/state/useUiState";
-import {
-  usePinChatMutation,
-  useUnpinChatMutation,
-  useArchiveChatMutation,
-  useUpdateChatMutation,
-} from "@/hooks/useChatsQuery";
+import { useUpdateChatMutation } from "@/hooks/useChatsQuery";
+import { useChatActions } from "@/hooks/useChatActions";
 import { useFolders } from "@/hooks/useFolders";
 import { searchWithHighlights } from "@/lib/search";
 import { toast } from "sonner";
@@ -28,6 +24,7 @@ import {
   X,
   Zap,
 } from "lucide-preact";
+import Modal from "@/components/ui/Modal";
 import ChatContextMenu from "./ChatContextMenu";
 import MoveToFolderModal from "./MoveToFolderModal";
 
@@ -382,15 +379,15 @@ const Sidebar = () => {
     setIsSidebarOpen,
   } = useSidebarState();
 
-  const pinChatMutation = usePinChatMutation();
-  const unpinChatMutation = useUnpinChatMutation();
-  const archiveChatMutation = useArchiveChatMutation();
+  const { handlePin, handleUnpin, handleArchive } = useChatActions();
   const updateChatMutation = useUpdateChatMutation();
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const sidebarCollapsed = useUiState((state) => state.sidebarCollapsed);
   const toggleSidebarCollapse = useUiState((state) => state.toggleSidebarCollapse);
-  const appName = useAppSettings((state) => state.appName);
-  const logoIcon = useAppSettings((state) => state.logoIcon);
+  const { data: settings } = useAppSettingsQuery();
+  const appName = settings?.appName;
+  const logoIcon = settings?.logoIcon;
   const LogoIcon = LOGO_ICONS[logoIcon] || Zap;
   const isUtilityRoute = pathname === "/admin" || pathname === "/settings";
   const forceExpanded = isUtilityRoute && !isMobile;
@@ -403,27 +400,24 @@ const Sidebar = () => {
   const pinnedChats = filteredChats.filter(({ item }) => item.pinnedAt);
   const recentChats = filteredChats.filter(({ item }) => !item.pinnedAt);
 
+  const handleDeleteRequest = (e, chatId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteConfirm(chatId);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirm) return;
+    handleDeleteChat({ preventDefault: () => {}, stopPropagation: () => {} }, deleteConfirm);
+    setDeleteConfirm(null);
+  };
+
   const handleContextMenu = (e, chat) => {
     e.preventDefault();
     setContextMenu({
       chat,
       position: { x: e.clientX, y: e.clientY },
     });
-  };
-
-  const handlePin = async (chatId) => {
-    await pinChatMutation.mutateAsync(chatId);
-    toast.success("Chat pinned");
-  };
-
-  const handleUnpin = async (chatId) => {
-    await unpinChatMutation.mutateAsync(chatId);
-    toast.success("Chat unpinned");
-  };
-
-  const handleArchive = async (chatId) => {
-    await archiveChatMutation.mutateAsync(chatId);
-    toast.success("Chat archived");
   };
 
   const handleRename = (chatId) => {
@@ -531,7 +525,7 @@ const Sidebar = () => {
           {!forceExpanded && !effectiveCollapsed && !isMobile && (
             <button
               onClick={toggleSidebarCollapse}
-              className="text-latte-overlay0 dark:text-macchiato-overlay0 hover:text-latte-text dark:hover:text-macchiato-text hover:bg-latte-surface0/50 dark:hover:bg-macchiato-surface0/50 hidden rounded-md p-1 transition-colors md:block">
+              className="text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 hidden rounded-md p-1 transition-colors md:block">
               <PanelLeftClose size={18} />
             </button>
           )}
@@ -655,7 +649,7 @@ const Sidebar = () => {
                   renameValue={renaming?.value || ""}
                   onSelect={handleSelectChat}
                   onContextMenu={handleContextMenu}
-                  onDelete={handleDeleteChat}
+                  onDelete={handleDeleteRequest}
                   onPin={handlePin}
                   onUnpin={handleUnpin}
                   onRenameChange={(value) =>
@@ -692,7 +686,7 @@ const Sidebar = () => {
               renaming={renaming}
               onSelect={handleSelectChat}
               onContextMenu={handleContextMenu}
-              onDelete={handleDeleteChat}
+              onDelete={handleDeleteRequest}
               onPin={handlePin}
               onUnpin={handleUnpin}
               onRenameChange={(value) => setRenaming((prev) => (prev ? { ...prev, value } : null))}
@@ -712,9 +706,7 @@ const Sidebar = () => {
             onPin={handlePin}
             onUnpin={handleUnpin}
             onArchive={handleArchive}
-            onDelete={(chatId) => {
-              handleDeleteChat({ preventDefault: () => {}, stopPropagation: () => {} }, chatId);
-            }}
+            onDelete={(chatId) => setDeleteConfirm(chatId)}
             onRename={handleRename}
             onMoveToFolder={setMovingChat}
           />
@@ -722,6 +714,25 @@ const Sidebar = () => {
 
         {/* Move to Folder Modal */}
         {movingChat && <MoveToFolderModal chat={movingChat} onClose={() => setMovingChat(null)} />}
+
+        {/* Delete Confirmation */}
+        <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Chat">
+          <p className="text-theme-text-muted mb-6 text-sm">
+            This chat will be permanently deleted. This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteConfirm(null)}
+              className="text-theme-text-muted hover:bg-theme-surface rounded-lg px-4 py-2 text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              className="bg-theme-red hover:bg-theme-red/90 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors">
+              Delete
+            </button>
+          </div>
+        </Modal>
 
         {/* Footer */}
         <div className="mt-auto p-4"></div>

@@ -15,6 +15,7 @@ import {
 } from "lucide-preact";
 import { providersClient } from "@/lib/providersClient";
 import { Button } from "@/components/ui/button";
+import Modal from "@/components/ui/Modal";
 import EditProviderModal from "./EditProviderModal";
 
 // Lazy load modal component - only load when needed
@@ -23,6 +24,7 @@ const AddProviderModal = lazy(() => import("./AddProviderModal"));
 const ConnectionsTab = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const queryClient = useQueryClient();
 
   // Fetch providers
@@ -163,11 +165,11 @@ const ConnectionsTab = () => {
 
                   <button
                     onClick={() => refreshMutation.mutate(provider.id)}
-                    disabled={refreshMutation.isPending}
+                    disabled={refreshMutation.isPending && refreshMutation.variables === provider.id}
                     className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
                     title="Refresh models">
                     <RefreshCw
-                      className={`h-5 w-5 ${refreshMutation.isPending ? "animate-spin" : ""}`}
+                      className={`h-5 w-5 ${refreshMutation.isPending && refreshMutation.variables === provider.id ? "animate-spin" : ""}`}
                     />
                   </button>
 
@@ -189,15 +191,7 @@ const ConnectionsTab = () => {
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `Delete ${provider.display_name}? This will also delete all associated models.`
-                        )
-                      ) {
-                        deleteMutation.mutate(provider.id);
-                      }
-                    }}
+                    onClick={() => setDeleteConfirm(provider)}
                     disabled={deleteMutation.isPending}
                     className="text-theme-red hover:bg-theme-red/10 rounded-lg p-2 disabled:opacity-50"
                     title="Delete connection">
@@ -219,6 +213,32 @@ const ConnectionsTab = () => {
 
       {editingProvider && (
         <EditProviderModal provider={editingProvider} onClose={() => setEditingProvider(null)} />
+      )}
+
+      {deleteConfirm && (
+        <Modal
+          isOpen={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          title={`Delete ${deleteConfirm.display_name}?`}>
+          <p className="text-theme-text-muted text-sm">
+            This will also delete all associated models. This action cannot be undone.
+          </p>
+          <div className="mt-4 flex justify-end gap-3">
+            <Button type="button" plain onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                deleteMutation.mutate(deleteConfirm.id, {
+                  onSuccess: () => setDeleteConfirm(null),
+                });
+              }}>
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

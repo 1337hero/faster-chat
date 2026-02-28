@@ -1,4 +1,4 @@
-import { clsx } from "@/lib/clsx";
+import clsx from "clsx";
 import { Link } from "./link";
 
 export const Text = ({ className, ...props }) => {

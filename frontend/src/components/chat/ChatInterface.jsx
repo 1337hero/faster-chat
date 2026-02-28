@@ -12,7 +12,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Menu } from "lucide-preact";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
-import ImageModelSelector from "./ImageModelSelector";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
 import ModelSelector from "./ModelSelector";
@@ -30,8 +29,12 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   const autoScroll = useUiState((state) => state.autoScroll);
 
   const handleNewChat = async () => {
-    const newChat = await createChatMutation.mutateAsync();
-    navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
+    try {
+      const newChat = await createChatMutation.mutateAsync();
+      navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
+    } catch (err) {
+      toast.error(err.message || "Failed to create new chat");
+    }
   };
   const scrollContainerRef = useRef(null);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -140,7 +143,8 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
           {/* Center: Model Selector */}
           {imageMode ? (
-            <ImageModelSelector
+            <ModelSelector
+              type="image"
               currentModel={preferredImageModel}
               onModelChange={setPreferredImageModel}
             />

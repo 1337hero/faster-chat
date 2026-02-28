@@ -48,8 +48,9 @@ const CreateUserModal = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Create New User">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-theme-text block text-sm font-medium">Username</label>
+          <label htmlFor="create-user-username" className="text-theme-text block text-sm font-medium">Username</label>
           <input
+            id="create-user-username"
             type="text"
             value={username}
             onInput={(e) => setUsername(e.target.value)}
@@ -59,8 +60,9 @@ const CreateUserModal = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label className="text-theme-text block text-sm font-medium">Password</label>
+          <label htmlFor="create-user-password" className="text-theme-text block text-sm font-medium">Password</label>
           <input
+            id="create-user-password"
             type="password"
             value={password}
             onInput={(e) => setPassword(e.target.value)}
@@ -70,8 +72,9 @@ const CreateUserModal = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label className="text-theme-text block text-sm font-medium">Role</label>
+          <label htmlFor="create-user-role" className="text-theme-text block text-sm font-medium">Role</label>
           <select
+            id="create-user-role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none">

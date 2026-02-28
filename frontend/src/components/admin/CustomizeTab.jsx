@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import * as LucideIcons from "lucide-preact";
 import { Check, ChevronRight, RotateCcw, Zap } from "lucide-preact";
-import { useAppSettings } from "@/state/useAppSettings";
+import { useAppSettingsQuery, useUpdateAppSettingsMutation } from "@/state/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { LOGO_ICON_NAMES, UI_CONSTANTS, ICON_SIZE } from "@faster-chat/shared";
 
@@ -12,26 +12,28 @@ const LOGO_ICONS = LOGO_ICON_NAMES.reduce((acc, name) => {
 }, {});
 
 const CustomizeTab = () => {
-  const appName = useAppSettings((state) => state.appName);
-  const logoIcon = useAppSettings((state) => state.logoIcon);
-  const isFetching = useAppSettings((state) => state.isFetching);
-  const isSaving = useAppSettings((state) => state.isSaving);
-  const updateSettings = useAppSettings((state) => state.updateSettings);
+  const { data: settings, isFetching } = useAppSettingsQuery();
+  const updateMutation = useUpdateAppSettingsMutation();
+  const appName = settings?.appName;
+  const logoIcon = settings?.logoIcon;
   const [localAppName, setLocalAppName] = useState(() => appName);
   const [localLogoIcon, setLocalLogoIcon] = useState(() => logoIcon);
   const [saveStatus, setSaveStatus] = useState(null);
 
   const hasUnsavedChanges = localAppName !== appName || localLogoIcon !== logoIcon;
 
-  const handleSave = async () => {
+  const handleSave = () => {
     setSaveStatus(null);
-    const result = await updateSettings({ appName: localAppName, logoIcon: localLogoIcon });
-    if (result.success) {
-      setSaveStatus("success");
-      setTimeout(() => setSaveStatus(null), UI_CONSTANTS.SUCCESS_MESSAGE_DURATION_MS);
-    } else {
-      setSaveStatus("error");
-    }
+    updateMutation.mutate(
+      { appName: localAppName, logoIcon: localLogoIcon },
+      {
+        onSuccess: () => {
+          setSaveStatus("success");
+          setTimeout(() => setSaveStatus(null), UI_CONSTANTS.SUCCESS_MESSAGE_DURATION_MS);
+        },
+        onError: () => setSaveStatus("error"),
+      }
+    );
   };
 
   const handleReset = () => {
@@ -118,9 +120,9 @@ const CustomizeTab = () => {
           <div className="flex items-center gap-3">
             <Button
               onClick={handleSave}
-              disabled={!hasUnsavedChanges || isSaving || isFetching}
+              disabled={!hasUnsavedChanges || updateMutation.isPending || isFetching}
               color="blue">
-              {isSaving ? (
+              {updateMutation.isPending ? (
                 "Saving..."
               ) : saveStatus === "success" ? (
                 <>

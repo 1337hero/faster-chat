@@ -1,7 +1,7 @@
 import ChatInterface from "@/components/chat/ChatInterface";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useChatQuery, useCreateChatMutation } from "@/hooks/useChatsQuery";
-import { useAppSettings } from "@/state/useAppSettings";
+import { useAppSettingsQuery } from "@/state/useAppSettings";
 import { useNavigate } from "@tanstack/react-router";
 import { useLayoutEffect, useRef } from "preact/hooks";
 
@@ -9,7 +9,8 @@ const Chat = ({ chatId }) => {
   const navigate = useNavigate();
   const { data: chat, isLoading, isError, error } = useChatQuery(chatId);
   const createChatMutation = useCreateChatMutation();
-  const appName = useAppSettings((state) => state.appName);
+  const { data: settings } = useAppSettingsQuery();
+  const appName = settings?.appName;
 
   // Update document title when chat changes
   useLayoutEffect(() => {

@@ -55,12 +55,21 @@ const ImageGeneratingSkeleton = () => (
   </div>
 );
 
+const EmptyState = () => (
+  <div className="flex h-full items-center justify-center py-32">
+    <p className="text-theme-text-muted text-lg">Start a conversation</p>
+  </div>
+);
+
 const MessageList = ({ messages, isLoading, isGeneratingImage, status, onStop, onRegenerate }) => {
   const sortedMessages = sortMessagesWithUserFirst(messages);
   const lastAssistantId = sortedMessages.findLast((msg) => msg.role === "assistant")?.id;
+  const isEmpty = messages.length === 0 && !isLoading && !isGeneratingImage;
+
+  if (isEmpty) return <EmptyState />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-live="polite">
       {sortedMessages.map((message) => {
         const isActiveAssistant = message.id === lastAssistantId && message.role === "assistant";
         const actions = getMessageActions(isActiveAssistant, status, onStop, onRegenerate);

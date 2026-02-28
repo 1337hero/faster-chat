@@ -9,22 +9,23 @@ const AuthPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const { login, register, isLoading, error, clearError } = useAuthState();
+  const [validationError, setValidationError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
+    setValidationError("");
 
     try {
       if (isLogin) {
         await login(username, password);
       } else {
         if (password !== confirmPassword) {
-          alert("Passwords do not match");
+          setValidationError("Passwords do not match");
           return;
         }
         await register(username, password);
       }
-      // Auth state will update and Login component will handle redirect
     } catch (err) {
       console.error("Auth error:", err);
     }
@@ -33,6 +34,7 @@ const AuthPage = () => {
   const toggleMode = () => {
     setIsLogin(!isLogin);
     clearError();
+    setValidationError("");
     setPassword("");
     setConfirmPassword("");
   };
@@ -105,8 +107,10 @@ const AuthPage = () => {
               </div>
             )}
 
-            {error && (
-              <div className="bg-theme-red/10 text-theme-red rounded-md p-3 text-sm">{error}</div>
+            {(error || validationError) && (
+              <div className="bg-theme-red/10 text-theme-red rounded-md p-3 text-sm">
+                {validationError || error}
+              </div>
             )}
 
             <Button type="submit" color="blue" className="w-full" disabled={isLoading}>
