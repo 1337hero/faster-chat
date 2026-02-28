@@ -520,7 +520,7 @@ function applyCacheControl(messages, modelId) {
     if (msg.role === "system") {
       return {
         ...msg,
-        experimental_providerMetadata: {
+        providerOptions: {
           anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
         },
       };
@@ -530,7 +530,7 @@ function applyCacheControl(messages, modelId) {
     if (isRecentMessage && idx > 0) {
       return {
         ...msg,
-        experimental_providerMetadata: {
+        providerOptions: {
           anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
         },
       };
