@@ -189,10 +189,12 @@ const MARKDOWN_COMPONENTS = {
  * Memoized to prevent unnecessary re-renders during parent updates.
  */
 export const MarkdownContent = memo(({ content }) => (
-  <ReactMarkdown
-    remarkPlugins={REMARK_PLUGINS}
-    rehypePlugins={REHYPE_PLUGINS}
-    components={MARKDOWN_COMPONENTS}>
-    {content}
-  </ReactMarkdown>
+  <div className="markdown-prose">
+    <ReactMarkdown
+      remarkPlugins={REMARK_PLUGINS}
+      rehypePlugins={REHYPE_PLUGINS}
+      components={MARKDOWN_COMPONENTS}>
+      {content}
+    </ReactMarkdown>
+  </div>
 ));
