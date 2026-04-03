@@ -150,6 +150,32 @@ describe("chat routes", () => {
       messageId = data.id;
     });
 
+    test("POST /api/chats/:chatId/messages accepts assistant message with null metadata", async () => {
+      const res = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+        body: { role: "assistant", content: "Sure, here you go.", model: "gpt-4o", metadata: null },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.role).toBe("assistant");
+      expect(data.metadata).toBeNull();
+    });
+
+    test("POST /api/chats/:chatId/messages accepts assistant message with metadata object", async () => {
+      const res = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+        body: {
+          role: "assistant",
+          content: "Search results below.",
+          model: "gpt-4o",
+          metadata: { toolParts: [{ type: "tool-invocation", toolName: "web_search" }] },
+        },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.metadata).toEqual({ toolParts: [{ type: "tool-invocation", toolName: "web_search" }] });
+    });
+
     test("GET /api/chats/:chatId/messages returns messages", async () => {
       const res = await makeRequest(app, "GET", `/api/chats/${chatId}/messages`, {
         cookie: adminCookie,

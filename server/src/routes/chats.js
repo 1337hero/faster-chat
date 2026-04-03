@@ -32,7 +32,7 @@ const MessageSchema = z.object({
   content: z.string().max(100000),
   model: z.string().optional(),
   fileIds: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).nullish(),
 });
 
 const PatchChatSchema = z.object({

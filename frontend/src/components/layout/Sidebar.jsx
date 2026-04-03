@@ -156,7 +156,6 @@ const ChatItem = ({
       {/* Hover actions - Pin and Delete */}
       {!isRenaming && (
         <div className="absolute top-0 right-0 bottom-0 flex items-center gap-0.5 pr-2">
-          <div className="bg-theme-canvas-alt ease-snappy pointer-events-none absolute inset-y-0 -left-6 w-6 bg-gradient-to-l from-current to-transparent opacity-0 transition-opacity duration-75 group-hover:opacity-100" />
 
           {/* Pin/Unpin button */}
           <button

@@ -1,3 +1,4 @@
+import { createPortal } from "preact/compat";
 import { useEffect, useRef } from "preact/hooks";
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -48,7 +49,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="bg-theme-overlay/40 absolute inset-0 backdrop-blur-sm" onClick={onClose} />
 
@@ -79,7 +80,8 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         {/* Content */}
         <div>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

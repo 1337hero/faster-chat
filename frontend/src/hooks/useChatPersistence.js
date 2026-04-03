@@ -27,9 +27,9 @@ export function useChatPersistence(chatId) {
       role: "assistant",
       content,
       model,
-      metadata,
       createdAt,
     };
+    if (metadata) message.metadata = metadata;
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }

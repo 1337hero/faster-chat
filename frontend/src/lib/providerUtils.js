@@ -15,6 +15,11 @@ export const providerBrandColors = {
   mistral: [65, 33, 144],
   xai: [160, 103, 232],
   perplexity: [48, 85, 245],
+  ollama: [33, 33, 33],
+  deepseek: [78, 130, 238],
+  cohere: [57, 95, 205],
+  meta: [0, 102, 204],
+  qwen: [97, 60, 230],
 };
 
 export function getProviderBranding(providerId) {
