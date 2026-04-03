@@ -8,7 +8,8 @@
     "dev": "bun run src/init.js && bun run src/index.js",
     "build": "echo 'Build complete'",
     "start": "bun run src/init.js && bun run src/index.js",
-    "test": "bun test src/test/"
+    "test": "bun test src/test/",
+    "test:coverage": "bun test src/test/ --coverage"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.89",

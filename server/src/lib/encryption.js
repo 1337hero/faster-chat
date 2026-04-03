@@ -3,16 +3,17 @@ import { config } from "dotenv";
 
 config();
 
-// Encryption key from environment (must be 32 bytes for AES-256)
-const ENCRYPTION_KEY = process.env.API_KEY_ENCRYPTION_KEY;
-
-if (!ENCRYPTION_KEY) {
-  throw new Error(
-    "API_KEY_ENCRYPTION_KEY is not set. Generate a 32-byte hex key and set it in the environment before starting the server."
-  );
-}
-
 const ALGORITHM = "aes-256-gcm";
+
+function getEncryptionKey() {
+  const key = process.env.API_KEY_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error(
+      "API_KEY_ENCRYPTION_KEY is not set. Generate a 32-byte hex key and set it in the environment before starting the server."
+    );
+  }
+  return key;
+}
 
 /**
  * Encrypt an API key
@@ -24,7 +25,7 @@ export function encryptApiKey(apiKey) {
     throw new Error("API key is required");
   }
 
-  const key = Buffer.from(process.env.API_KEY_ENCRYPTION_KEY, "hex");
+  const key = Buffer.from(getEncryptionKey(), "hex");
   const iv = randomBytes(16);
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
@@ -53,7 +54,7 @@ export function decryptApiKey(encryptedKey, iv, authTag) {
   }
 
   try {
-    const key = Buffer.from(process.env.API_KEY_ENCRYPTION_KEY, "hex");
+    const key = Buffer.from(getEncryptionKey(), "hex");
     const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"));
 
     decipher.setAuthTag(Buffer.from(authTag, "hex"));

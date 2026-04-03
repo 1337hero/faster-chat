@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import db, { dbUtils } from "../lib/db.js";
 import { hashPassword } from "../lib/security.js";
 import { authRouter, _resetRateLimits } from "../routes/auth.js";
@@ -10,10 +11,38 @@ import { foldersRouter } from "../routes/folders.js";
 import { settingsRouter } from "../routes/settings.js";
 import { modelsRouter } from "../routes/models.js";
 import { importRouter } from "../routes/import.js";
+import { imagesRouter } from "../routes/images.js";
 import { versionRouter } from "../routes/version.js";
+import { securityHeaders } from "../middleware/securityHeaders.js";
 
 export function createTestApp() {
   const app = new Hono();
+
+  app.use("*", securityHeaders());
+
+  app.use("/api/*", async (c, next) => {
+    const contentLength = parseInt(c.req.header("content-length") || "0", 10);
+    if (contentLength > 50 * 1024 * 1024) {
+      return c.json({ error: "Request body too large" }, 413);
+    }
+    await next();
+  });
+
+  app.use(
+    "/api/*",
+    cors({
+      origin: (origin) => {
+        if (!origin) return null;
+        try {
+          const url = new URL(origin);
+          return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;
+        } catch {
+          return null;
+        }
+      },
+      credentials: true,
+    })
+  );
 
   app.route("/api/auth", authRouter);
   app.route("/api/admin", adminRouter);
@@ -22,9 +51,10 @@ export function createTestApp() {
   app.route("/api/files", filesRouter);
   app.route("/api/chats", chatsRouter);
   app.route("/api/settings", settingsRouter);
+  app.route("/api/version", versionRouter);
+  app.route("/api/images", imagesRouter);
   app.route("/api/import", importRouter);
   app.route("/api/folders", foldersRouter);
-  app.route("/api/version", versionRouter);
 
   return app;
 }
