@@ -10,7 +10,10 @@ import {
   getSystemPrompt,
   MODEL_FEATURES,
   COMPLETION_CONSTANTS,
+  WEB_SEARCH_CONSTANTS,
 } from "@faster-chat/shared";
+import { createWebSearchTool } from "../lib/tools/webSearch.js";
+import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
 import { decryptApiKey } from "../lib/encryption.js";
 import { getModelInstance } from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
@@ -29,6 +32,7 @@ const MessageSchema = z.object({
   content: z.string().max(100000),
   model: z.string().optional(),
   fileIds: z.array(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 const PatchChatSchema = z.object({
@@ -299,6 +303,7 @@ chatsRouter.get("/:chatId/messages", async (c) => {
         content: msg.content,
         model: msg.model,
         fileIds: msg.file_ids,
+        metadata: msg.metadata || null,
         createdAt: msg.created_at,
       })),
       limit,
@@ -342,7 +347,8 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       validated.role,
       validated.content,
       validated.model || null,
-      validated.fileIds || null
+      validated.fileIds || null,
+      validated.metadata || null
     );
 
     const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
@@ -366,6 +372,7 @@ chatsRouter.post("/:chatId/messages", async (c) => {
         content: message.content,
         model: message.model,
         fileIds: message.file_ids,
+        metadata: message.metadata || null,
         createdAt: message.created_at,
       },
       HTTP_STATUS.CREATED
@@ -422,6 +429,7 @@ const CompletionRequestSchema = z.object({
     })
   ),
   fileIds: z.array(z.string()).optional(),
+  webSearch: z.boolean().optional(),
 });
 
 /**
@@ -631,10 +639,29 @@ chatsRouter.post(
 
       messages = applyCacheControl(messages, modelId);
 
+      let toolConfig = {};
+      if (validated.webSearch) {
+        const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
+        const metadata = modelRecord && dbUtils.getModelMetadata(modelRecord.id);
+        if (metadata?.supports_tools) {
+          const apiKey = dbUtils.getWebSearchApiKey();
+          if (apiKey) {
+            toolConfig = {
+              tools: {
+                webSearch: createWebSearchTool({ apiKey }),
+                fetchUrl: createFetchUrlTool(),
+              },
+              maxSteps: WEB_SEARCH_CONSTANTS.MAX_TOOL_STEPS,
+            };
+          }
+        }
+      }
+
       const stream = await streamText({
         model,
         messages,
         maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
+        ...toolConfig,
       });
 
       return stream.toUIMessageStreamResponse();

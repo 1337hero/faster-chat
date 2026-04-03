@@ -1,8 +1,10 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownRenderer";
 import { extractTextContent } from "@/lib/messageUtils";
 import { memo } from "@preact/compat";
-import { Brain, ChevronDown, Cpu, Sparkles } from "lucide-preact";
+import { AlertTriangle, Brain, ChevronDown, Cpu, Sparkles } from "lucide-preact";
 import MessageAttachment from "./MessageAttachment";
+import SearchStatus from "./SearchStatus";
+import SourceCitations, { extractSources, TOOL_ERROR_MESSAGES } from "./SourceCitations";
 
 /**
  * Parse <think> blocks from content for reasoning models (DeepSeek R1, o1, etc.)
@@ -46,6 +48,11 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
   const hasAttachments = message.fileIds && message.fileIds.length > 0;
   const modelName = message.model;
   const hasThinking = thinking.length > 0;
+  const activeToolCall = message.parts?.find(p => p.type === "tool-invocation" && p.state === "call");
+  const sources = isUser ? [] : extractSources(message.parts);
+  const toolErrors = isUser
+    ? []
+    : (message.parts?.filter(p => p.type === "tool-invocation" && p.state === "result" && p.result?.error) || []);
 
   return (
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
@@ -110,9 +117,25 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
             </div>
           )}
 
+          {toolErrors.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {toolErrors.map((err, i) => (
+                <div
+                  key={i}
+                  role="alert"
+                  className="bg-theme-red/8 border-theme-red/20 text-theme-red flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{TOOL_ERROR_MESSAGES[err.result.code] || err.result.error}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={`font-sans ${isUser ? "font-medium text-white/95" : ""}`}>
             <MarkdownContent content={content} />
           </div>
+
+          {sources.length > 0 && <SourceCitations sources={sources} />}
 
           {showActions && (
             <div className="mt-4 flex justify-end gap-2">
@@ -135,11 +158,14 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
             </div>
           )}
 
-          {isStreaming && (
+          {isStreaming && !activeToolCall && (
             <div className="text-theme-mauve mt-3 flex transform-gpu animate-pulse items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="text-xs font-medium">Processing...</span>
             </div>
+          )}
+          {activeToolCall && (
+            <SearchStatus toolName={activeToolCall.toolName} args={activeToolCall.args} />
           )}
         </div>
       </div>

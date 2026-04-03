@@ -43,6 +43,25 @@ export const COMPLETION_CONSTANTS = {
   MAX_TOKENS: 4096,
 };
 
+/** Web Search Constants */
+export const WEB_SEARCH_CONSTANTS = {
+  MAX_RESULTS: 5,
+  MAX_CONTENT_LENGTH: 3000,
+  MAX_TOOL_STEPS: 5,
+  FETCH_TIMEOUT_MS: 10000,
+  CACHE_TTL_MS: 5 * 60 * 1000,
+};
+
+/** Search Error Codes */
+export const SEARCH_ERROR_CODES = {
+  RATE_LIMITED: "RATE_LIMITED",
+  AUTH_FAILED: "AUTH_FAILED",
+  PROVIDER_ERROR: "PROVIDER_ERROR",
+  FETCH_FAILED: "FETCH_FAILED",
+  SSRF_BLOCKED: "SSRF_BLOCKED",
+  NO_RESULTS: "NO_RESULTS",
+};
+
 /** AI Model Feature Detection */
 export const MODEL_FEATURES = {
   /**

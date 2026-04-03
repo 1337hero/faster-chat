@@ -12,6 +12,9 @@ const InputArea = ({
   disabled,
   voiceControls,
   onImageSubmit,
+  webSearchEnabled,
+  onToggleWebSearch,
+  modelSupportsTools,
 }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
@@ -20,6 +23,17 @@ const InputArea = ({
   const imageMode = useUiState((state) => state.imageMode);
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
   const setImageMode = useUiState((state) => state.setImageMode);
+  const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+
+  const handleToggleImageMode = () => {
+    if (webSearchEnabled) setWebSearchEnabled(false);
+    toggleImageMode();
+  };
+
+  const handleToggleWebSearch = () => {
+    if (imageMode) setImageMode(false);
+    onToggleWebSearch();
+  };
 
   const adjustHeight = (element) => {
     element.style.height = "auto";
@@ -128,7 +142,7 @@ const InputArea = ({
           </button>
           <button
             type="button"
-            onClick={toggleImageMode}
+            onClick={handleToggleImageMode}
             className={`rounded-lg p-2 transition-colors ${
               imageMode
                 ? "bg-theme-pink/20 text-theme-pink"
@@ -141,10 +155,30 @@ const InputArea = ({
           </button>
           <button
             type="button"
-            className="text-theme-muted hover:bg-theme-green/10 hover:text-theme-green rounded-lg p-2 transition-colors"
-            title="Search Web"
-            aria-label="Search web"
-            disabled={disabled}>
+            onClick={modelSupportsTools ? handleToggleWebSearch : undefined}
+            className={`rounded-lg p-2 transition-colors ${
+              !modelSupportsTools
+                ? "text-theme-muted/40 cursor-not-allowed opacity-50"
+                : webSearchEnabled
+                  ? "bg-theme-green/20 text-theme-green"
+                  : "text-theme-muted hover:bg-theme-green/10 hover:text-theme-green"
+            }`}
+            title={
+              !modelSupportsTools
+                ? "This model doesn't support web search"
+                : webSearchEnabled
+                  ? "Disable Web Search"
+                  : "Search Web"
+            }
+            aria-label={
+              !modelSupportsTools
+                ? "This model doesn't support web search"
+                : webSearchEnabled
+                  ? "Disable web search"
+                  : "Search web"
+            }
+            aria-pressed={webSearchEnabled}
+            disabled={disabled || !modelSupportsTools}>
             <Globe size={18} />
           </button>
 

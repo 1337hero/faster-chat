@@ -3,7 +3,7 @@ import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
-export function useChat({ id: chatId, model }) {
+export function useChat({ id: chatId, model, webSearchEnabled }) {
   const [input, setInput] = useState("");
 
   const {
@@ -18,10 +18,11 @@ export function useChat({ id: chatId, model }) {
   const stream = useChatStream({
     chatId,
     model,
+    webSearchEnabled,
     persistedMessages,
-    onMessageComplete: async ({ id, content, createdAt }) => {
+    onMessageComplete: async ({ id, content, metadata, createdAt }) => {
       if (chatId) {
-        await saveAssistantMessage({ id, content, model, createdAt }, chatId);
+        await saveAssistantMessage({ id, content, model, metadata, createdAt }, chatId);
       }
     },
   });
