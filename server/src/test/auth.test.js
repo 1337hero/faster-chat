@@ -99,7 +99,11 @@ describe("auth routes", () => {
 
     beforeAll(async () => {
       resetDatabase();
-      const user = await createTestUser({ username: "admin", password: "adminpassword123", role: "admin" });
+      const user = await createTestUser({
+        username: "admin",
+        password: "adminpassword123",
+        role: "admin",
+      });
       cookie = directCookie(user.id);
     });
 
@@ -129,7 +133,11 @@ describe("auth routes", () => {
 
     beforeAll(async () => {
       resetDatabase();
-      const user = await createTestUser({ username: "admin", password: "adminpassword123", role: "admin" });
+      const user = await createTestUser({
+        username: "admin",
+        password: "adminpassword123",
+        role: "admin",
+      });
       cookie = directCookie(user.id);
     });
 
@@ -147,7 +155,11 @@ describe("auth routes", () => {
 
     beforeAll(async () => {
       resetDatabase();
-      const user = await createTestUser({ username: "admin", password: "adminpassword123", role: "admin" });
+      const user = await createTestUser({
+        username: "admin",
+        password: "adminpassword123",
+        role: "admin",
+      });
       cookie = directCookie(user.id);
     });
 
@@ -180,6 +192,63 @@ describe("auth routes", () => {
         cookie,
       });
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe("login rate limiting", () => {
+    beforeAll(async () => {
+      resetDatabase();
+      await createTestUser({ username: "ratelimited", password: "validpassword123", role: "member" });
+    });
+
+    test("returns 429 after 5 failed login attempts", async () => {
+      for (let i = 0; i < 5; i++) {
+        await makeRequest(app, "POST", "/api/auth/login", {
+          body: { username: "ratelimited", password: "wrongpassword" },
+        });
+      }
+      const res = await makeRequest(app, "POST", "/api/auth/login", {
+        body: { username: "ratelimited", password: "wrongpassword" },
+      });
+      expect(res.status).toBe(429);
+    });
+  });
+
+  describe("logout cookie", () => {
+    test("logout response clears session cookie", async () => {
+      resetDatabase();
+      const user = await createTestUser({ username: "logoutuser", password: "logoutpassword123", role: "admin" });
+      const cookie = directCookie(user.id);
+
+      const logoutRes = await makeRequest(app, "POST", "/api/auth/logout", { cookie });
+      expect(logoutRes.status).toBe(200);
+
+      const setCookieHeader = logoutRes.headers.get("set-cookie");
+      expect(setCookieHeader).toContain("session=");
+      expect(setCookieHeader).toContain("Max-Age=0");
+    });
+  });
+
+  describe("password change session invalidation", () => {
+    test("old session is invalidated after password change", async () => {
+      resetDatabase();
+      const user = await createTestUser({ username: "sessuser", password: "oldpassword123", role: "admin" });
+      const oldCookie = directCookie(user.id);
+
+      const changeRes = await makeRequest(app, "PUT", "/api/auth/change-password", {
+        body: { currentPassword: "oldpassword123", newPassword: "newpassword456" },
+        cookie: oldCookie,
+      });
+      expect(changeRes.status).toBe(200);
+
+      const sessionRes = await makeRequest(app, "GET", "/api/auth/session", { cookie: oldCookie });
+      expect(sessionRes.status).toBe(401);
+
+      const newSetCookie = changeRes.headers.get("set-cookie");
+      const match = newSetCookie.match(/session=([^;]+)/);
+      const newCookie = `session=${match[1]}`;
+      const newSessionRes = await makeRequest(app, "GET", "/api/auth/session", { cookie: newCookie });
+      expect(newSessionRes.status).toBe(200);
     });
   });
 });

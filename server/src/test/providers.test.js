@@ -1,5 +1,11 @@
 import { describe, test, expect, beforeAll } from "bun:test";
-import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser, makeRequest } from "./helpers.js";
+import {
+  createTestApp,
+  resetDatabase,
+  seedAdminUser,
+  seedMemberUser,
+  makeRequest,
+} from "./helpers.js";
 
 describe("provider routes", () => {
   let app, adminCookie, memberCookie;
@@ -180,6 +186,86 @@ describe("provider routes", () => {
         cookie: adminCookie,
       });
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("GET /api/admin/providers/available", () => {
+    test("returns 401 without auth", async () => {
+      const res = await makeRequest(app, "GET", "/api/admin/providers/available");
+      expect(res.status).toBe(401);
+    });
+
+    test("returns 403 for member", async () => {
+      const res = await makeRequest(app, "GET", "/api/admin/providers/available", { cookie: memberCookie });
+      expect(res.status).toBe(403);
+    });
+
+    test("returns providers array for admin", async () => {
+      const res = await makeRequest(app, "GET", "/api/admin/providers/available", { cookie: adminCookie });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(Array.isArray(data.providers)).toBe(true);
+      expect(data.providers.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("POST /api/admin/providers/:id/models/enable", () => {
+    let providerId;
+
+    beforeAll(async () => {
+      const res = await makeRequest(app, "GET", "/api/admin/providers", { cookie: adminCookie });
+      const data = await res.json();
+      providerId = data.providers.find((p) => p.name === "anthropic")?.id;
+    });
+
+    test("enables all models for provider", async () => {
+      const res = await makeRequest(app, "POST", `/api/admin/providers/${providerId}/models/enable`, {
+        body: { enabled: true },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    });
+
+    test("disables all models for provider", async () => {
+      const res = await makeRequest(app, "POST", `/api/admin/providers/${providerId}/models/enable`, {
+        body: { enabled: false },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    });
+
+    test("returns 404 for non-existent provider", async () => {
+      const res = await makeRequest(app, "POST", "/api/admin/providers/99999/models/enable", {
+        body: { enabled: true },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("API key rotation audit", () => {
+    let providerId;
+
+    beforeAll(async () => {
+      const res = await makeRequest(app, "GET", "/api/admin/providers", { cookie: adminCookie });
+      const data = await res.json();
+      providerId = data.providers.find((p) => p.name === "anthropic")?.id;
+    });
+
+    test("updating API key creates audit log entry", async () => {
+      await makeRequest(app, "PUT", `/api/admin/providers/${providerId}`, {
+        body: { apiKey: "sk-new-rotated-key-12345" },
+        cookie: adminCookie,
+      });
+
+      const auditRes = await makeRequest(app, "GET", "/api/admin/audit-log", { cookie: adminCookie });
+      const auditData = await auditRes.json();
+      const keyChangeEntry = auditData.logs.find((l) => l.action === "api_key_changed");
+      expect(keyChangeEntry).toBeDefined();
     });
   });
 });

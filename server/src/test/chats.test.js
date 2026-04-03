@@ -1,5 +1,11 @@
 import { describe, test, expect, beforeAll } from "bun:test";
-import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser, makeRequest } from "./helpers.js";
+import {
+  createTestApp,
+  resetDatabase,
+  seedAdminUser,
+  seedMemberUser,
+  makeRequest,
+} from "./helpers.js";
 
 describe("chat routes", () => {
   let app, adminCookie, memberCookie;
@@ -173,7 +179,9 @@ describe("chat routes", () => {
       });
       expect(res.status).toBe(201);
       const data = await res.json();
-      expect(data.metadata).toEqual({ toolParts: [{ type: "tool-invocation", toolName: "web_search" }] });
+      expect(data.metadata).toEqual({
+        toolParts: [{ type: "tool-invocation", toolName: "web_search" }],
+      });
     });
 
     test("GET /api/chats/:chatId/messages returns messages", async () => {
@@ -188,9 +196,14 @@ describe("chat routes", () => {
     });
 
     test("DELETE /api/chats/:chatId/messages/:messageId removes message", async () => {
-      const delRes = await makeRequest(app, "DELETE", `/api/chats/${chatId}/messages/${messageId}`, {
-        cookie: adminCookie,
-      });
+      const delRes = await makeRequest(
+        app,
+        "DELETE",
+        `/api/chats/${chatId}/messages/${messageId}`,
+        {
+          cookie: adminCookie,
+        }
+      );
       expect(delRes.status).toBe(200);
 
       const listRes = await makeRequest(app, "GET", `/api/chats/${chatId}/messages`, {
@@ -240,6 +253,117 @@ describe("chat routes", () => {
         cookie: adminCookie,
       });
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe("cross-user access", () => {
+    let adminChatId;
+
+    beforeAll(async () => {
+      const res = await makeRequest(app, "POST", "/api/chats", {
+        body: { title: "Admin Only Chat" },
+        cookie: adminCookie,
+      });
+      const data = await res.json();
+      adminChatId = data.id;
+
+      await makeRequest(app, "POST", `/api/chats/${adminChatId}/messages`, {
+        body: { role: "user", content: "Secret message" },
+        cookie: adminCookie,
+      });
+    });
+
+    test("member cannot get admin's chat messages", async () => {
+      const res = await makeRequest(app, "GET", `/api/chats/${adminChatId}/messages`, {
+        cookie: memberCookie,
+      });
+      expect(res.status).toBe(404);
+    });
+
+    test("member cannot delete admin's chat", async () => {
+      const res = await makeRequest(app, "DELETE", `/api/chats/${adminChatId}`, {
+        cookie: memberCookie,
+      });
+      expect(res.status).toBe(404);
+    });
+
+    test("member cannot delete admin's message", async () => {
+      const messagesRes = await makeRequest(app, "GET", `/api/chats/${adminChatId}/messages`, {
+        cookie: adminCookie,
+      });
+      const messages = await messagesRes.json();
+      const messageId = messages.messages[0].id;
+
+      const res = await makeRequest(
+        app,
+        "DELETE",
+        `/api/chats/${adminChatId}/messages/${messageId}`,
+        {
+          cookie: memberCookie,
+        }
+      );
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("memory toggle", () => {
+    let chatId;
+
+    beforeAll(async () => {
+      const res = await makeRequest(app, "POST", "/api/chats", {
+        body: { title: "Memory Test" },
+        cookie: adminCookie,
+      });
+      chatId = (await res.json()).id;
+    });
+
+    test("PUT /api/chats/:chatId/memory disables memory", async () => {
+      const res = await makeRequest(app, "PUT", `/api/chats/${chatId}/memory`, {
+        body: { disabled: true },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.disabled).toBe(true);
+    });
+
+    test("PUT /api/chats/:chatId/memory re-enables memory", async () => {
+      const res = await makeRequest(app, "PUT", `/api/chats/${chatId}/memory`, {
+        body: { disabled: false },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.disabled).toBe(false);
+    });
+
+    test("PUT /api/chats/:chatId/memory rejects non-boolean", async () => {
+      const res = await makeRequest(app, "PUT", `/api/chats/${chatId}/memory`, {
+        body: { disabled: "yes" },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(400);
+    });
+
+    test("PUT /api/chats/:chatId/memory returns 404 for other user's chat", async () => {
+      const res = await makeRequest(app, "PUT", `/api/chats/${chatId}/memory`, {
+        body: { disabled: true },
+        cookie: memberCookie,
+      });
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("pagination", () => {
+    test("GET /api/chats supports limit and offset", async () => {
+      const res = await makeRequest(app, "GET", "/api/chats?limit=2&offset=0", {
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.limit).toBe(2);
+      expect(data.offset).toBe(0);
+      expect(data.chats.length).toBeLessThanOrEqual(2);
     });
   });
 });

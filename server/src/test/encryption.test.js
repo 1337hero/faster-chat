@@ -1,7 +1,3 @@
-process.env.API_KEY_ENCRYPTION_KEY =
-  process.env.API_KEY_ENCRYPTION_KEY ||
-  "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
-
 import { describe, test, expect } from "bun:test";
 import {
   encryptApiKey,
