@@ -248,7 +248,8 @@ adminRouter.post("/ollama/pull", createRateLimiter(ENDPOINT_RATE_LIMITS.OLLAMA_P
           body: JSON.stringify({ name: modelName, stream: true }),
         });
 
-        if (debug) console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
+        if (debug)
+          console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -323,7 +324,8 @@ adminRouter.post("/ollama/pull", createRateLimiter(ENDPOINT_RATE_LIMITS.OLLAMA_P
 
         // Process any remaining buffer content
         if (buffer.trim()) {
-          if (debug) console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
+          if (debug)
+            console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
           try {
             const data = JSON.parse(buffer);
 

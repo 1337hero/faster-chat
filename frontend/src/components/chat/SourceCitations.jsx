@@ -50,7 +50,7 @@ export default function SourceCitations({ sources }) {
   const hasMore = sources.length > 5;
 
   return (
-    <div className="mt-4 border-t border-theme-border/30 pt-3">
+    <div className="border-theme-border/30 mt-4 border-t pt-3">
       <div className="text-theme-text-muted mb-2 flex items-center gap-1.5 text-xs font-medium">
         <Globe className="h-3 w-3" />
         Sources

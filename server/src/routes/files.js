@@ -164,7 +164,10 @@ filesRouter.get("/:id/content", async (c) => {
     const disposition = file.mime_type === "image/svg+xml" ? "attachment" : "inline";
     c.header("Content-Type", file.mime_type || "application/octet-stream");
     c.header("Content-Length", file.size.toString());
-    c.header("Content-Disposition", `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
+    c.header(
+      "Content-Disposition",
+      `${disposition}; filename="${encodeURIComponent(file.filename)}"`
+    );
 
     // Return file content
     return c.body(fileContent);

@@ -165,7 +165,9 @@ const ConnectionsTab = () => {
 
                   <button
                     onClick={() => refreshMutation.mutate(provider.id)}
-                    disabled={refreshMutation.isPending && refreshMutation.variables === provider.id}
+                    disabled={
+                      refreshMutation.isPending && refreshMutation.variables === provider.id
+                    }
                     className="text-theme-text-muted hover:bg-theme-surface hover:text-theme-text rounded-lg p-2 disabled:opacity-50"
                     title="Refresh models">
                     <RefreshCw

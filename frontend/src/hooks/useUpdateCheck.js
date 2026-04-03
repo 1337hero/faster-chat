@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "preact/hooks";
 import { apiFetch } from "@/lib/api";
 
-const GITHUB_RELEASES_URL =
-  "https://api.github.com/repos/1337hero/faster-chat/releases/latest";
+const GITHUB_RELEASES_URL = "https://api.github.com/repos/1337hero/faster-chat/releases/latest";
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 const DISMISS_KEY_PREFIX = "fc-update-dismissed-";
 
@@ -50,9 +49,7 @@ export function useUpdateCheck() {
   const latestVersion = latestRelease?.version;
   const releaseUrl = latestRelease?.url;
   const hasUpdate =
-    currentVersion && latestVersion
-      ? compareSemver(currentVersion, latestVersion)
-      : false;
+    currentVersion && latestVersion ? compareSemver(currentVersion, latestVersion) : false;
 
   const isDismissed = latestVersion
     ? dismissed === latestVersion ||

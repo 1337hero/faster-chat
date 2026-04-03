@@ -1,5 +1,11 @@
 import { describe, test, expect, beforeAll } from "bun:test";
-import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser, makeRequest } from "./helpers.js";
+import {
+  createTestApp,
+  resetDatabase,
+  seedAdminUser,
+  seedMemberUser,
+  makeRequest,
+} from "./helpers.js";
 
 describe("admin routes", () => {
   let app, adminCookie, memberCookie, adminUser, memberUser;
@@ -57,7 +63,9 @@ describe("admin routes", () => {
     });
 
     test("DELETE /api/admin/chats/purge returns 403 for member", async () => {
-      const res = await makeRequest(app, "DELETE", "/api/admin/chats/purge", { cookie: memberCookie });
+      const res = await makeRequest(app, "DELETE", "/api/admin/chats/purge", {
+        cookie: memberCookie,
+      });
       expect(res.status).toBe(403);
     });
   });

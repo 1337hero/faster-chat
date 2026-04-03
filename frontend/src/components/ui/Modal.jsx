@@ -1,7 +1,8 @@
 import { createPortal } from "preact/compat";
 import { useEffect, useRef } from "preact/hooks";
 
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   const modalRef = useRef(null);

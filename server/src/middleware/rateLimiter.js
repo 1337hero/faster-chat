@@ -8,17 +8,20 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
   const resolveKey = keyFn || ((c) => c.get("user")?.id?.toString() || "anon");
 
   // Cleanup: evict stale entries every 5 minutes
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, timestamps] of store.entries()) {
-      const fresh = timestamps.filter((t) => now - t < windowMs);
-      if (fresh.length === 0) {
-        store.delete(key);
-      } else {
-        store.set(key, fresh);
+  setInterval(
+    () => {
+      const now = Date.now();
+      for (const [key, timestamps] of store.entries()) {
+        const fresh = timestamps.filter((t) => now - t < windowMs);
+        if (fresh.length === 0) {
+          store.delete(key);
+        } else {
+          store.set(key, fresh);
+        }
       }
-    }
-  }, 5 * 60 * 1000);
+    },
+    5 * 60 * 1000
+  );
 
   return async (c, next) => {
     const key = resolveKey(c);

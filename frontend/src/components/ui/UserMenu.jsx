@@ -38,26 +38,30 @@ export const UserMenu = () => {
         </div>
         <div className="p-1">
           {user.role === "admin" && (
-            <MenuItem as="button"
+            <MenuItem
+              as="button"
               onClick={() => navigate({ to: "/admin" })}
               className="text-theme-text-muted hover:text-theme-text data-[focus]:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
               <Shield size={16} />
               <span>Admin Panel</span>
             </MenuItem>
           )}
-          <MenuItem as="button"
+          <MenuItem
+            as="button"
             onClick={() => navigate({ to: "/settings" })}
             className="text-theme-text-muted hover:text-theme-text data-[focus]:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
             <Settings size={16} />
             <span>Settings</span>
           </MenuItem>
-          <MenuItem as="button"
+          <MenuItem
+            as="button"
             onClick={() => navigate({ to: "/import" })}
             className="text-theme-text-muted hover:text-theme-text data-[focus]:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
             <Download size={16} />
             <span>Import Chats</span>
           </MenuItem>
-          <MenuItem as="button"
+          <MenuItem
+            as="button"
             onClick={handleLogout}
             disabled={isLoading}
             className="text-theme-red hover:bg-theme-red/10 data-[focus]:bg-theme-red/10 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-50">

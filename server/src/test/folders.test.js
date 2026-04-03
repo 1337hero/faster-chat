@@ -1,6 +1,12 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { randomUUID } from "crypto";
-import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser, makeRequest } from "./helpers.js";
+import {
+  createTestApp,
+  resetDatabase,
+  seedAdminUser,
+  seedMemberUser,
+  makeRequest,
+} from "./helpers.js";
 import { dbUtils } from "../lib/db.js";
 
 describe("folder routes", () => {
@@ -106,14 +112,18 @@ describe("folder routes", () => {
     });
 
     test("returns specific folder", async () => {
-      const res = await makeRequest(app, "GET", `/api/folders/${folderId}`, { cookie: adminCookie });
+      const res = await makeRequest(app, "GET", `/api/folders/${folderId}`, {
+        cookie: adminCookie,
+      });
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.folder.name).toBe("Specific Folder");
     });
 
     test("other user gets 404", async () => {
-      const res = await makeRequest(app, "GET", `/api/folders/${folderId}`, { cookie: memberCookie });
+      const res = await makeRequest(app, "GET", `/api/folders/${folderId}`, {
+        cookie: memberCookie,
+      });
       expect(res.status).toBe(404);
     });
   });
@@ -182,14 +192,18 @@ describe("folder routes", () => {
     });
 
     test("deletes folder", async () => {
-      const res = await makeRequest(app, "DELETE", `/api/folders/${folderId}`, { cookie: adminCookie });
+      const res = await makeRequest(app, "DELETE", `/api/folders/${folderId}`, {
+        cookie: adminCookie,
+      });
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
     });
 
     test("non-existent folder returns 404", async () => {
-      const res = await makeRequest(app, "DELETE", `/api/folders/${randomUUID()}`, { cookie: adminCookie });
+      const res = await makeRequest(app, "DELETE", `/api/folders/${randomUUID()}`, {
+        cookie: adminCookie,
+      });
       expect(res.status).toBe(404);
     });
   });
@@ -219,7 +233,9 @@ describe("folder routes", () => {
     });
 
     test("GET /api/folders/:id/chats returns chats in folder", async () => {
-      const res = await makeRequest(app, "GET", `/api/folders/${folderId}/chats`, { cookie: adminCookie });
+      const res = await makeRequest(app, "GET", `/api/folders/${folderId}/chats`, {
+        cookie: adminCookie,
+      });
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(Array.isArray(data.chats)).toBe(true);
@@ -240,19 +256,25 @@ describe("folder routes", () => {
     });
 
     test("flips collapsed state", async () => {
-      const res1 = await makeRequest(app, "POST", `/api/folders/${folderId}/toggle`, { cookie: adminCookie });
+      const res1 = await makeRequest(app, "POST", `/api/folders/${folderId}/toggle`, {
+        cookie: adminCookie,
+      });
       expect(res1.status).toBe(200);
       const data1 = await res1.json();
       expect(data1.folder.is_collapsed).toBe(1);
 
-      const res2 = await makeRequest(app, "POST", `/api/folders/${folderId}/toggle`, { cookie: adminCookie });
+      const res2 = await makeRequest(app, "POST", `/api/folders/${folderId}/toggle`, {
+        cookie: adminCookie,
+      });
       expect(res2.status).toBe(200);
       const data2 = await res2.json();
       expect(data2.folder.is_collapsed).toBe(0);
     });
 
     test("non-existent folder returns 404", async () => {
-      const res = await makeRequest(app, "POST", `/api/folders/${randomUUID()}/toggle`, { cookie: adminCookie });
+      const res = await makeRequest(app, "POST", `/api/folders/${randomUUID()}/toggle`, {
+        cookie: adminCookie,
+      });
       expect(res.status).toBe(404);
     });
   });
