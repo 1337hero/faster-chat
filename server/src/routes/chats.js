@@ -519,8 +519,10 @@ async function fileToContentPart(file) {
   }
 
   return {
-    type: "text",
-    text: `[Attached file: ${file.filename}]`,
+    type: "file",
+    data: fileBuffer,
+    mediaType: file.mime_type,
+    filename: file.filename,
   };
 }
 
