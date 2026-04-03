@@ -13,20 +13,26 @@ export function formatMemoryContext(memories) {
   return MEMORY_CONTEXT_TEMPLATE.replace("{memories}", bullets);
 }
 
+export function isMemoryEnabledForRequest({
+  dbUtils,
+  userId,
+  chatId = null,
+  requestEnabled = true,
+}) {
+  if (!requestEnabled || !userId) return false;
+  if (dbUtils.getMemoryGlobalEnabled() !== "true") return false;
+  if (!dbUtils.getUserMemoryEnabled(userId)) return false;
+  if (chatId && dbUtils.getChatMemoryDisabled(chatId)) return false;
+  return true;
+}
+
 export function createMemoryMiddleware(dbUtils) {
   return {
     transformParams: async ({ params }) => {
-      const userId = params.providerMetadata?.memory?.userId;
-      if (!userId) return params;
-
-      const globalEnabled = dbUtils.getMemoryGlobalEnabled();
-      if (globalEnabled !== "true") return params;
-
-      const userEnabled = dbUtils.getUserMemoryEnabled(userId);
-      if (!userEnabled) return params;
-
-      const chatId = params.providerMetadata?.memory?.chatId;
-      if (chatId && dbUtils.getChatMemoryDisabled(chatId)) return params;
+      const userId = params.providerOptions?.memory?.userId;
+      const chatId = params.providerOptions?.memory?.chatId;
+      const requestEnabled = params.providerOptions?.memory?.enabled !== false;
+      if (!isMemoryEnabledForRequest({ dbUtils, userId, chatId, requestEnabled })) return params;
 
       const memories = dbUtils.getMemoriesForUser(userId);
       if (!memories.length) return params;
@@ -46,18 +52,31 @@ export function wrapModelWithMemory(model, dbUtils) {
   });
 }
 
-export async function extractMemories({ model, userMessage, assistantMessage, userId, chatId, dbUtils }) {
+export async function extractMemories({
+  model,
+  userMessage,
+  assistantMessage,
+  userId,
+  chatId,
+  dbUtils,
+}) {
   try {
     const { text } = await generateText({
       model,
       messages: [
         { role: "system", content: MEMORY_EXTRACTION_PROMPT },
-        { role: "user", content: `User message: ${userMessage}\n\nAssistant response: ${assistantMessage}` },
+        {
+          role: "user",
+          content: `User message: ${userMessage}\n\nAssistant response: ${assistantMessage}`,
+        },
       ],
       maxTokens: 1000,
     });
 
-    const cleaned = text.trim().replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    const cleaned = text
+      .trim()
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "");
     const facts = JSON.parse(cleaned);
 
     if (Array.isArray(facts) && facts.length > 0) {

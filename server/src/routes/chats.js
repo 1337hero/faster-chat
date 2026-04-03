@@ -20,7 +20,12 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
-import { wrapModelWithMemory, extractMemories, getExtractionModel } from "../lib/memory.js";
+import {
+  wrapModelWithMemory,
+  extractMemories,
+  getExtractionModel,
+  isMemoryEnabledForRequest,
+} from "../lib/memory.js";
 
 export const chatsRouter = new Hono();
 
@@ -129,6 +134,7 @@ chatsRouter.get("/:chatId", async (c) => {
     return c.json({
       id: chat.id,
       title: chat.title,
+      memoryDisabled: !!chat.memory_disabled,
       createdAt: chat.created_at,
       updatedAt: chat.updated_at,
     });
@@ -622,9 +628,14 @@ chatsRouter.post(
 
       const modelId = validated.model;
       const model = getModel(modelId);
-      const memoryModel = validated.memoryEnabled !== false
-        ? wrapModelWithMemory(model, dbUtils)
-        : model;
+      const memoryRequestEnabled = validated.memoryEnabled !== false;
+      const memoryEnabledForRequest = isMemoryEnabledForRequest({
+        dbUtils,
+        userId: user.id,
+        chatId,
+        requestEnabled: memoryRequestEnabled,
+      });
+      const memoryModel = memoryEnabledForRequest ? wrapModelWithMemory(model, dbUtils) : model;
       const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
       let messages;
@@ -667,10 +678,16 @@ chatsRouter.post(
         messages,
         maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
         providerOptions: {
-          memory: { userId: user.id, chatId },
+          memory: { userId: user.id, chatId, enabled: memoryRequestEnabled },
         },
         onFinish: async ({ text }) => {
-          if (validated.memoryEnabled !== false) {
+          const canExtractMemories = isMemoryEnabledForRequest({
+            dbUtils,
+            userId: user.id,
+            chatId,
+            requestEnabled: memoryRequestEnabled,
+          });
+          if (canExtractMemories) {
             const lastUserMsg = validated.messages.findLast((m) => m.role === "user");
             if (lastUserMsg && text.trim()) {
               const extractionModel = getExtractionModel(dbUtils, decryptApiKey) || model;

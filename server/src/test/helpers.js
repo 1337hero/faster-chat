@@ -13,6 +13,7 @@ import { modelsRouter } from "../routes/models.js";
 import { importRouter } from "../routes/import.js";
 import { imagesRouter } from "../routes/images.js";
 import { versionRouter } from "../routes/version.js";
+import { memoryRouter } from "../routes/memory.js";
 import { securityHeaders } from "../middleware/securityHeaders.js";
 
 export function createTestApp() {
@@ -55,6 +56,7 @@ export function createTestApp() {
   app.route("/api/images", imagesRouter);
   app.route("/api/import", importRouter);
   app.route("/api/folders", foldersRouter);
+  app.route("/api/memory", memoryRouter);
 
   return app;
 }
@@ -63,6 +65,7 @@ export function resetDatabase() {
   _resetRateLimits();
   db.exec("DELETE FROM audit_log");
   db.exec("DELETE FROM model_metadata");
+  db.exec("DELETE FROM user_memories");
   db.exec("DELETE FROM messages");
   db.exec("DELETE FROM files");
   db.exec("DELETE FROM chats");

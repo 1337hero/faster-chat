@@ -5,16 +5,16 @@ import { ToolbarGroup } from "@/components/ui/ToolbarGroup";
 import { UserMenu } from "@/components/ui/UserMenu";
 import { useChat } from "@/hooks/useChat";
 import { useChatVoice } from "@/hooks/useChatVoice";
+import { useChatMemoryEnabled } from "@/hooks/useMemoryStatus";
+import { useChatNavigation } from "@/hooks/useChatNavigation";
 import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChatsQuery";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { providersClient } from "@/lib/providersClient";
 import { CACHE_DURATIONS } from "@faster-chat/shared";
-import { apiFetch } from "@/lib/api";
-import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
@@ -23,7 +23,7 @@ import VoiceSettings from "./VoiceSettings";
 import VoiceStatusIndicator from "./VoiceStatusIndicator";
 
 const ChatInterface = ({ chatId }) => {
-  const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const createChatMutation = useCreateChatMutation();
   const preferredModel = useUiState((state) => state.preferredModel);
   const setPreferredModel = useUiState((state) => state.setPreferredModel);
@@ -32,22 +32,9 @@ const ChatInterface = ({ chatId }) => {
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
   const autoScroll = useUiState((state) => state.autoScroll);
   const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
-  const memoryEnabled = useUiState((state) => state.memoryEnabled);
   const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
-
-  const { data: memoryStatus } = useQuery({
-    queryKey: ["memory-status"],
-    queryFn: () => apiFetch("/api/memory/status"),
-    staleTime: 60000,
-  });
-
-  const chatMemoryMutation = useMutation({
-    mutationFn: ({ chatId: cId, disabled }) =>
-      apiFetch(`/api/chats/${cId}/memory`, { method: "PUT", body: JSON.stringify({ disabled }) }),
-  });
-
-  const chatMemoryDisabled = chatMemoryMutation.data?.disabled ?? false;
+  const memoryEnabled = useChatMemoryEnabled(chatId);
 
   const { data: modelsData } = useQuery({
     queryKey: ["models", "text"],
@@ -57,11 +44,6 @@ const ChatInterface = ({ chatId }) => {
 
   const currentModelData = (modelsData?.models || []).find((m) => m.model_id === preferredModel);
   const modelSupportsTools = !!currentModelData?.metadata?.supports_tools;
-
-  // Reset webSearch on chat navigation
-  useEffect(() => {
-    setWebSearchEnabled(false);
-  }, [chatId]);
 
   // Wrap model change to auto-disable webSearch when new model lacks tool support
   const handleModelChange = (modelId) => {
@@ -75,7 +57,7 @@ const ChatInterface = ({ chatId }) => {
   const handleNewChat = async () => {
     try {
       const newChat = await createChatMutation.mutateAsync();
-      navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
+      navigateToChat(newChat.id);
     } catch (err) {
       toast.error(err.message || "Failed to create new chat");
     }
@@ -241,10 +223,6 @@ const ChatInterface = ({ chatId }) => {
                 webSearchEnabled={webSearchEnabled}
                 onToggleWebSearch={toggleWebSearch}
                 modelSupportsTools={modelSupportsTools}
-                memoryGlobalEnabled={memoryStatus?.globalEnabled && memoryStatus?.enabled}
-                chatMemoryDisabled={chatMemoryDisabled}
-                onToggleChatMemory={() => chatMemoryMutation.mutate({ chatId, disabled: !chatMemoryDisabled })}
-                chatMemoryPending={chatMemoryMutation.isPending}
                 chatId={chatId}
               />
             </div>

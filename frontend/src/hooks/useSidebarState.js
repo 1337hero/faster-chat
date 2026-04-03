@@ -1,11 +1,12 @@
 import { useChatsQuery, useDeleteChatMutation, useCreateChatMutation } from "./useChatsQuery";
+import { useChatNavigation } from "./useChatNavigation";
 import { useIsMobile } from "./useIsMobile";
 import { useUiState } from "@/state/useUiState";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export function useSidebarState() {
-  const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { data: chats } = useChatsQuery();
   const deleteChatMutation = useDeleteChatMutation();
@@ -14,10 +15,6 @@ export function useSidebarState() {
   const setIsSidebarOpen = useUiState((state) => state.setSidebarOpen);
   const toggleSidebar = useUiState((state) => state.toggleSidebar);
   const isMobile = useIsMobile();
-
-  function navigateToChat(chatId, replace = false) {
-    navigate({ to: "/chat/$chatId", params: { chatId }, replace });
-  }
 
   async function handleDeleteChat(e, chatId) {
     e.preventDefault();
@@ -31,10 +28,10 @@ export function useSidebarState() {
       const nextChat = remainingChats[0];
 
       if (nextChat) {
-        navigateToChat(nextChat.id, true);
+        navigateToChat(nextChat.id, { replace: true });
       } else {
         const newChat = await createChatMutation.mutateAsync({});
-        navigateToChat(newChat.id, true);
+        navigateToChat(newChat.id, { replace: true });
       }
     }
   }
@@ -50,7 +47,7 @@ export function useSidebarState() {
   }
 
   function handleSelectChat(chatId, replace = false) {
-    navigateToChat(chatId, replace);
+    navigateToChat(chatId, { replace });
     handleLinkClick();
   }
 

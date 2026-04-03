@@ -1,5 +1,6 @@
 import ChatInterface from "@/components/chat/ChatInterface";
 import ErrorBanner from "@/components/ui/ErrorBanner";
+import { useChatNavigation } from "@/hooks/useChatNavigation";
 import { useChatQuery, useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { useAppSettingsQuery } from "@/state/useAppSettings";
 import { useNavigate } from "@tanstack/react-router";
@@ -7,6 +8,7 @@ import { useLayoutEffect, useRef } from "preact/hooks";
 
 const Chat = ({ chatId }) => {
   const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const { data: chat, isLoading, isError, error } = useChatQuery(chatId);
   const createChatMutation = useCreateChatMutation();
   const { data: settings } = useAppSettingsQuery();
@@ -30,11 +32,7 @@ const Chat = ({ chatId }) => {
       {},
       {
         onSuccess: (newChat) => {
-          navigate({
-            to: "/chat/$chatId",
-            params: { chatId: newChat.id },
-            replace: true,
-          });
+          navigateToChat(newChat.id, { replace: true });
         },
       }
     );
@@ -45,11 +43,7 @@ const Chat = ({ chatId }) => {
       {},
       {
         onSuccess: (newChat) => {
-          navigate({
-            to: "/chat/$chatId",
-            params: { chatId: newChat.id },
-            replace: true,
-          });
+          navigateToChat(newChat.id, { replace: true });
         },
       }
     );

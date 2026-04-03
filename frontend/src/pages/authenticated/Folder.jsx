@@ -11,6 +11,7 @@ import {
   PanelLeft,
 } from "lucide-preact";
 import { useFolder, useFolderChats, useFolders } from "@/hooks/useFolders";
+import { useChatNavigation } from "@/hooks/useChatNavigation";
 import { useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { useChatActions } from "@/hooks/useChatActions";
 import { useUiState } from "@/state/useUiState";
@@ -190,6 +191,7 @@ const FolderHeader = ({ folder, onUpdate, onDelete, onToggleSidebar, sidebarColl
 
 export default function Folder({ folderId }) {
   const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const { data: folder, isLoading: folderLoading } = useFolder(folderId);
   const { data: chats, isLoading: chatsLoading } = useFolderChats(folderId);
   const { updateFolder, deleteFolder } = useFolders();
@@ -212,14 +214,14 @@ export default function Folder({ folderId }) {
   const handleNewChat = async () => {
     try {
       const newChat = await createChatMutation.mutateAsync({ folderId });
-      navigate({ to: `/chat/${newChat.id}` });
+      navigateToChat(newChat.id);
     } catch (err) {
       toast.error(err.message || "Failed to create chat");
     }
   };
 
   const handleChatClick = (chatId) => {
-    navigate({ to: `/chat/${chatId}` });
+    navigateToChat(chatId);
   };
 
   const handleUpdate = (updates) => updateFolder(folderId, updates);

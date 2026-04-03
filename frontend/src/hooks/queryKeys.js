@@ -19,3 +19,10 @@ export const folderKeys = {
   detail: (userId, folderId) => [...folderKeys.details(userId), folderId],
   chats: (userId, folderId) => [...folderKeys.detail(userId, folderId), "chats"],
 };
+
+export const memoryKeys = {
+  all: (userId) => ["memory", userId],
+  status: (userId) => [...memoryKeys.all(userId), "status"],
+  memories: (userId) => [...memoryKeys.all(userId), "memories"],
+  settings: (userId) => [...memoryKeys.all(userId), "settings"],
+};

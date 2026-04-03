@@ -12,7 +12,6 @@ export const useUiState = create(
       autoScroll: true,
       imageMode: false,
       webSearchEnabled: false,
-      memoryEnabled: true,
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -26,8 +25,6 @@ export const useUiState = create(
       toggleImageMode: () => set((state) => ({ imageMode: !state.imageMode })),
       setWebSearchEnabled: (v) => set({ webSearchEnabled: v }),
       toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
-      setMemoryEnabled: (v) => set({ memoryEnabled: v }),
-      toggleMemory: () => set((s) => ({ memoryEnabled: !s.memoryEnabled })),
     }),
     {
       name: "ui-state",
@@ -38,7 +35,6 @@ export const useUiState = create(
         preferredImageModel: state.preferredImageModel,
         theme: state.theme,
         autoScroll: state.autoScroll,
-        memoryEnabled: state.memoryEnabled,
       }),
     }
   )
