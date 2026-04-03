@@ -32,29 +32,25 @@
 
 > **A blazingly fast, privacy-first chat interface for AI that works with any LLM provider—cloud or completely offline.**
 
-Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Ollama](https://ollama.ai/) or [LMStudio](https://lmstudio.ai/) or even [llama.cpp](https://github.com/ggml-org/llama.cpp). Your conversations stay local in on your machine. No vendor lock-in, no tracking, full control.
+Connect to OpenAI, Anthropic, Google, Groq, Mistral, xAI, DeepSeek, and more—or run completely offline with [Ollama](https://ollama.ai/), [LM Studio](https://lmstudio.ai/), or [llama.cpp](https://github.com/ggml-org/llama.cpp). Your conversations stay on your machine. No vendor lock-in, no tracking, full control.
 
 ![Faster Chat Interface](faster-chat.png)
-
-
-+++++++++++
-
-**CONSIDER THIS BETA** I am actively working on polishing the UI and getting this into a stable position. So please consider this as WORK IN PROGRESS PRESENTLY.
-
-+++++++++++
 
 ## ✨ Features
 
 **Core**
 - 💬 Real-time streaming chat with Vercel AI SDK
-- ⚡ **Blazingly fast** - 3KB Preact runtime, zero SSR overhead, instant responses
-- 🗄️ **Server-side SQLite storage** - Conversations persist across devices and browser tabs
-- 🤖 Multi-provider support: OpenAI, Anthropic, Ollama, Groq, Mistral, custom APIs
+- ⚡ **Blazingly fast** — 3KB Preact runtime, zero SSR overhead, instant responses
+- 🗄️ **Server-side SQLite storage** — Conversations persist across devices and browser tabs
+- 🤖 **19+ providers**: OpenAI, Anthropic, Google, Groq, Mistral, xAI, DeepSeek, Cohere, Fireworks, Cerebras, Amazon Bedrock, Azure, OpenRouter, Replicate, Ollama, LM Studio, and more
+- 🧠 **Cross-conversation memory** — AI remembers your preferences, projects, and context across chats
+- 🔍 **Web search** — AI can search the web and cite sources inline (Brave Search)
+- 🖼️ **Image support** — Upload images for vision analysis, generate images with DALL-E, FLUX, and OpenRouter models
 - 📥 **Import conversations** from ChatGPT exports (more formats coming soon)
 - 📎 File attachments with preview and download
 - 📝 Markdown rendering with syntax highlighting (Shiki) and LaTeX support
-- 🎨 **Themable UI** - Dark/light themes, custom fonts, customizable syntax highlighting
-- 🎤 Voice input/output - Speech-to-text and text-to-speech capabilities
+- 🎨 **Themable UI** — 15+ color themes, dark/light mode, custom fonts, syntax highlighting themes
+- 🎤 Voice input/output — Speech-to-text and text-to-speech capabilities
 - ⌨️ Keyboard shortcuts for power users (Ctrl+B sidebar, Ctrl+Shift+O new chat, etc.)
 - 📱 Responsive design for desktop, tablet, and mobile
 
@@ -64,12 +60,40 @@ Connect to OpenAI, Anthropic, Groq, Mistral, or run completely offline with [Oll
 - ⬇️ **Pull Ollama models** directly from Admin Panel with progress streaming (no CLI needed)
 - 🛡️ Admin panel for user management (CRUD, password reset, role changes)
 - 🔑 Encrypted API key storage with server-side encryption
-- 🎭 **White labeling** - Customize app name and logo icon for your organization
+- 🎭 **White labeling** — Customize app name and logo icon for your organization
 
 **Deployment**
 - 🌐 Works completely offline with local models (Ollama, LM Studio, etc.)
 - 🐳 One-command Docker deployment with optional HTTPS via Caddy
 - 🎨 Modern stack: Preact + Hono + TanStack + Tailwind 4.1
+
+## 🧠 Memory System
+
+Faster Chat can learn about you across conversations — your preferences, projects, tech stack, and communication style. Memories are extracted automatically after each response and injected naturally into future chats.
+
+- **Three-level control**: Global toggle (admin), per-user toggle, per-chat opt-out
+- **Zero latency impact**: Extraction happens asynchronously after the response streams
+- **Full transparency**: View, delete individual facts, or clear all memories from Settings
+- **Configurable extraction model**: Use a cheap/fast model (e.g., Haiku, GPT-4o-mini) to minimize cost
+- **Privacy**: Memories are strictly user-scoped. No admin access to user memories.
+
+## 🔍 Web Search
+
+When enabled, the AI can autonomously search the web and fetch pages to answer questions with up-to-date information.
+
+- **Brave Search** integration with encrypted API key storage
+- **SSRF-protected** URL fetching with DNS validation and private IP blocking
+- **Source citations** displayed as clickable pills with favicons below the response
+- **Real-time status**: "Searching the web..." and "Reading {domain}" indicators during tool execution
+- **5-minute cache** for repeated queries, max 5 results per search
+
+## 🖼️ Image Support
+
+**Vision/Multimodal**: Upload images alongside messages for analysis by vision-capable models (Claude, GPT-4, Gemini, Grok, Mistral, and more).
+
+**Image Generation**: Toggle image mode to generate images with configurable aspect ratios (1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3).
+- **Providers**: OpenAI (DALL-E 3), Replicate (FLUX 1.1 Pro), OpenRouter image models
+- Generated images display inline with download controls and metadata
 
 ## 🚀 Quick Start
 
@@ -104,7 +128,7 @@ bun run dev
 - **Frontend**: http://localhost:3000
 - **API Server**: http://localhost:3001
 
-> **Important**: Backup `server/.env` - contains the encryption key for stored API keys.
+> **Important**: Backup `server/.env` — contains the encryption key for stored API keys.
 
 ### First-Time Setup
 
@@ -128,7 +152,7 @@ bun run dev
 *New Focus Mode*
 
 ![Themes](themes.png)
-*New Apperance Options, to change colors and fonts*
+*New Appearance Options, to change colors and fonts*
 
 ![White Labeling](white-label.png)
 *You can now white label and customize the app title and icon*
@@ -227,44 +251,47 @@ docker compose up -d
 - Preact + Hono migration from Next.js
 - Streaming chat with Vercel AI SDK
 - Server-side SQLite persistence (chats sync across devices/tabs)
-- Multi-provider support (OpenAI, Anthropic, Ollama, custom APIs)
+- Multi-provider support (19+ providers with auto-discovery)
 - Admin panel for providers, models, and users
-- Role-based access control
+- Role-based access control (admin/member/readonly)
 - File attachments with preview/download
 - Markdown, code highlighting (Shiki syntax highlighting), LaTeX rendering
 - One-click Docker deployment with optional HTTPS
 - Keyboard shortcuts (Ctrl+B sidebar, Ctrl+Shift+O new chat, Ctrl+K search)
-- Theming system (multiple color themes, light/dark mode)
+- Theming system (15+ color themes, light/dark mode)
 - Font customization and font themes
 - Voice input/output (speech-to-text, text-to-speech)
 - Settings UI improvements (tabbed interface for user preferences)
 - White labeling (custom app name, custom logo icon selection)
-- **ChatGPT conversation import** (drag-drop JSON export files)
-- **Ollama model pull UI** (download models directly from Admin Panel)
-
-### In Progress 🚧
-- [ ] Tool calling implementation (infrastructure ready)
-- [ ] Image generation integration (DALL-E, Stable Diffusion, local models)
-- [ ] Web search capabilities (optional internet access for AI)
-
+- ChatGPT conversation import (drag-drop JSON export files)
+- Ollama model pull UI (download models directly from Admin Panel)
+- **Cross-conversation memory** (automatic fact extraction, three-level gating, per-chat opt-out)
+- **Web search** (Brave Search integration, source citations, SSRF protection, result caching)
+- **Image support** — Vision/multimodal analysis + image generation (DALL-E, FLUX, OpenRouter)
+- Auto-title generation for chats
+- Message regeneration
+- Reasoning display for thinking models (DeepSeek R1, o1)
+- Chat folders with colors and pinned chats
 
 ### Planned 📋
 
-**Settings & UX**
-- [ ] Conversation branching (explore alternative responses)
+**Chat UX**
+- [ ] Inline message editing
+- [ ] Message rating (thumbs up/down)
 - [ ] Export conversations (JSON, Markdown, CSV)
 - [ ] Import from more sources (Claude, other AI assistants)
-- [ ] Auto title generation for chats
-- [ ] Message regeneration
-- [ ] Advanced message features (inline editing, rating)
 
 **Advanced Capabilities**
-- [ ] Local RAG with vector search (private document search)
-- [ ] Multi-modal requests (vision, audio)
+- [ ] Prompt templates (reusable system prompts with variables)
+- [ ] Model comparison arena (side-by-side evaluation)
 - [ ] Conversation sharing and collaboration
+- [ ] MCP (Model Context Protocol) integration
+
+**Administration**
+- [ ] Fine-grained permissions and feature toggles per role
+- [ ] API usage monitoring and cost tracking
 
 **Infrastructure**
-
 - [ ] PostgreSQL backend option (for larger deployments)
 - [ ] Plugin system for custom extensions
 - [ ] Mobile app (Capacitor)
@@ -299,26 +326,27 @@ See WIKI for detailed coding principles and architecture documentation.
 **Faster Chat** is built on the shoulders of excellent open source projects:
 
 **Core Infrastructure**
-- [Vercel AI SDK](https://github.com/vercel/ai) - Streaming chat completions and multi-provider support
-- [models.dev](https://github.com/sst/models.dev) - Community-maintained AI model database for auto-discovery
-- [Preact](https://preactjs.com/) - Lightweight 3KB React alternative
-- [Hono](https://hono.dev/) - Ultrafast web framework for the backend
-- [TanStack Router](https://tanstack.com/router) & [TanStack Query](https://tanstack.com/query) - Modern routing and server state management
-- [bun:sqlite](https://bun.sh/docs/api/sqlite) - Fast SQLite driver for server-side persistence
+- [Vercel AI SDK](https://github.com/vercel/ai) — Streaming chat completions and multi-provider support
+- [models.dev](https://github.com/sst/models.dev) — Community-maintained AI model database for auto-discovery
+- [Preact](https://preactjs.com/) — Lightweight 3KB React alternative
+- [Hono](https://hono.dev/) — Ultrafast web framework for the backend
+- [TanStack Router](https://tanstack.com/router) & [TanStack Query](https://tanstack.com/query) — Modern routing and server state management
+- [bun:sqlite](https://bun.sh/docs/api/sqlite) — Fast SQLite driver for server-side persistence
 
 **UI & Styling**
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [lucide-preact](https://lucide.dev/guide/packages/lucide-preact) - Beautiful icon library
-- [Catppuccin](https://github.com/catppuccin/catppuccin) - Soothing pastel theme
+- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
+- [lucide-preact](https://lucide.dev/guide/packages/lucide-preact) — Beautiful icon library
+- [Catppuccin](https://github.com/catppuccin/catppuccin) — Soothing pastel theme
 
 **External API Calls**
 
 For transparency, this application makes the following external API calls:
-- **models.dev/api.json** - Fetches provider and model metadata on server startup (cached for 1 hour)
-- **Your configured AI providers** (OpenAI, Anthropic, etc.) - Only when you send chat messages
-- **No tracking, analytics, or telemetry services** - Your privacy is paramount
+- **models.dev/api.json** — Fetches provider and model metadata on server startup (cached for 1 hour)
+- **Brave Search API** — Only when web search is enabled and triggered by the AI during a conversation
+- **Your configured AI providers** (OpenAI, Anthropic, etc.) — Only when you send chat messages
+- **No tracking, analytics, or telemetry services** — Your privacy is paramount
 
-All data (conversations, settings, API keys) is stored in your self-hosted SQLite database. Nothing leaves your server except API calls to your configured AI providers.
+All data (conversations, memories, settings, API keys) is stored in your self-hosted SQLite database. Nothing leaves your server except API calls to your configured AI providers and optional web search.
 
 ## 🤝 Contributing
 
@@ -326,18 +354,18 @@ Contributions welcome! We're looking for:
 - Bug fixes and error handling
 - New provider integrations
 - Documentation improvements
-- UI/UX enhancements <-- I'm a frontend dev w/ an eye for design but not a DESIGNER - if you ARE! HELP!
+- UI/UX enhancements
 - Tests and quality improvements
 
 **Before submitting:**
-1. Read Documention for coding philosophy and patterns
+1. Read Documentation for coding philosophy and patterns
 2. Ensure changes align with our lightweight, offline-first approach
 3. Test locally with `bun run dev`
 4. Keep PRs focused on a single feature or fix
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -350,6 +378,6 @@ If Faster Chat helps you take control of your AI conversations, consider giving 
 ---
 
 <p align="center">
-  <strong>Built with ❤️ by <a href="https://github.com/1337hero" target="_blank">1337Hero</a>  for developers who value privacy, speed, and control.</strong><br>
+  <strong>Built with ❤️ by <a href="https://github.com/1337hero" target="_blank">1337Hero</a> for developers who value privacy, speed, and control.</strong><br>
   <sub>No tracking. No analytics. Just fast, local-first AI conversations.</sub>
 </p>
