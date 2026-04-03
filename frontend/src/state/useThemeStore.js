@@ -60,6 +60,7 @@ const BUNDLED_THEMES = [
   { id: "material", name: "Material", path: "/themes/material.json" },
   { id: "monokai", name: "Monokai", path: "/themes/monokai.json" },
   { id: "synthwave84", name: "Synthwave '84", path: "/themes/synthwave84.json" },
+  { id: "knitly", name: "Knitly", path: "/themes/knitly.json" },
 ];
 
 // Cache for loaded theme data
