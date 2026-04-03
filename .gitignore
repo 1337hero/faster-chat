@@ -75,6 +75,9 @@ next-env.d.ts
 *.sln
 *.sw?
 
+# Specs
+/specs
+
 #AI Agents
 .claude
 CLAUDE.md
