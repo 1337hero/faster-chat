@@ -180,6 +180,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
   CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
   CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+
+  CREATE TABLE IF NOT EXISTS user_memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    fact TEXT NOT NULL,
+    source_chat_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_memories_user_id ON user_memories(user_id);
+  CREATE INDEX IF NOT EXISTS idx_user_memories_updated ON user_memories(user_id, updated_at DESC);
 `);
 
 // Migration: Add pinned_at and archived_at columns to chats table
@@ -218,6 +230,19 @@ const messageColumnNames = messageColumns.map((col) => col.name);
 
 if (!messageColumnNames.includes("metadata")) {
   db.exec("ALTER TABLE messages ADD COLUMN metadata TEXT");
+}
+
+// Memory feature migrations
+const userColumns = db.prepare("PRAGMA table_info(users)").all();
+const userColumnNames = userColumns.map((col) => col.name);
+if (!userColumnNames.includes("memory_enabled")) {
+  db.exec("ALTER TABLE users ADD COLUMN memory_enabled INTEGER DEFAULT 1");
+}
+
+const chatColumnsForMemory = db.prepare("PRAGMA table_info(chats)").all();
+const chatColumnNamesForMemory = chatColumnsForMemory.map((col) => col.name);
+if (!chatColumnNamesForMemory.includes("memory_disabled")) {
+  db.exec("ALTER TABLE chats ADD COLUMN memory_disabled INTEGER DEFAULT 0");
 }
 
 function parseFileMeta(file) {
@@ -1367,6 +1392,105 @@ export const dbUtils = {
     const stmt = db.prepare("DELETE FROM chats WHERE deleted_at IS NOT NULL AND deleted_at < ?");
     const result = stmt.run(cutoff);
     return result.changes;
+  },
+
+  // ========================================
+  // MEMORY
+  // ========================================
+
+  getMemoriesForUser(userId, limit = 50) {
+    const stmt = db.prepare(
+      "SELECT id, fact, source_chat_id, created_at, updated_at FROM user_memories WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?"
+    );
+    return stmt.all(userId, limit);
+  },
+
+  upsertMemory(userId, fact, sourceChatId = null) {
+    const existing = db
+      .prepare("SELECT id FROM user_memories WHERE user_id = ? AND fact = ?")
+      .get(userId, fact);
+    const now = Date.now();
+    if (existing) {
+      db.prepare("UPDATE user_memories SET updated_at = ?, source_chat_id = ? WHERE id = ?").run(
+        now,
+        sourceChatId,
+        existing.id
+      );
+      return existing.id;
+    }
+    const result = db
+      .prepare(
+        "INSERT INTO user_memories (user_id, fact, source_chat_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"
+      )
+      .run(userId, fact, sourceChatId, now, now);
+    return result.lastInsertRowid;
+  },
+
+  upsertMemories(userId, facts, sourceChatId = null) {
+    const upsert = db.transaction(() => {
+      for (const fact of facts) {
+        this.upsertMemory(userId, fact, sourceChatId);
+      }
+    });
+    upsert();
+  },
+
+  deleteMemory(memoryId, userId) {
+    const result = db
+      .prepare("DELETE FROM user_memories WHERE id = ? AND user_id = ?")
+      .run(memoryId, userId);
+    return result.changes > 0;
+  },
+
+  clearMemoriesForUser(userId) {
+    const result = db.prepare("DELETE FROM user_memories WHERE user_id = ?").run(userId);
+    return result.changes;
+  },
+
+  getUserMemoryEnabled(userId) {
+    const stmt = db.prepare("SELECT memory_enabled FROM users WHERE id = ?");
+    const result = stmt.get(userId);
+    return result ? !!result.memory_enabled : true;
+  },
+
+  setUserMemoryEnabled(userId, enabled) {
+    db.prepare("UPDATE users SET memory_enabled = ? WHERE id = ?").run(enabled ? 1 : 0, userId);
+  },
+
+  getChatMemoryDisabled(chatId) {
+    const stmt = db.prepare("SELECT memory_disabled FROM chats WHERE id = ?");
+    const result = stmt.get(chatId);
+    return result ? !!result.memory_disabled : false;
+  },
+
+  setChatMemoryDisabled(chatId, disabled) {
+    db.prepare("UPDATE chats SET memory_disabled = ? WHERE id = ?").run(disabled ? 1 : 0, chatId);
+  },
+
+  getMemoryGlobalEnabled() {
+    return this.getSetting("memory_enabled");
+  },
+
+  setMemoryGlobalEnabled(enabled) {
+    this.setSetting("memory_enabled", enabled ? "true" : "false");
+  },
+
+  getMemoryExtractionModel() {
+    return this.getSetting("memory_extraction_model");
+  },
+
+  setMemoryExtractionModel(modelId) {
+    if (modelId) {
+      this.setSetting("memory_extraction_model", modelId);
+    } else {
+      this.deleteSetting("memory_extraction_model");
+    }
+  },
+
+  getMemoriesCount(userId) {
+    const stmt = db.prepare("SELECT COUNT(*) as count FROM user_memories WHERE user_id = ?");
+    const result = stmt.get(userId);
+    return result ? result.count : 0;
   },
 };
 

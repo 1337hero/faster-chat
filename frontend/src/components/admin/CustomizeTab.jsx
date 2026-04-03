@@ -46,6 +46,25 @@ const CustomizeTab = () => {
     onError: () => setBraveStatus("error"),
   });
 
+  // Memory settings
+  const { data: memoryConfig } = useQuery({
+    queryKey: ["memory-settings"],
+    queryFn: () => apiFetch("/api/settings/memory"),
+  });
+
+  const { data: modelsData } = useQuery({
+    queryKey: ["models", "text"],
+    queryFn: () => apiFetch("/api/models?type=text"),
+  });
+
+  const memoryMutation = useMutation({
+    mutationFn: (settings) =>
+      apiFetch("/api/settings/memory", { method: "PUT", body: JSON.stringify(settings) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["memory-settings"] });
+    },
+  });
+
   const hasUnsavedChanges = localAppName !== appName || localLogoIcon !== logoIcon;
 
   const handleSave = () => {
@@ -151,7 +170,9 @@ const CustomizeTab = () => {
             </p>
             <div className="bg-theme-canvas-alt border-theme-surface space-y-4 rounded-lg border p-4">
               <div>
-                <label htmlFor="braveKey" className="text-theme-text mb-2 block text-sm font-medium">
+                <label
+                  htmlFor="braveKey"
+                  className="text-theme-text mb-2 block text-sm font-medium">
                   Brave API Key
                 </label>
                 <div className="flex gap-2">
@@ -167,9 +188,16 @@ const CustomizeTab = () => {
                     onClick={() => braveKeyMutation.mutate(braveKey)}
                     disabled={!braveKey || braveKeyMutation.isPending}
                     color="blue">
-                    {braveKeyMutation.isPending ? "Saving..." : braveStatus === "success" ? (
-                      <><Check size={ICON_SIZE.MD} className="mr-1" />Saved</>
-                    ) : "Save"}
+                    {braveKeyMutation.isPending ? (
+                      "Saving..."
+                    ) : braveStatus === "success" ? (
+                      <>
+                        <Check size={ICON_SIZE.MD} className="mr-1" />
+                        Saved
+                      </>
+                    ) : (
+                      "Save"
+                    )}
                   </Button>
                 </div>
                 {searchConfig?.apiKey && (
@@ -190,6 +218,66 @@ const CustomizeTab = () => {
                   <p className="text-theme-red mt-1 text-xs">Failed to save key.</p>
                 )}
               </div>
+            </div>
+          </section>
+
+          {/* Cross-Conversation Memory */}
+          <section>
+            <h3 className="text-theme-text mb-1 text-sm font-semibold">
+              Cross-Conversation Memory
+            </h3>
+            <p className="text-theme-text-muted mb-4 text-sm">
+              Allow the AI to remember user preferences and facts across conversations.
+            </p>
+            <div className="bg-theme-canvas-alt border-theme-surface space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-theme-text text-sm font-medium">Enable Memory</label>
+                  <p className="text-theme-text-muted text-xs">
+                    When enabled, the AI extracts and recalls facts about users across chats.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    memoryMutation.mutate({ globalEnabled: !memoryConfig?.globalEnabled })
+                  }
+                  disabled={memoryMutation.isPending}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-snappy focus:outline-none ${
+                    memoryConfig?.globalEnabled ? "bg-theme-blue" : "bg-theme-surface-strong"
+                  }`}>
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-snappy ${
+                      memoryConfig?.globalEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {memoryConfig?.globalEnabled && (
+                <div>
+                  <label className="text-theme-text mb-2 block text-sm font-medium">
+                    Extraction Model
+                  </label>
+                  <select
+                    value={memoryConfig?.extractionModel || ""}
+                    onChange={(e) =>
+                      memoryMutation.mutate({ extractionModel: e.target.value || null })
+                    }
+                    disabled={memoryMutation.isPending}
+                    className={inputClass}>
+                    <option value="">Same as conversation model</option>
+                    {(modelsData?.models || []).map((model) => (
+                      <option key={model.model_id} value={model.model_id}>
+                        {model.display_name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-theme-text-muted mt-1 text-xs">
+                    Use a fast, cheap model for memory extraction to minimize cost.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

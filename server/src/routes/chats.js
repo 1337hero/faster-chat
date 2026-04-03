@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { streamText } from "ai";
+import { streamText, generateText } from "ai";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
@@ -20,6 +20,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
+import { wrapModelWithMemory, extractMemories, getExtractionModel } from "../lib/memory.js";
 
 export const chatsRouter = new Hono();
 
@@ -430,6 +431,7 @@ const CompletionRequestSchema = z.object({
   ),
   fileIds: z.array(z.string()).optional(),
   webSearch: z.boolean().optional(),
+  memoryEnabled: z.boolean().optional().default(true),
 });
 
 /**
@@ -620,6 +622,9 @@ chatsRouter.post(
 
       const modelId = validated.model;
       const model = getModel(modelId);
+      const memoryModel = validated.memoryEnabled !== false
+        ? wrapModelWithMemory(model, dbUtils)
+        : model;
       const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
       let messages;
@@ -658,9 +663,28 @@ chatsRouter.post(
       }
 
       const stream = await streamText({
-        model,
+        model: memoryModel,
         messages,
         maxTokens: COMPLETION_CONSTANTS.MAX_TOKENS,
+        providerOptions: {
+          memory: { userId: user.id, chatId },
+        },
+        onFinish: async ({ text }) => {
+          if (validated.memoryEnabled !== false) {
+            const lastUserMsg = validated.messages.findLast((m) => m.role === "user");
+            if (lastUserMsg && text.trim()) {
+              const extractionModel = getExtractionModel(dbUtils, decryptApiKey) || model;
+              extractMemories({
+                model: extractionModel,
+                userMessage: lastUserMsg.content,
+                assistantMessage: text,
+                userId: user.id,
+                chatId,
+                dbUtils,
+              }).catch((err) => console.warn("Memory extraction failed:", err.message));
+            }
+          }
+        },
         ...toolConfig,
       });
 
@@ -678,4 +702,24 @@ chatsRouter.post(
  */
 chatsRouter.get("/:chatId/stream", async (c) => {
   return c.body(null, 204);
+});
+
+chatsRouter.put("/:chatId/memory", async (c) => {
+  try {
+    const user = c.get("user");
+    const chatId = c.req.param("chatId");
+    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+    if (!chat) {
+      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+    const { disabled } = await c.req.json();
+    if (typeof disabled !== "boolean") {
+      return c.json({ error: "disabled must be a boolean" }, HTTP_STATUS.BAD_REQUEST);
+    }
+    dbUtils.setChatMemoryDisabled(chatId, disabled);
+    return c.json({ disabled });
+  } catch (error) {
+    console.error("Toggle chat memory error:", error);
+    return c.json({ error: "Failed to toggle chat memory" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
 });

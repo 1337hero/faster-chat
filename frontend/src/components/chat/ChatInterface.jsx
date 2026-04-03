@@ -10,9 +10,9 @@ import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { providersClient } from "@/lib/providersClient";
 import { CACHE_DURATIONS } from "@faster-chat/shared";
+import { apiFetch } from "@/lib/api";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
@@ -32,8 +32,22 @@ const ChatInterface = ({ chatId }) => {
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
   const autoScroll = useUiState((state) => state.autoScroll);
   const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
+  const memoryEnabled = useUiState((state) => state.memoryEnabled);
   const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+
+  const { data: memoryStatus } = useQuery({
+    queryKey: ["memory-status"],
+    queryFn: () => apiFetch("/api/memory/status"),
+    staleTime: 60000,
+  });
+
+  const chatMemoryMutation = useMutation({
+    mutationFn: ({ chatId: cId, disabled }) =>
+      apiFetch(`/api/chats/${cId}/memory`, { method: "PUT", body: JSON.stringify({ disabled }) }),
+  });
+
+  const chatMemoryDisabled = chatMemoryMutation.data?.disabled ?? false;
 
   const { data: modelsData } = useQuery({
     queryKey: ["models", "text"],
@@ -41,9 +55,7 @@ const ChatInterface = ({ chatId }) => {
     staleTime: CACHE_DURATIONS.IMAGE_MODELS,
   });
 
-  const currentModelData = (modelsData?.models || []).find(
-    (m) => m.model_id === preferredModel
-  );
+  const currentModelData = (modelsData?.models || []).find((m) => m.model_id === preferredModel);
   const modelSupportsTools = !!currentModelData?.metadata?.supports_tools;
 
   // Reset webSearch on chat navigation
@@ -87,6 +99,7 @@ const ChatInterface = ({ chatId }) => {
     id: chatId,
     model: preferredModel,
     webSearchEnabled,
+    memoryEnabled,
   });
 
   const { voice } = useChatVoice({
@@ -228,6 +241,11 @@ const ChatInterface = ({ chatId }) => {
                 webSearchEnabled={webSearchEnabled}
                 onToggleWebSearch={toggleWebSearch}
                 modelSupportsTools={modelSupportsTools}
+                memoryGlobalEnabled={memoryStatus?.globalEnabled && memoryStatus?.enabled}
+                chatMemoryDisabled={chatMemoryDisabled}
+                onToggleChatMemory={() => chatMemoryMutation.mutate({ chatId, disabled: !chatMemoryDisabled })}
+                chatMemoryPending={chatMemoryMutation.isPending}
+                chatId={chatId}
               />
             </div>
           </div>

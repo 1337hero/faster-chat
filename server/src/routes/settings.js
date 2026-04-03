@@ -79,6 +79,42 @@ settingsRouter.put("/web-search", ensureSession, requireRole("admin"), async (c)
     return c.json({ success: true });
   } catch (error) {
     console.error("Update web search config error:", error);
-    return c.json({ error: "Failed to update web search config" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    return c.json(
+      { error: "Failed to update web search config" },
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
+  }
+});
+
+// ========================================
+// MEMORY
+// ========================================
+
+settingsRouter.get("/memory", ensureSession, requireRole("admin"), async (c) => {
+  try {
+    const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
+    const extractionModel = dbUtils.getMemoryExtractionModel();
+    return c.json({ globalEnabled, extractionModel });
+  } catch (error) {
+    console.error("Get memory settings error:", error);
+    return c.json({ error: "Failed to get memory settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+settingsRouter.put("/memory", ensureSession, requireRole("admin"), async (c) => {
+  try {
+    const body = await c.req.json();
+    if (typeof body.globalEnabled === "boolean") {
+      dbUtils.setMemoryGlobalEnabled(body.globalEnabled);
+    }
+    if (body.extractionModel !== undefined) {
+      dbUtils.setMemoryExtractionModel(body.extractionModel || null);
+    }
+    const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
+    const extractionModel = dbUtils.getMemoryExtractionModel();
+    return c.json({ globalEnabled, extractionModel });
+  } catch (error) {
+    console.error("Update memory settings error:", error);
+    return c.json({ error: "Failed to update memory settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
