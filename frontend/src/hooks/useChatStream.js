@@ -25,9 +25,12 @@ function formatMessagesForTransport(messages) {
   }));
 }
 
-export function useChatStream({ chatId, model, persistedMessages, onMessageComplete }) {
+export function useChatStream({ chatId, model, webSearchEnabled, persistedMessages, onMessageComplete }) {
   const modelRef = useRef(model);
   modelRef.current = model;
+
+  const webSearchRef = useRef(webSearchEnabled);
+  webSearchRef.current = webSearchEnabled;
 
   const persistedMessagesRef = useRef(persistedMessages);
   persistedMessagesRef.current = persistedMessages;
@@ -69,6 +72,7 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
               systemPromptId: "default",
               messages: normalized,
               fileIds,
+              webSearch: webSearchRef.current,
             },
           };
         },
@@ -92,10 +96,15 @@ export function useChatStream({ chatId, model, persistedMessages, onMessageCompl
         .map((part) => part.text)
         .join("");
 
+      // Extract tool results for persistence (sources, errors)
+      const toolParts = message.parts?.filter((p) => p.type === "tool-invocation" && p.state === "result") || [];
+      const metadata = toolParts.length > 0 ? { toolParts } : null;
+
       if (onMessageComplete && content.trim()) {
         await onMessageComplete({
           id: message.id,
           content,
+          metadata,
           createdAt: getMessageTimestamp(message),
         });
       }

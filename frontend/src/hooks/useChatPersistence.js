@@ -21,12 +21,13 @@ export function useChatPersistence(chatId) {
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }
 
-  async function saveAssistantMessage({ id, content, model = null, createdAt }, currentChatId) {
+  async function saveAssistantMessage({ id, content, model = null, metadata = null, createdAt }, currentChatId) {
     const message = {
       id,
       role: "assistant",
       content,
       model,
+      metadata,
       createdAt,
     };
 

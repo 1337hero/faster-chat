@@ -52,3 +52,33 @@ settingsRouter.put("/", ensureSession, requireRole("admin"), async (c) => {
     return c.json({ error: "Failed to update settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 });
+
+// ========================================
+// WEB SEARCH (Brave)
+// ========================================
+
+function maskApiKey(key) {
+  if (!key || key.length < 5) return null;
+  return "••••" + key.slice(-4);
+}
+
+settingsRouter.get("/web-search", ensureSession, requireRole("admin"), async (c) => {
+  try {
+    const apiKey = dbUtils.getWebSearchApiKey();
+    return c.json({ apiKey: maskApiKey(apiKey) });
+  } catch (error) {
+    console.error("Get web search config error:", error);
+    return c.json({ error: "Failed to get web search config" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});
+
+settingsRouter.put("/web-search", ensureSession, requireRole("admin"), async (c) => {
+  try {
+    const { apiKey } = await c.req.json();
+    dbUtils.setWebSearchApiKey(apiKey);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Update web search config error:", error);
+    return c.json({ error: "Failed to update web search config" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+});

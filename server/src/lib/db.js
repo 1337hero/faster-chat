@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { randomBytes } from "crypto";
 import { config } from "dotenv";
 import { DB_CONSTANTS } from "@faster-chat/shared";
+import { encryptApiKey, decryptApiKey } from "./encryption.js";
 
 config();
 
@@ -212,6 +213,13 @@ if (!modelColumnNames.includes("model_type")) {
 
 db.exec("CREATE INDEX IF NOT EXISTS idx_models_type ON models(model_type)");
 
+const messageColumns = db.prepare("PRAGMA table_info(messages)").all();
+const messageColumnNames = messageColumns.map((col) => col.name);
+
+if (!messageColumnNames.includes("metadata")) {
+  db.exec("ALTER TABLE messages ADD COLUMN metadata TEXT");
+}
+
 function parseFileMeta(file) {
   if (file && file.meta) {
     try {
@@ -229,6 +237,13 @@ function parseMessageFileIds(message) {
       message.file_ids = JSON.parse(message.file_ids);
     } catch (e) {
       message.file_ids = null;
+    }
+  }
+  if (message && message.metadata) {
+    try {
+      message.metadata = JSON.parse(message.metadata);
+    } catch (e) {
+      message.metadata = null;
     }
   }
   return message;
@@ -1001,14 +1016,15 @@ export const dbUtils = {
   // MESSAGE UTILITIES
   // ========================================
 
-  createMessage(id, chatId, userId, role, content, model = null, fileIds = null) {
+  createMessage(id, chatId, userId, role, content, model = null, fileIds = null, metadata = null) {
     const now = Date.now();
     const fileIdsJson = fileIds ? JSON.stringify(fileIds) : null;
+    const metadataJson = metadata ? JSON.stringify(metadata) : null;
     const stmt = db.prepare(`
-      INSERT INTO messages (id, chat_id, user_id, role, content, model, file_ids, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO messages (id, chat_id, user_id, role, content, model, file_ids, metadata, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(id, chatId, userId, role, content, model, fileIdsJson, now);
+    stmt.run(id, chatId, userId, role, content, model, fileIdsJson, metadataJson, now);
     return {
       id,
       chat_id: chatId,
@@ -1017,6 +1033,7 @@ export const dbUtils = {
       content,
       model,
       file_ids: fileIds,
+      metadata,
       created_at: now,
     };
   },
@@ -1267,6 +1284,32 @@ export const dbUtils = {
     const stmt = db.prepare("DELETE FROM settings WHERE key = ?");
     const result = stmt.run(key);
     return result.changes > 0;
+  },
+
+  getWebSearchApiKey() {
+    const encryptedKey = this.getSetting("web_search_api_key");
+    const iv = this.getSetting("web_search_api_key_iv");
+    const authTag = this.getSetting("web_search_api_key_auth_tag");
+
+    if (!encryptedKey || !iv || !authTag) return null;
+    try {
+      return decryptApiKey(encryptedKey, iv, authTag);
+    } catch {
+      return null;
+    }
+  },
+
+  setWebSearchApiKey(apiKey) {
+    if (apiKey) {
+      const { encryptedKey, iv, authTag } = encryptApiKey(apiKey);
+      this.setSetting("web_search_api_key", encryptedKey);
+      this.setSetting("web_search_api_key_iv", iv);
+      this.setSetting("web_search_api_key_auth_tag", authTag);
+    } else {
+      this.deleteSetting("web_search_api_key");
+      this.deleteSetting("web_search_api_key_iv");
+      this.deleteSetting("web_search_api_key_auth_tag");
+    }
   },
 
   // ========================================

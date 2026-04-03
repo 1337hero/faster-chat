@@ -8,9 +8,12 @@ import { useChatVoice } from "@/hooks/useChatVoice";
 import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChatsQuery";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
+import { providersClient } from "@/lib/providersClient";
+import { CACHE_DURATIONS } from "@faster-chat/shared";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Menu } from "lucide-preact";
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
 import InputArea from "./InputArea";
 import MessageList from "./MessageList";
@@ -27,6 +30,34 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   const preferredImageModel = useUiState((state) => state.preferredImageModel);
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
   const autoScroll = useUiState((state) => state.autoScroll);
+  const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
+  const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
+  const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+
+  const { data: modelsData } = useQuery({
+    queryKey: ["models", "text"],
+    queryFn: () => providersClient.getEnabledModelsByType("text"),
+    staleTime: CACHE_DURATIONS.IMAGE_MODELS,
+  });
+
+  const currentModelData = (modelsData?.models || []).find(
+    (m) => m.model_id === preferredModel
+  );
+  const modelSupportsTools = !!currentModelData?.metadata?.supports_tools;
+
+  // Reset webSearch on chat navigation
+  useEffect(() => {
+    setWebSearchEnabled(false);
+  }, [chatId]);
+
+  // Wrap model change to auto-disable webSearch when new model lacks tool support
+  const handleModelChange = (modelId) => {
+    setPreferredModel(modelId);
+    const newModel = (modelsData?.models || []).find((m) => m.model_id === modelId);
+    if (!newModel?.metadata?.supports_tools) {
+      setWebSearchEnabled(false);
+    }
+  };
 
   const handleNewChat = async () => {
     try {
@@ -54,6 +85,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
   } = useChat({
     id: chatId,
     model: preferredModel,
+    webSearchEnabled,
   });
 
   const { voice } = useChatVoice({
@@ -149,7 +181,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
               onModelChange={setPreferredImageModel}
             />
           ) : (
-            <ModelSelector currentModel={preferredModel} onModelChange={setPreferredModel} />
+            <ModelSelector currentModel={preferredModel} onModelChange={handleModelChange} />
           )}
 
           {/* Right: Controls */}
@@ -200,6 +232,9 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
                 voiceControls={voice}
                 disabled={isLoading || isGenerating}
                 onImageSubmit={handleImageSubmit}
+                webSearchEnabled={webSearchEnabled}
+                onToggleWebSearch={toggleWebSearch}
+                modelSupportsTools={modelSupportsTools}
               />
             </div>
           </div>

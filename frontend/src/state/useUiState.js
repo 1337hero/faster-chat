@@ -11,6 +11,7 @@ export const useUiState = create(
       theme: "dark",
       autoScroll: true,
       imageMode: false,
+      webSearchEnabled: false,
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -22,6 +23,8 @@ export const useUiState = create(
       setAutoScroll: (enabled) => set({ autoScroll: enabled }),
       setImageMode: (enabled) => set({ imageMode: enabled }),
       toggleImageMode: () => set((state) => ({ imageMode: !state.imageMode })),
+      setWebSearchEnabled: (v) => set({ webSearchEnabled: v }),
+      toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
     }),
     {
       name: "ui-state",
