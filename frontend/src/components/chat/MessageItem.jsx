@@ -66,9 +66,9 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
         {!isUser && <ModelAvatar modelId={modelName} />}
 
         <div
-          className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
+          className={`relative overflow-hidden p-5 leading-relaxed transition-all duration-300 ease-in-out ${
             isUser
-              ? "bg-theme-surface-stronger rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br pt-5 text-white"
+              ? "bg-theme-surface-stronger text-theme-text rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br pt-5"
               : "text-theme-text pt-0"
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
@@ -119,7 +119,8 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
             </div>
           )}
 
-          <div className={`font-sans ${isUser ? "font-medium text-white/95" : ""}`}>
+          <div
+            className={isUser ? "max-h-[60vh] overflow-y-auto font-medium" : ""}>
             <MarkdownContent content={content} />
           </div>
 

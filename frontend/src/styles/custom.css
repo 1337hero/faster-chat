@@ -76,6 +76,11 @@
   }
 
   /* Prose container — scopes all markdown typography */
+  .markdown-prose {
+    font-family: var(--theme-font-chat);
+    font-size: var(--theme-font-size-chat);
+  }
+
   .markdown-prose > div > h1:first-child,
   .markdown-prose > div > h2:first-child,
   .markdown-prose > div > h3:first-child {
