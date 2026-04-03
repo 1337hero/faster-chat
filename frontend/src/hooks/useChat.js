@@ -3,7 +3,7 @@ import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
-export function useChat({ id: chatId, model, webSearchEnabled }) {
+export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) {
   const [input, setInput] = useState("");
 
   const {
@@ -19,6 +19,7 @@ export function useChat({ id: chatId, model, webSearchEnabled }) {
     chatId,
     model,
     webSearchEnabled,
+    memoryEnabled,
     persistedMessages,
     onMessageComplete: async ({ id, content, metadata, createdAt }) => {
       if (chatId) {

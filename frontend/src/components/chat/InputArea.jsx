@@ -1,6 +1,6 @@
 import { useRef, useState } from "preact/hooks";
 import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
-import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
+import { Paperclip, Image, Globe, Brain, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import FileUpload, { FilePreviewList } from "./FileUpload";
 import { useUiState } from "@/state/useUiState";
@@ -15,6 +15,11 @@ const InputArea = ({
   webSearchEnabled,
   onToggleWebSearch,
   modelSupportsTools,
+  memoryGlobalEnabled,
+  chatMemoryDisabled,
+  onToggleChatMemory,
+  chatMemoryPending,
+  chatId,
 }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
@@ -181,6 +186,22 @@ const InputArea = ({
             disabled={disabled || !modelSupportsTools}>
             <Globe size={18} />
           </button>
+          {memoryGlobalEnabled && chatId && (
+            <button
+              type="button"
+              onClick={onToggleChatMemory}
+              disabled={disabled || chatMemoryPending}
+              className={`rounded-lg p-2 transition-colors ${
+                chatMemoryDisabled
+                  ? "text-theme-muted hover:bg-theme-blue/10 hover:text-theme-blue"
+                  : "bg-theme-blue/20 text-theme-blue"
+              }`}
+              title={chatMemoryDisabled ? "Memory disabled for this chat" : "Memory active"}
+              aria-label={chatMemoryDisabled ? "Enable memory for this chat" : "Disable memory for this chat"}
+              aria-pressed={!chatMemoryDisabled}>
+              <Brain size={18} />
+            </button>
+          )}
 
           {/* Voice Control Button */}
           {voiceControls && (

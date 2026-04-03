@@ -1,9 +1,12 @@
+import { lazy, Suspense } from "preact/compat";
 import { useAuthState } from "@/state/useAuthState";
 import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 import { KEYBOARD_SHORTCUTS } from "@faster-chat/shared";
 import { LayoutGrid, Keyboard } from "lucide-preact";
+
+const MemorySection = lazy(() => import("@/components/settings/MemorySection"));
 
 const KeyboardShortcut = ({ keys, label }) => (
   <div className="flex items-center justify-between py-2">
@@ -84,6 +87,11 @@ const Settings = () => {
             <h2 className="text-theme-text mb-4 text-lg font-semibold">Typography</h2>
             <FontSelector />
           </div>
+
+          {/* Memory */}
+          <Suspense fallback={null}>
+            <MemorySection />
+          </Suspense>
 
           {/* Keyboard Shortcuts */}
           <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">

@@ -25,12 +25,22 @@ function formatMessagesForTransport(messages) {
   }));
 }
 
-export function useChatStream({ chatId, model, webSearchEnabled, persistedMessages, onMessageComplete }) {
+export function useChatStream({
+  chatId,
+  model,
+  webSearchEnabled,
+  memoryEnabled,
+  persistedMessages,
+  onMessageComplete,
+}) {
   const modelRef = useRef(model);
   modelRef.current = model;
 
   const webSearchRef = useRef(webSearchEnabled);
   webSearchRef.current = webSearchEnabled;
+
+  const memoryEnabledRef = useRef(memoryEnabled);
+  memoryEnabledRef.current = memoryEnabled;
 
   const persistedMessagesRef = useRef(persistedMessages);
   persistedMessagesRef.current = persistedMessages;
@@ -73,6 +83,7 @@ export function useChatStream({ chatId, model, webSearchEnabled, persistedMessag
               messages: normalized,
               fileIds,
               webSearch: webSearchRef.current,
+              memoryEnabled: memoryEnabledRef.current,
             },
           };
         },
@@ -97,7 +108,8 @@ export function useChatStream({ chatId, model, webSearchEnabled, persistedMessag
         .join("");
 
       // Extract tool results for persistence (sources, errors)
-      const toolParts = message.parts?.filter((p) => p.type === "tool-invocation" && p.state === "result") || [];
+      const toolParts =
+        message.parts?.filter((p) => p.type === "tool-invocation" && p.state === "result") || [];
       const metadata = toolParts.length > 0 ? { toolParts } : null;
 
       if (onMessageComplete && content.trim()) {
