@@ -119,8 +119,7 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
             </div>
           )}
 
-          <div
-            className={isUser ? "max-h-[60vh] overflow-y-auto font-medium" : ""}>
+          <div className={isUser ? "max-h-[60vh] overflow-y-auto font-medium" : ""}>
             <MarkdownContent content={content} />
           </div>
 
