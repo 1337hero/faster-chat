@@ -98,10 +98,18 @@
     color: var(--theme-text);
   }
 
-  .markdown-block h1 { font-size: 1.5em; }
-  .markdown-block h2 { font-size: 1.25em; }
-  .markdown-block h3 { font-size: 1.1em; }
-  .markdown-block h4 { font-size: 1em; }
+  .markdown-block h1 {
+    font-size: 1.5em;
+  }
+  .markdown-block h2 {
+    font-size: 1.25em;
+  }
+  .markdown-block h3 {
+    font-size: 1.1em;
+  }
+  .markdown-block h4 {
+    font-size: 1em;
+  }
 
   .markdown-block blockquote {
     border-left: 3px solid var(--theme-primary);

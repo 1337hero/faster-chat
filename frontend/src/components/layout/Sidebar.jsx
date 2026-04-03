@@ -156,7 +156,6 @@ const ChatItem = ({
       {/* Hover actions - Pin and Delete */}
       {!isRenaming && (
         <div className="absolute top-0 right-0 bottom-0 flex items-center gap-0.5 pr-2">
-
           {/* Pin/Unpin button */}
           <button
             type="button"

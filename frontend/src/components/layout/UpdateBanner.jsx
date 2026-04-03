@@ -4,7 +4,8 @@ import { useAuthState } from "@/state/useAuthState";
 
 const UpdateBanner = () => {
   const user = useAuthState((state) => state.user);
-  const { hasUpdate, latestVersion, releaseUrl, dismiss, isDismissed, isLoading } = useUpdateCheck();
+  const { hasUpdate, latestVersion, releaseUrl, dismiss, isDismissed, isLoading } =
+    useUpdateCheck();
 
   if (!user || user.role !== "admin" || isLoading || !hasUpdate || isDismissed) return null;
 

@@ -51,7 +51,9 @@ const ResetPasswordModal = ({ user, isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title={`Reset Password: ${user?.username}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="reset-password-new" className="text-theme-text block text-sm font-medium">New Password</label>
+          <label htmlFor="reset-password-new" className="text-theme-text block text-sm font-medium">
+            New Password
+          </label>
           <input
             id="reset-password-new"
             type="password"
@@ -63,7 +65,11 @@ const ResetPasswordModal = ({ user, isOpen, onClose }) => {
         </div>
 
         <div>
-          <label htmlFor="reset-password-confirm" className="text-theme-text block text-sm font-medium">Confirm Password</label>
+          <label
+            htmlFor="reset-password-confirm"
+            className="text-theme-text block text-sm font-medium">
+            Confirm Password
+          </label>
           <input
             id="reset-password-confirm"
             type="password"

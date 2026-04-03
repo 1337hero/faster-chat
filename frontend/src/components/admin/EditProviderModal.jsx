@@ -43,7 +43,11 @@ const EditProviderModal = ({ provider, onClose }) => {
     <Modal isOpen={!!provider} onClose={onClose} title={`Update ${provider.display_name}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="edit-provider-api-key" className="text-theme-text block text-sm font-medium">API Key</label>
+          <label
+            htmlFor="edit-provider-api-key"
+            className="text-theme-text block text-sm font-medium">
+            API Key
+          </label>
           <input
             id="edit-provider-api-key"
             type="password"
@@ -59,7 +63,11 @@ const EditProviderModal = ({ provider, onClose }) => {
         </div>
 
         <div>
-          <label htmlFor="edit-provider-base-url" className="text-theme-text block text-sm font-medium">Base URL</label>
+          <label
+            htmlFor="edit-provider-base-url"
+            className="text-theme-text block text-sm font-medium">
+            Base URL
+          </label>
           <input
             id="edit-provider-base-url"
             type="text"

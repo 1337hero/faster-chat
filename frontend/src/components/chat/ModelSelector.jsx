@@ -8,7 +8,8 @@ import ProviderLogo from "@/components/ui/ProviderLogo";
 const VARIANTS = {
   text: {
     queryKey: ["models", "text"],
-    buttonClass: "bg-theme-surface hover:bg-theme-surface-strong border-theme-border hover:border-theme-primary/50",
+    buttonClass:
+      "bg-theme-surface hover:bg-theme-surface-strong border-theme-border hover:border-theme-primary/50",
     activeItemClass: "bg-theme-surface-strong",
     badgeClass: "bg-theme-blue/20 text-theme-blue",
     emptyWrapClass: "",
@@ -79,7 +80,7 @@ const ModelSelector = ({ type = "text", currentModel, onModelChange }) => {
           />
           {currentModelData.display_name}
         </span>
-        <ChevronDown className="h-4 w-4 transition-transform duration-200 ui-open:rotate-180" />
+        <ChevronDown className="ui-open:rotate-180 h-4 w-4 transition-transform duration-200" />
       </MenuButton>
 
       <MenuItems className="bg-theme-surface border-theme-surface-strong animate-in fade-in zoom-in-95 absolute top-full left-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border shadow-lg duration-100">
@@ -89,7 +90,9 @@ const ModelSelector = ({ type = "text", currentModel, onModelChange }) => {
             const isActive = currentModel === model.model_id;
 
             return (
-              <MenuItem key={model.id} as="button"
+              <MenuItem
+                key={model.id}
+                as="button"
                 onClick={() => onModelChange(model.model_id)}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                   isActive
@@ -108,7 +111,8 @@ const ModelSelector = ({ type = "text", currentModel, onModelChange }) => {
                   </div>
                 </div>
                 {model.is_default && (
-                  <span className={`${variant.badgeClass} rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase`}>
+                  <span
+                    className={`${variant.badgeClass} rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase`}>
                     Default
                   </span>
                 )}

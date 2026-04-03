@@ -23,7 +23,9 @@ describe("version", () => {
       const data = await res.json();
       const { readFileSync } = await import("node:fs");
       const { resolve } = await import("node:path");
-      const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../package.json"), "utf-8"));
+      const pkg = JSON.parse(
+        readFileSync(resolve(import.meta.dirname, "../../../package.json"), "utf-8")
+      );
       expect(data.version).toBe(pkg.version);
     });
 

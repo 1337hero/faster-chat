@@ -49,11 +49,15 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
   const hasAttachments = message.fileIds && message.fileIds.length > 0;
   const modelName = message.model;
   const hasThinking = thinking.length > 0;
-  const activeToolCall = message.parts?.find(p => p.type === "tool-invocation" && p.state === "call");
+  const activeToolCall = message.parts?.find(
+    (p) => p.type === "tool-invocation" && p.state === "call"
+  );
   const sources = isUser ? [] : extractSources(message.parts);
   const toolErrors = isUser
     ? []
-    : (message.parts?.filter(p => p.type === "tool-invocation" && p.state === "result" && p.result?.error) || []);
+    : message.parts?.filter(
+        (p) => p.type === "tool-invocation" && p.state === "result" && p.result?.error
+      ) || [];
 
   return (
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
@@ -65,10 +69,9 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
           className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
               ? "bg-theme-surface-stronger rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br pt-5 text-white"
-              : "pt-0 text-theme-text"
+              : "text-theme-text pt-0"
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
-
           {!isUser && modelName && (
             <div className="mb-4">
               <span className="text-theme-text text-lg font-bold">{modelName}</span>

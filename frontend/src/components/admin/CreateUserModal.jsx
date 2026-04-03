@@ -48,7 +48,11 @@ const CreateUserModal = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Create New User">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="create-user-username" className="text-theme-text block text-sm font-medium">Username</label>
+          <label
+            htmlFor="create-user-username"
+            className="text-theme-text block text-sm font-medium">
+            Username
+          </label>
           <input
             id="create-user-username"
             type="text"
@@ -60,7 +64,11 @@ const CreateUserModal = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label htmlFor="create-user-password" className="text-theme-text block text-sm font-medium">Password</label>
+          <label
+            htmlFor="create-user-password"
+            className="text-theme-text block text-sm font-medium">
+            Password
+          </label>
           <input
             id="create-user-password"
             type="password"
@@ -72,7 +80,9 @@ const CreateUserModal = ({ isOpen, onClose }) => {
         </div>
 
         <div>
-          <label htmlFor="create-user-role" className="text-theme-text block text-sm font-medium">Role</label>
+          <label htmlFor="create-user-role" className="text-theme-text block text-sm font-medium">
+            Role
+          </label>
           <select
             id="create-user-role"
             value={role}

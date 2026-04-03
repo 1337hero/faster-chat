@@ -71,7 +71,7 @@ const ModelAvatar = ({ modelId }) => {
         <img
           src={getProviderLogoUrl(providerId)}
           alt={providerId}
-          className="h-5 w-5 dark:brightness-90 dark:invert md:h-6 md:w-6"
+          className="h-5 w-5 md:h-6 md:w-6 dark:brightness-90 dark:invert"
           onError={() => setLogoFailed(true)}
         />
       ) : (

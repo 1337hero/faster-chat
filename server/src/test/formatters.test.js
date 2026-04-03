@@ -1,9 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import {
-  formatFileSize,
-  formatPrice,
-  formatContextWindow,
-} from "@faster-chat/shared";
+import { formatFileSize, formatPrice, formatContextWindow } from "@faster-chat/shared";
 
 describe("formatters", () => {
   describe("formatFileSize", () => {

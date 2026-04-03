@@ -31,7 +31,9 @@ const ChatItem = ({ chat, onClick, onContextMenu }) => (
         <p className="text-theme-text-muted mt-0.5 truncate text-sm">{chat.preview}</p>
       )}
     </div>
-    <span className="text-theme-text-muted shrink-0 text-xs">{formatRelativeDate(chat.updated_at)}</span>
+    <span className="text-theme-text-muted shrink-0 text-xs">
+      {formatRelativeDate(chat.updated_at)}
+    </span>
   </button>
 );
 

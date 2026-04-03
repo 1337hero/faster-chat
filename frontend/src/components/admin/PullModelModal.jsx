@@ -236,8 +236,8 @@ const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
       {!isPulling && !isComplete && (
         <div className="bg-theme-canvas-alt border-theme-surface mt-4 rounded-lg border p-3">
           <p className="text-theme-text-muted text-xs">
-            <strong className="text-theme-text">Note:</strong> Large models may take several
-            minutes to download. You can continue using the app while the download is in progress.
+            <strong className="text-theme-text">Note:</strong> Large models may take several minutes
+            to download. You can continue using the app while the download is in progress.
           </p>
         </div>
       )}

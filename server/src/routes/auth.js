@@ -45,17 +45,20 @@ function checkRateLimit(bucketKey) {
 }
 
 // Cleanup loginAttempts Map every 5 minutes — evict entries older than the rate limit window
-setInterval(() => {
-  const cutoff = Date.now() - RATE_LIMIT.WINDOW_MS;
-  for (const [key, timestamps] of loginAttempts.entries()) {
-    const fresh = timestamps.filter((t) => t > cutoff);
-    if (fresh.length === 0) {
-      loginAttempts.delete(key);
-    } else {
-      loginAttempts.set(key, fresh);
+setInterval(
+  () => {
+    const cutoff = Date.now() - RATE_LIMIT.WINDOW_MS;
+    for (const [key, timestamps] of loginAttempts.entries()) {
+      const fresh = timestamps.filter((t) => t > cutoff);
+      if (fresh.length === 0) {
+        loginAttempts.delete(key);
+      } else {
+        loginAttempts.set(key, fresh);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 // Cookie settings
 const COOKIE_NAME = "session";
@@ -213,7 +216,14 @@ authRouter.post("/logout", async (c) => {
     if (sessionId) {
       const session = dbUtils.getSession(sessionId);
       if (session) {
-        dbUtils.createAuditLog(session.user_id, "logout", "user", String(session.user_id), null, getClientIP(c));
+        dbUtils.createAuditLog(
+          session.user_id,
+          "logout",
+          "user",
+          String(session.user_id),
+          null,
+          getClientIP(c)
+        );
       }
       dbUtils.deleteSession(sessionId);
     }
@@ -303,7 +313,14 @@ authRouter.put("/change-password", ensureSession, async (c) => {
     const { sessionId, expiresAt } = dbUtils.createSession(user.id);
     setCookie(c, COOKIE_NAME, sessionId, COOKIE_OPTIONS);
 
-    dbUtils.createAuditLog(user.id, "password_changed", "user", String(user.id), null, getClientIP(c));
+    dbUtils.createAuditLog(
+      user.id,
+      "password_changed",
+      "user",
+      String(user.id),
+      null,
+      getClientIP(c)
+    );
 
     return c.json({ success: true, session: { expiresAt } });
   } catch (error) {

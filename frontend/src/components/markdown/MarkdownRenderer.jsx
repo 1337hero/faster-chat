@@ -40,8 +40,8 @@ const ToolbarButton = ({ onClick, icon: Icon, title, ariaLabel, active = false }
     onClick={onClick}
     className={`ease-snappy rounded p-1.5 transition-colors duration-75 ${
       active
-        ? "bg-white/10 text-theme-text"
-        : "text-theme-text-muted hover:bg-white/8 hover:text-theme-text"
+        ? "text-theme-text bg-white/10"
+        : "text-theme-text-muted hover:text-theme-text hover:bg-white/8"
     }`}
     aria-label={ariaLabel}
     title={title}>
@@ -154,7 +154,7 @@ const CodeBlock = ({ inline, className, children, node }) => {
       {/* Code content — [&_pre]:!bg-transparent strips Shiki's inline background */}
       {highlightedHtml ? (
         <div
-          className={`shiki-wrapper text-sm [&_pre]:!bg-transparent [&_pre]:!rounded-none [&_pre]:p-4 ${wrapClasses}`}
+          className={`shiki-wrapper text-sm [&_pre]:!rounded-none [&_pre]:!bg-transparent [&_pre]:p-4 ${wrapClasses}`}
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       ) : (

@@ -1,9 +1,6 @@
 import dns from "node:dns/promises";
 import { parse } from "node-html-parser";
-import {
-  WEB_SEARCH_CONSTANTS,
-  SEARCH_ERROR_CODES,
-} from "@faster-chat/shared";
+import { WEB_SEARCH_CONSTANTS, SEARCH_ERROR_CODES } from "@faster-chat/shared";
 
 const { MAX_CONTENT_LENGTH, FETCH_TIMEOUT_MS } = WEB_SEARCH_CONSTANTS;
 const { SSRF_BLOCKED, FETCH_FAILED } = SEARCH_ERROR_CODES;
@@ -25,12 +22,7 @@ const STRIP_SELECTORS = [
   "iframe",
 ];
 
-const CONTENT_SELECTORS = [
-  "article",
-  "main",
-  "[role='main']",
-  "body",
-];
+const CONTENT_SELECTORS = ["article", "main", "[role='main']", "body"];
 
 // --- SSRF protection ---
 
@@ -39,22 +31,19 @@ function isPrivateIPv4(ip) {
   if (parts.length !== 4) return true;
   const [a, b] = parts;
   return (
-    a === 127 ||                          // 127.0.0.0/8
-    a === 10 ||                           // 10.0.0.0/8
-    (a === 172 && b >= 16 && b <= 31) ||  // 172.16.0.0/12
-    (a === 192 && b === 168) ||           // 192.168.0.0/16
-    (a === 169 && b === 254) ||           // 169.254.0.0/16
-    a === 0                               // 0.0.0.0/8
+    a === 127 || // 127.0.0.0/8
+    a === 10 || // 10.0.0.0/8
+    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+    (a === 192 && b === 168) || // 192.168.0.0/16
+    (a === 169 && b === 254) || // 169.254.0.0/16
+    a === 0 // 0.0.0.0/8
   );
 }
 
 function isPrivateIPv6(ip) {
   const lower = ip.toLowerCase();
   return (
-    lower === "::1" ||
-    lower.startsWith("fc") ||
-    lower.startsWith("fd") ||
-    lower.startsWith("fe80")
+    lower === "::1" || lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80")
   );
 }
 
@@ -77,14 +66,9 @@ async function validateUrl(urlString) {
   const hostname = parsed.hostname;
 
   try {
-    const results = await Promise.allSettled([
-      dns.resolve4(hostname),
-      dns.resolve6(hostname),
-    ]);
+    const results = await Promise.allSettled([dns.resolve4(hostname), dns.resolve6(hostname)]);
 
-    const ips = results.flatMap((r) =>
-      r.status === "fulfilled" ? r.value : []
-    );
+    const ips = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 
     if (ips.length === 0) {
       return { error: "Could not resolve hostname", code: FETCH_FAILED };
@@ -111,10 +95,7 @@ function extractContent(html) {
   }
 
   const title = root.querySelector("title")?.textContent?.trim() || "";
-  const description =
-    root
-      .querySelector('meta[name="description"]')
-      ?.getAttribute("content") || "";
+  const description = root.querySelector('meta[name="description"]')?.getAttribute("content") || "";
 
   let contentNode;
   for (const sel of CONTENT_SELECTORS) {
