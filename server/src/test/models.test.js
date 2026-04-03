@@ -11,7 +11,15 @@ import { encryptApiKey } from "../lib/encryption.js";
 
 function seedProvider() {
   const { encryptedKey, iv, authTag } = encryptApiKey("sk-test-key-12345");
-  return dbUtils.createProvider("test-provider", "Test Provider", "official", null, encryptedKey, iv, authTag);
+  return dbUtils.createProvider(
+    "test-provider",
+    "Test Provider",
+    "official",
+    null,
+    encryptedKey,
+    iv,
+    authTag
+  );
 }
 
 describe("model routes", () => {
@@ -131,6 +139,13 @@ describe("model routes", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+
+      const detailRes = await makeRequest(app, "GET", `/api/admin/models/${enabledModelId}`, {
+        cookie: adminCookie,
+      });
+      expect(detailRes.status).toBe(200);
+      const detailData = await detailRes.json();
+      expect(detailData.model.display_name).toBe("GPT-4 Turbo");
     });
 
     test("returns 404 for non-existent model", async () => {
@@ -173,6 +188,11 @@ describe("model routes", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+
+      const detailRes = await makeRequest(app, "GET", `/api/admin/models/${deleteModelId}`, {
+        cookie: adminCookie,
+      });
+      expect(detailRes.status).toBe(404);
     });
 
     test("returns 404 for non-existent model", async () => {

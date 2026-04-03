@@ -6,6 +6,7 @@ import {
   seedMemberUser,
   makeRequest,
 } from "./helpers.js";
+import { dbUtils } from "../lib/db.js";
 
 describe("provider routes", () => {
   let app, adminCookie, memberCookie;
@@ -63,6 +64,8 @@ describe("provider routes", () => {
       expect(data.provider.name).toBe("anthropic");
       expect(data.provider.display_name).toBe("Anthropic");
       expect(data.provider.id).toBeDefined();
+      dbUtils.createModel(data.provider.id, "anthropic-test-1", "Anthropic Test 1", false, "text");
+      dbUtils.createModel(data.provider.id, "anthropic-test-2", "Anthropic Test 2", true, "text");
     });
 
     test("duplicate name returns 400", async () => {
@@ -196,16 +199,49 @@ describe("provider routes", () => {
     });
 
     test("returns 403 for member", async () => {
-      const res = await makeRequest(app, "GET", "/api/admin/providers/available", { cookie: memberCookie });
+      const res = await makeRequest(app, "GET", "/api/admin/providers/available", {
+        cookie: memberCookie,
+      });
       expect(res.status).toBe(403);
     });
 
     test("returns providers array for admin", async () => {
-      const res = await makeRequest(app, "GET", "/api/admin/providers/available", { cookie: adminCookie });
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (input, init) => {
+        if (typeof input === "string" && input === "https://models.dev/api.json") {
+          return new Response(
+            JSON.stringify({
+              openai: {
+                name: "OpenAI",
+                api: "https://api.openai.com/v1",
+                env: ["OPENAI_API_KEY"],
+                models: {
+                  "gpt-4o": {
+                    name: "GPT-4o",
+                    modalities: { input: ["text"], output: ["text"] },
+                  },
+                },
+              },
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+        return originalFetch(input, init);
+      };
+
+      const res = await makeRequest(app, "GET", "/api/admin/providers/available", {
+        cookie: adminCookie,
+      }).finally(() => {
+        globalThis.fetch = originalFetch;
+      });
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(Array.isArray(data.providers)).toBe(true);
       expect(data.providers.length).toBeGreaterThan(0);
+      expect(data.providers.some((provider) => provider.id === "openai")).toBe(true);
     });
   });
 
@@ -219,23 +255,39 @@ describe("provider routes", () => {
     });
 
     test("enables all models for provider", async () => {
-      const res = await makeRequest(app, "POST", `/api/admin/providers/${providerId}/models/enable`, {
-        body: { enabled: true },
-        cookie: adminCookie,
-      });
+      const res = await makeRequest(
+        app,
+        "POST",
+        `/api/admin/providers/${providerId}/models/enable`,
+        {
+          body: { enabled: true },
+          cookie: adminCookie,
+        }
+      );
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+      const models = dbUtils.getModelsByProvider(providerId);
+      expect(models.length).toBeGreaterThanOrEqual(2);
+      expect(models.every((model) => model.enabled === 1)).toBe(true);
     });
 
     test("disables all models for provider", async () => {
-      const res = await makeRequest(app, "POST", `/api/admin/providers/${providerId}/models/enable`, {
-        body: { enabled: false },
-        cookie: adminCookie,
-      });
+      const res = await makeRequest(
+        app,
+        "POST",
+        `/api/admin/providers/${providerId}/models/enable`,
+        {
+          body: { enabled: false },
+          cookie: adminCookie,
+        }
+      );
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+      const models = dbUtils.getModelsByProvider(providerId);
+      expect(models.length).toBeGreaterThanOrEqual(2);
+      expect(models.every((model) => model.enabled === 0)).toBe(true);
     });
 
     test("returns 404 for non-existent provider", async () => {
@@ -257,14 +309,20 @@ describe("provider routes", () => {
     });
 
     test("updating API key creates audit log entry", async () => {
-      await makeRequest(app, "PUT", `/api/admin/providers/${providerId}`, {
+      const updateRes = await makeRequest(app, "PUT", `/api/admin/providers/${providerId}`, {
         body: { apiKey: "sk-new-rotated-key-12345" },
         cookie: adminCookie,
       });
+      expect(updateRes.status).toBe(200);
 
-      const auditRes = await makeRequest(app, "GET", "/api/admin/audit-log", { cookie: adminCookie });
+      const auditRes = await makeRequest(app, "GET", "/api/admin/audit-log", {
+        cookie: adminCookie,
+      });
+      expect(auditRes.status).toBe(200);
       const auditData = await auditRes.json();
-      const keyChangeEntry = auditData.logs.find((l) => l.action === "api_key_changed");
+      const keyChangeEntry = auditData.logs.find(
+        (l) => l.action === "api_key_changed" && String(l.target_id) === String(providerId)
+      );
       expect(keyChangeEntry).toBeDefined();
     });
   });

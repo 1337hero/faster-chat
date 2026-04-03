@@ -3,12 +3,14 @@ import {
   hasSeenAdminConnectionsOnboarding,
   markAdminConnectionsOnboardingSeen,
 } from "@/lib/adminOnboarding";
+import { useChatNavigation } from "@/hooks/useChatNavigation";
 import { useChatsQuery, useCreateChatMutation } from "@/hooks/useChatsQuery";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "preact/hooks";
 
 export function IndexRouteGuard() {
   const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const { user } = useAuthState();
   const { data: chats, isLoading } = useChatsQuery();
   const createChatMutation = useCreateChatMutation();
@@ -33,21 +35,13 @@ export function IndexRouteGuard() {
 
     // Navigate to existing chat or create new one
     if (chats && chats.length > 0) {
-      navigate({
-        to: "/chat/$chatId",
-        params: { chatId: chats[0].id },
-        replace: true,
-      });
+      navigateToChat(chats[0].id, { replace: true });
     } else {
       createChatMutation.mutate(
         {},
         {
           onSuccess: (newChat) => {
-            navigate({
-              to: "/chat/$chatId",
-              params: { chatId: newChat.id },
-              replace: true,
-            });
+            navigateToChat(newChat.id, { replace: true });
           },
           onError: () => {
             hasStartedNavigation.current = false;
@@ -55,7 +49,7 @@ export function IndexRouteGuard() {
         }
       );
     }
-  }, [navigate, user, chats, isLoading, createChatMutation]);
+  }, [navigate, navigateToChat, user, chats, isLoading, createChatMutation]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

@@ -1,6 +1,6 @@
 import { useEffect } from "@preact/compat";
-import { useNavigate } from "@tanstack/react-router";
 import { useUiState } from "@/state/useUiState";
+import { useChatNavigation } from "./useChatNavigation";
 import { useCreateChatMutation } from "./useChatsQuery";
 import { useIsMobile } from "./useIsMobile";
 import { getShortcut } from "@faster-chat/shared";
@@ -10,7 +10,7 @@ import { getShortcut } from "@faster-chat/shared";
  * Shortcut definitions live in @faster-chat/shared/constants/shortcuts.js
  */
 export function useKeyboardShortcuts() {
-  const navigate = useNavigate();
+  const { navigateToChat } = useChatNavigation();
   const createChatMutation = useCreateChatMutation();
   const isMobile = useIsMobile();
 
@@ -32,7 +32,7 @@ export function useKeyboardShortcuts() {
       if (getShortcut("newChat").check(e)) {
         e.preventDefault();
         createChatMutation.mutateAsync({}).then((newChat) => {
-          navigate({ to: "/chat/$chatId", params: { chatId: newChat.id } });
+          navigateToChat(newChat.id);
           if (!isMobile && sidebarCollapsed) {
             toggleSidebarCollapse();
           }
@@ -61,7 +61,7 @@ export function useKeyboardShortcuts() {
     toggleSidebar,
     toggleSidebarCollapse,
     setSidebarOpen,
-    navigate,
+    navigateToChat,
     createChatMutation,
   ]);
 }

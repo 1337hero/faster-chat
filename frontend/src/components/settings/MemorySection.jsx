@@ -1,45 +1,57 @@
 import { useState } from "preact/hooks";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useMemoryStatus, useUserMemories } from "@/hooks/useMemoryStatus";
+import { useAuthState } from "@/state/useAuthState";
+import { memoryKeys } from "@/hooks/queryKeys";
+import { Switch } from "@/components/ui/Switch";
 import { Brain, Trash2 } from "lucide-preact";
 
 const MemorySection = () => {
   const queryClient = useQueryClient();
+  const userId = useAuthState((state) => state.user?.id ?? null);
   const [confirmClear, setConfirmClear] = useState(false);
 
-  const { data: status } = useQuery({
-    queryKey: ["memory-status"],
-    queryFn: () => apiFetch("/api/memory/status"),
-  });
-
-  const { data: memoriesData } = useQuery({
-    queryKey: ["user-memories"],
-    queryFn: () => apiFetch("/api/memory"),
-    enabled: !!status?.globalEnabled && !!status?.enabled,
-  });
+  const { data: status } = useMemoryStatus();
+  const { data: memoriesData } = useUserMemories(!!status?.globalEnabled && !!status?.enabled);
 
   const toggleMutation = useMutation({
     mutationFn: (enabled) =>
       apiFetch("/api/memory/enabled", { method: "PUT", body: JSON.stringify({ enabled }) }),
+    onMutate: async (enabled) => {
+      const queryKey = memoryKeys.status(userId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousStatus = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (current) =>
+        current ? { ...current, enabled } : current
+      );
+
+      return { previousStatus, queryKey };
+    },
+    onError: (_error, _enabled, context) => {
+      if (context?.previousStatus) {
+        queryClient.setQueryData(context.queryKey, context.previousStatus);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["memory-status"] });
+      queryClient.invalidateQueries({ queryKey: memoryKeys.status(userId) });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (memoryId) =>
-      apiFetch(`/api/memory/${memoryId}`, { method: "DELETE" }),
+    mutationFn: (memoryId) => apiFetch(`/api/memory/${memoryId}`, { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-memories"] });
-      queryClient.invalidateQueries({ queryKey: ["memory-status"] });
+      queryClient.invalidateQueries({ queryKey: memoryKeys.memories(userId) });
+      queryClient.invalidateQueries({ queryKey: memoryKeys.status(userId) });
     },
   });
 
   const clearMutation = useMutation({
     mutationFn: () => apiFetch("/api/memory", { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-memories"] });
-      queryClient.invalidateQueries({ queryKey: ["memory-status"] });
+      queryClient.invalidateQueries({ queryKey: memoryKeys.memories(userId) });
+      queryClient.invalidateQueries({ queryKey: memoryKeys.status(userId) });
       setConfirmClear(false);
     },
   });
@@ -47,7 +59,7 @@ const MemorySection = () => {
   if (!status?.globalEnabled) {
     return (
       <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="mb-2 flex items-center gap-2">
           <Brain size={20} className="text-theme-text-muted" />
           <h2 className="text-theme-text text-lg font-semibold">Memory</h2>
         </div>
@@ -62,7 +74,7 @@ const MemorySection = () => {
 
   return (
     <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain size={20} className="text-theme-text-muted" />
           <h2 className="text-theme-text text-lg font-semibold">Memory</h2>
@@ -72,19 +84,12 @@ const MemorySection = () => {
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => toggleMutation.mutate(!status?.enabled)}
+        <Switch
+          value={!!status?.enabled}
+          onChange={(enabled) => toggleMutation.mutate(enabled)}
           disabled={toggleMutation.isPending}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-snappy focus:outline-none ${
-            status?.enabled ? "bg-theme-blue" : "bg-theme-surface-strong"
-          }`}>
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-snappy ${
-              status?.enabled ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
+          aria-label="Enable memory"
+        />
       </div>
 
       <p className="text-theme-text-muted mb-4 text-sm">
@@ -94,19 +99,19 @@ const MemorySection = () => {
       {status?.enabled && (
         <>
           {memories.length > 0 && (
-            <div className="space-y-2 mb-4">
+            <div className="mb-4 space-y-2">
               <h3 className="text-theme-text text-sm font-medium">What the AI remembers</h3>
-              <div className="space-y-1 max-h-64 overflow-y-auto">
+              <div className="max-h-64 space-y-1 overflow-y-auto">
                 {memories.map((memory) => (
                   <div
                     key={memory.id}
-                    className="group flex items-center justify-between rounded-md px-3 py-2 text-sm bg-theme-canvas hover:bg-theme-surface/50 transition-colors duration-75 ease-snappy">
+                    className="group bg-theme-canvas hover:bg-theme-surface/50 ease-snappy flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors duration-75">
                     <span className="text-theme-text">{memory.fact}</span>
                     <button
                       type="button"
                       onClick={() => deleteMutation.mutate(memory.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-theme-text-muted hover:text-theme-red opacity-0 group-hover:opacity-100 transition-opacity duration-75 ease-snappy shrink-0 ml-2">
+                      className="text-theme-text-muted hover:text-theme-red ease-snappy ml-2 shrink-0 opacity-0 transition-opacity duration-75 group-hover:opacity-100">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -116,7 +121,7 @@ const MemorySection = () => {
           )}
 
           {memories.length === 0 && status?.memoriesCount === 0 && (
-            <p className="text-theme-text-muted text-sm mb-4">
+            <p className="text-theme-text-muted mb-4 text-sm">
               No memories yet. The AI will start remembering as you chat.
             </p>
           )}

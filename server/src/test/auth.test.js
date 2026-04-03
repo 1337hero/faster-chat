@@ -198,7 +198,11 @@ describe("auth routes", () => {
   describe("login rate limiting", () => {
     beforeAll(async () => {
       resetDatabase();
-      await createTestUser({ username: "ratelimited", password: "validpassword123", role: "member" });
+      await createTestUser({
+        username: "ratelimited",
+        password: "validpassword123",
+        role: "member",
+      });
     });
 
     test("returns 429 after 5 failed login attempts", async () => {
@@ -217,7 +221,11 @@ describe("auth routes", () => {
   describe("logout cookie", () => {
     test("logout response clears session cookie", async () => {
       resetDatabase();
-      const user = await createTestUser({ username: "logoutuser", password: "logoutpassword123", role: "admin" });
+      const user = await createTestUser({
+        username: "logoutuser",
+        password: "logoutpassword123",
+        role: "admin",
+      });
       const cookie = directCookie(user.id);
 
       const logoutRes = await makeRequest(app, "POST", "/api/auth/logout", { cookie });
@@ -232,7 +240,11 @@ describe("auth routes", () => {
   describe("password change session invalidation", () => {
     test("old session is invalidated after password change", async () => {
       resetDatabase();
-      const user = await createTestUser({ username: "sessuser", password: "oldpassword123", role: "admin" });
+      const user = await createTestUser({
+        username: "sessuser",
+        password: "oldpassword123",
+        role: "admin",
+      });
       const oldCookie = directCookie(user.id);
 
       const changeRes = await makeRequest(app, "PUT", "/api/auth/change-password", {
@@ -247,7 +259,9 @@ describe("auth routes", () => {
       const newSetCookie = changeRes.headers.get("set-cookie");
       const match = newSetCookie.match(/session=([^;]+)/);
       const newCookie = `session=${match[1]}`;
-      const newSessionRes = await makeRequest(app, "GET", "/api/auth/session", { cookie: newCookie });
+      const newSessionRes = await makeRequest(app, "GET", "/api/auth/session", {
+        cookie: newCookie,
+      });
       expect(newSessionRes.status).toBe(200);
     });
   });

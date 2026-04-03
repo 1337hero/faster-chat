@@ -90,6 +90,7 @@ describe("chat routes", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.id).toBe(chatId);
+      expect(data.memoryDisabled).toBe(false);
     });
 
     test("GET /api/chats/:chatId for other user's chat returns 404", async () => {
@@ -325,6 +326,15 @@ describe("chat routes", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.disabled).toBe(true);
+    });
+
+    test("GET /api/chats/:chatId returns persisted memory disabled state", async () => {
+      const res = await makeRequest(app, "GET", `/api/chats/${chatId}`, {
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.memoryDisabled).toBe(true);
     });
 
     test("PUT /api/chats/:chatId/memory re-enables memory", async () => {

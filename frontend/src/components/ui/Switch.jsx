@@ -1,7 +1,16 @@
 import { useId } from "preact/hooks";
 import { clsx } from "clsx";
 
-export const Switch = ({ color = "blue", value, label, onChange, disabled, ...props }) => {
+export const Switch = ({
+  color = "blue",
+  value,
+  label,
+  onChange,
+  disabled,
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedby,
+  ...props
+}) => {
   const id = useId();
 
   const onClickEvent = (event) => {
@@ -35,6 +44,8 @@ export const Switch = ({ color = "blue", value, label, onChange, disabled, ...pr
       <div
         role="switch"
         aria-checked={value}
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedby}
         tabIndex={disabled ? -1 : 0}
         onKeyDown={onKeyEvent}
         className={clsx(
