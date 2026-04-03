@@ -12,7 +12,8 @@ import { providersClient } from "@/lib/providersClient";
 import { CACHE_DURATIONS } from "@faster-chat/shared";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Menu } from "lucide-preact";
+
+
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { toast, Toaster } from "sonner";
 import InputArea from "./InputArea";
@@ -21,7 +22,7 @@ import ModelSelector from "./ModelSelector";
 import VoiceSettings from "./VoiceSettings";
 import VoiceStatusIndicator from "./VoiceStatusIndicator";
 
-const ChatInterface = ({ chatId, onMenuClick }) => {
+const ChatInterface = ({ chatId }) => {
   const navigate = useNavigate();
   const createChatMutation = useCreateChatMutation();
   const preferredModel = useUiState((state) => state.preferredModel);
@@ -159,18 +160,10 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
       {/* Main Content Area - Absolute positioning for scroll-behind effect */}
       <div className="relative flex-1">
         {/* Navbar - Elevated Layer */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:px-8 md:py-6">
-          {/* Left: Toolbar with negative margin to hide behind sidebar */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-3 md:px-8 md:py-6">
+          {/* Left: Toolbar */}
           <div className="flex items-center gap-3">
             <SidebarToolbar onNewChat={handleNewChat} onSearch={() => {}} />
-            {onMenuClick && (
-              <button
-                onClick={onMenuClick}
-                className="hover:bg-theme-surface/50 text-theme-text rounded-lg p-2 md:hidden"
-                aria-label="Open menu">
-                <Menu className="h-5 w-5" />
-              </button>
-            )}
           </div>
 
           {/* Center: Model Selector */}
@@ -199,7 +192,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
           ref={scrollContainerRef}
           style={{ scrollbarGutter: "stable both-edges" }}
           className="absolute inset-0 overflow-y-scroll pt-12 pb-[180px] md:px-20">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-4xl">
             <MessageList
               messages={messages}
               isLoading={isLoading}
@@ -216,7 +209,7 @@ const ChatInterface = ({ chatId, onMenuClick }) => {
 
         {/* Input Area - Floating on top */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
-          <div className="pointer-events-auto relative mx-auto max-w-3xl">
+          <div className="pointer-events-auto relative mx-auto max-w-4xl">
             <ErrorBanner message={chatError?.message || chatError} className="mb-3" />
 
             <div

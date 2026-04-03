@@ -38,12 +38,14 @@ const REHYPE_PLUGINS = [rehypeKatex];
 const ToolbarButton = ({ onClick, icon: Icon, title, ariaLabel, active = false }) => (
   <button
     onClick={onClick}
-    className={`ease-snappy transition-colors duration-75 ${
-      active ? "text-theme-text" : "text-theme-text-muted hover:text-theme-text"
+    className={`ease-snappy rounded p-1.5 transition-colors duration-75 ${
+      active
+        ? "bg-white/10 text-theme-text"
+        : "text-theme-text-muted hover:bg-white/8 hover:text-theme-text"
     }`}
     aria-label={ariaLabel}
     title={title}>
-    <Icon className="h-4 w-4" />
+    <Icon className="h-3.5 w-3.5" />
   </button>
 );
 
@@ -120,11 +122,13 @@ const CodeBlock = ({ inline, className, children, node }) => {
     : "[&_pre]:overflow-x-auto";
 
   return (
-    <div className="group relative my-4 overflow-hidden rounded-lg">
+    <div className="bg-theme-surface group relative my-4 overflow-hidden rounded-lg border border-white/[0.06]">
       {/* Header bar */}
-      <div className="bg-theme-surface-strong text-theme-text-muted flex items-center justify-between px-4 py-2 text-sm">
-        <span className="text-theme-text font-mono text-xs">{lang || "plaintext"}</span>
-        <div className="flex items-center gap-2">
+      <div className="bg-theme-surface-strong flex items-center justify-between border-b border-white/[0.06] px-3 py-1.5">
+        <span className="text-theme-text-muted font-mono text-[11px] tracking-wider uppercase">
+          {lang || "plaintext"}
+        </span>
+        <div className="flex items-center gap-0.5">
           <ToolbarButton
             onClick={handleDownload}
             icon={Download}
@@ -147,16 +151,15 @@ const CodeBlock = ({ inline, className, children, node }) => {
         </div>
       </div>
 
-      {/* Code content */}
+      {/* Code content — [&_pre]:!bg-transparent strips Shiki's inline background */}
       {highlightedHtml ? (
         <div
-          className={`shiki-wrapper text-sm [&_pre]:p-4 ${wrapClasses}`}
+          className={`shiki-wrapper text-sm [&_pre]:!bg-transparent [&_pre]:!rounded-none [&_pre]:p-4 ${wrapClasses}`}
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       ) : (
-        // Fallback while Shiki loads
         <pre
-          className={`bg-theme-surface p-4 text-sm ${wrap ? "break-words whitespace-pre-wrap" : "overflow-x-auto"}`}>
+          className={`p-4 text-sm ${wrap ? "break-words whitespace-pre-wrap" : "overflow-x-auto"}`}>
           <code className="text-theme-text-muted">{code}</code>
         </pre>
       )}

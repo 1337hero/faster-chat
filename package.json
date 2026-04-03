@@ -30,7 +30,7 @@
   "author": "1337 Hero, LLC",
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2"
   },
   "dependencies": {

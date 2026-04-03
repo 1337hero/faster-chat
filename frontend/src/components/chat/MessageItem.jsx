@@ -1,8 +1,9 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownRenderer";
 import { extractTextContent } from "@/lib/messageUtils";
 import { memo } from "@preact/compat";
-import { AlertTriangle, Brain, ChevronDown, Cpu, Sparkles } from "lucide-preact";
+import { AlertTriangle, Brain, ChevronDown, Sparkles } from "lucide-preact";
 import MessageAttachment from "./MessageAttachment";
+import ModelAvatar from "./ModelAvatar";
 import SearchStatus from "./SearchStatus";
 import SourceCitations, { extractSources, TOOL_ERROR_MESSAGES } from "./SourceCitations";
 
@@ -58,35 +59,19 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
     <div className={`mb-8 flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={`flex max-w-[85%] gap-4 md:max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-        <div
-          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl md:h-10 md:w-10 ${
-            isUser
-              ? "bg-theme-surface-strong text-theme-text"
-              : "from-theme-mauve to-theme-blue bg-gradient-to-br text-white"
-          } `}
-          style={{ boxShadow: "var(--shadow-depth-md)" }}>
-          {isUser ? (
-            <div className="text-xs font-bold">ME</div>
-          ) : (
-            <Cpu className="h-5 w-5 md:h-6 md:w-6" />
-          )}
-        </div>
+        {!isUser && <ModelAvatar modelId={modelName} />}
 
         <div
           className={`relative overflow-hidden p-5 text-sm leading-relaxed transition-all duration-300 ease-in-out md:text-base ${
             isUser
-              ? "bg-theme-surface-stronger rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br text-white"
-              : "text-theme-text"
+              ? "bg-theme-surface-stronger rounded-tl-lg rounded-br-lg rounded-bl-lg bg-gradient-to-br pt-5 text-white"
+              : "pt-0 text-theme-text"
           } `}
           style={{ boxShadow: "var(--shadow-depth-sm)" }}>
-          {!isUser && (
-            <div className="from-theme-blue via-theme-mauve absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r to-transparent opacity-70" />
-          )}
 
           {!isUser && modelName && (
-            <div className="mb-2 flex items-center gap-1.5">
-              <Cpu className="text-theme-mauve h-3 w-3" />
-              <span className="text-theme-text-muted text-xs font-medium">{modelName}</span>
+            <div className="mb-4">
+              <span className="text-theme-text text-lg font-bold">{modelName}</span>
             </div>
           )}
 

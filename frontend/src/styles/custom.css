@@ -72,7 +72,7 @@
   }
 
   .markdown-block + .markdown-block {
-    margin-top: 0.5em;
+    margin-top: 0.75em;
   }
 
   .markdown-block ul,
@@ -82,7 +82,7 @@
   }
 
   .markdown-block li {
-    margin: 0.25em 0;
+    margin: 0.35em 0;
   }
 
   .markdown-block h1,
@@ -91,9 +91,17 @@
   .markdown-block h4,
   .markdown-block h5,
   .markdown-block h6 {
-    margin-top: 1em;
+    margin-top: 1.25em;
     margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--theme-text);
   }
+
+  .markdown-block h1 { font-size: 1.5em; }
+  .markdown-block h2 { font-size: 1.25em; }
+  .markdown-block h3 { font-size: 1.1em; }
+  .markdown-block h4 { font-size: 1em; }
 
   .markdown-block blockquote {
     border-left: 3px solid var(--theme-primary);
