@@ -35,6 +35,23 @@ describe("version", () => {
     });
   });
 
+  describe("GET /api/version/latest-release", () => {
+    let app;
+
+    beforeAll(() => {
+      resetDatabase();
+      app = createTestApp();
+    });
+
+    test("returns 200 with version and url fields", async () => {
+      const res = await app.request("/api/version/latest-release");
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toHaveProperty("version");
+      expect(data).toHaveProperty("url");
+    });
+  });
+
   describe("compareSemver", () => {
     test("detects newer major version", () => {
       expect(compareSemver("0.2.0", "1.0.0")).toBe(true);
