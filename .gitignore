@@ -61,6 +61,7 @@ next-env.d.ts
 /_backup
 /.idea
 /docs
+/specs
 
 # Editor directories and files
 ._*
@@ -74,11 +75,3 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
-
-# Specs
-/specs
-
-#AI Agents
-.claude
-CLAUDE.md
-GEMINI.md
