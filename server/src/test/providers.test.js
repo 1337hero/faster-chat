@@ -341,10 +341,10 @@ describe("provider routes", () => {
       globalThis.fetch = async (input, init) => {
         const url = typeof input === "string" ? input : input.url;
         if (url && url.includes("/v1/models")) {
-          return new Response(
-            JSON.stringify({ data: models }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-          );
+          return new Response(JSON.stringify({ data: models }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
         }
         return originalFetch(input, init);
       };
@@ -374,9 +374,7 @@ describe("provider routes", () => {
       let providerId;
 
       beforeAll(() => {
-        stubOpenAIModelsResponse([
-          { id: "llama-3.1-8b-instruct", owned_by: "local" },
-        ]);
+        stubOpenAIModelsResponse([{ id: "llama-3.1-8b-instruct", owned_by: "local" }]);
       });
 
       afterAll(() => {
@@ -594,10 +592,10 @@ describe("provider routes", () => {
         globalThis.fetch = async (input, init) => {
           const url = typeof input === "string" ? input : input.url;
           if (url && url.includes("/v1/models")) {
-            return new Response(
-              JSON.stringify({ foo: "bar" }),
-              { status: 200, headers: { "Content-Type": "application/json" } }
-            );
+            return new Response(JSON.stringify({ foo: "bar" }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            });
           }
           return originalFetch(input, init);
         };
@@ -654,10 +652,7 @@ describe("provider routes", () => {
         if (url && url.endsWith("/api/tags")) {
           return new Response(
             JSON.stringify({
-              models: [
-                { name: "qwen3.5-4b-FLM:latest" },
-                { name: "llama3.2:q4_k_m" },
-              ],
+              models: [{ name: "qwen3.5-4b-FLM:latest" }, { name: "llama3.2:q4_k_m" }],
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );

@@ -347,7 +347,12 @@ providersRouter.post("/:id/refresh-models", async (c) => {
       dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
     }
 
-    const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl, provider.provider_type, provider.display_name);
+    const models = await fetchModelsForProvider(
+      provider.name,
+      normalizedBaseUrl,
+      provider.provider_type,
+      provider.display_name
+    );
 
     // Atomic model refresh
     const refreshModels = db.transaction(() => {
@@ -488,17 +493,12 @@ async function fetchOllamaModels(baseUrl) {
  * Fetch models from an OpenAI-compatible /v1/models endpoint
  * Used by lmstudio, llama-cpp, and llamafile providers
  */
-async function fetchOpenAICompatibleModels(
-  baseUrl,
-  displayProvider = "OpenAI-compatible server"
-) {
+async function fetchOpenAICompatibleModels(baseUrl, displayProvider = "OpenAI-compatible server") {
   if (!validateProviderUrl(baseUrl)) {
     throw new Error(`Invalid ${displayProvider} base URL`);
   }
   try {
-    const modelsUrl = baseUrl.endsWith("/v1")
-      ? `${baseUrl}/models`
-      : `${baseUrl}/v1/models`;
+    const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
 
     const response = await fetch(modelsUrl, {
       signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
@@ -514,9 +514,7 @@ async function fetchOpenAICompatibleModels(
       throw new Error(`Invalid response from ${displayProvider}`);
     }
 
-    const chatModels = data.data.filter(
-      (m) => !m.id.toLowerCase().includes("embedding")
-    );
+    const chatModels = data.data.filter((m) => !m.id.toLowerCase().includes("embedding"));
 
     return chatModels.map((m) => ({
       model_id: m.id,
@@ -527,11 +525,8 @@ async function fetchOpenAICompatibleModels(
         max_output_tokens: 2048,
         supports_streaming: true,
         supports_vision:
-          m.id.toLowerCase().includes("vision") ||
-          m.id.toLowerCase().includes("llava"),
-        supports_tools:
-          m.id.toLowerCase().includes("qwen") ||
-          m.id.toLowerCase().includes("llama"),
+          m.id.toLowerCase().includes("vision") || m.id.toLowerCase().includes("llava"),
+        supports_tools: m.id.toLowerCase().includes("qwen") || m.id.toLowerCase().includes("llama"),
         input_price_per_1m: 0,
         output_price_per_1m: 0,
         owned_by: m.owned_by || "local",
@@ -539,8 +534,6 @@ async function fetchOpenAICompatibleModels(
     }));
   } catch (error) {
     console.error(`Failed to fetch ${displayProvider} models:`, error.message);
-    throw new Error(
-      `Could not connect to ${displayProvider} at ${baseUrl}`
-    );
+    throw new Error(`Could not connect to ${displayProvider} at ${baseUrl}`);
   }
 }
