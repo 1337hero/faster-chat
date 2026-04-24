@@ -643,34 +643,36 @@ export const dbUtils = {
       isDefault: "is_default",
     };
 
-    if (updates.isDefault) {
-      db.prepare("UPDATE models SET is_default = 0").run();
-    }
-
-    const { fields, values } = buildUpdateFields(updates, fieldMap);
-
-    if (updates.enabled !== undefined) {
-      const enabledIndex = fields.findIndex((f) => f.includes("enabled"));
-      if (enabledIndex >= 0) {
-        values[enabledIndex] = updates.enabled ? 1 : 0;
+    db.transaction(() => {
+      if (updates.isDefault) {
+        db.prepare("UPDATE models SET is_default = 0").run();
       }
-    }
 
-    if (updates.isDefault !== undefined) {
-      const defaultIndex = fields.findIndex((f) => f.includes("is_default"));
-      if (defaultIndex >= 0) {
-        values[defaultIndex] = updates.isDefault ? 1 : 0;
+      const { fields, values } = buildUpdateFields(updates, fieldMap);
+
+      if (updates.enabled !== undefined) {
+        const enabledIndex = fields.findIndex((f) => f.includes("enabled"));
+        if (enabledIndex >= 0) {
+          values[enabledIndex] = updates.enabled ? 1 : 0;
+        }
       }
-    }
 
-    if (fields.length === 0) return;
+      if (updates.isDefault !== undefined) {
+        const defaultIndex = fields.findIndex((f) => f.includes("is_default"));
+        if (defaultIndex >= 0) {
+          values[defaultIndex] = updates.isDefault ? 1 : 0;
+        }
+      }
 
-    fields.push("updated_at = ?");
-    values.push(Date.now());
-    values.push(modelId);
+      if (fields.length === 0) return;
 
-    const stmt = db.prepare(`UPDATE models SET ${fields.join(", ")} WHERE id = ?`);
-    stmt.run(...values);
+      fields.push("updated_at = ?");
+      values.push(Date.now());
+      values.push(modelId);
+
+      const stmt = db.prepare(`UPDATE models SET ${fields.join(", ")} WHERE id = ?`);
+      stmt.run(...values);
+    })();
   },
 
   /**

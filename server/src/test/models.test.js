@@ -174,6 +174,22 @@ describe("model routes", () => {
     });
   });
 
+  describe("updateModel default atomicity", () => {
+    test("only the most recently set default model has is_default = 1", () => {
+      const modelA = dbUtils.createModel(providerId, "atomic-a", "Atomic A", true, "text");
+      const modelB = dbUtils.createModel(providerId, "atomic-b", "Atomic B", true, "text");
+
+      dbUtils.updateModel(modelA, { isDefault: true });
+      dbUtils.updateModel(modelB, { isDefault: true });
+
+      const a = dbUtils.getModelById(modelA);
+      const b = dbUtils.getModelById(modelB);
+
+      expect(a.is_default).toBe(0);
+      expect(b.is_default).toBe(1);
+    });
+  });
+
   describe("DELETE /api/admin/models/:id", () => {
     let deleteModelId;
 

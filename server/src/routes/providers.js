@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import net from "node:net";
+import dns from "node:dns";
 import { dbUtils } from "../lib/db.js";
 import { encryptApiKey, decryptApiKey } from "../lib/encryption.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
@@ -42,19 +44,102 @@ function normalizeBaseUrl(providerName, baseUrl) {
   return baseUrl || null;
 }
 
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "ip6-localhost",
+  "ip6-loopback",
+  "169.254.169.254",
+  "metadata.google.internal",
+  "100.100.100.200",
+]);
+
+function isPrivateIPv4(ip) {
+  const parts = ip.split(".").map((p) => parseInt(p, 10));
+  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return false;
+  const [a, b] = parts;
+  if (a === 127) return true; // 127.0.0.0/8 loopback
+  if (a === 10) return true; // 10.0.0.0/8 private
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
+  if (a === 0) return true; // 0.0.0.0/8
+  return false;
+}
+
+function isPrivateIPv6(ip) {
+  const lower = ip.toLowerCase();
+  if (lower === "::1") return true; // loopback
+  if (lower === "::") return true; // unspecified
+  // ::ffff:a.b.c.d IPv4-mapped
+  if (lower.startsWith("::ffff:")) {
+    const tail = lower.slice(7);
+    if (tail.includes(".")) return isPrivateIPv4(tail);
+    // hex form ::ffff:7f00:1 etc — convert last two hextets to dotted
+    const parts = tail.split(":");
+    if (parts.length === 2) {
+      const hi = parseInt(parts[0], 16);
+      const lo = parseInt(parts[1], 16);
+      if (!Number.isNaN(hi) && !Number.isNaN(lo)) {
+        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+        return isPrivateIPv4(dotted);
+      }
+    }
+  }
+  // fe80::/10 link-local
+  if (/^fe[89ab][0-9a-f]?:/.test(lower)) return true;
+  // fc00::/7 unique-local
+  if (/^f[cd][0-9a-f]{2}:/.test(lower)) return true;
+  return false;
+}
+
+function isPrivateAddress(ip) {
+  const family = net.isIP(ip);
+  if (family === 4) return isPrivateIPv4(ip);
+  if (family === 6) return isPrivateIPv6(ip);
+  return false;
+}
+
 /**
  * Validate provider base URL to prevent SSRF
+ *
+ * TODO: DNS rebinding is out of scope; validation + fetch is a TOCTOU race.
  */
-function validateProviderUrl(url) {
+async function validateProviderUrl(url) {
+  let parsed;
   try {
-    const parsed = new URL(url);
-    const blockedHosts = ["169.254.169.254", "metadata.google.internal", "100.100.100.200"];
-    if (blockedHosts.includes(parsed.hostname)) return false;
-    if (!["http:", "https:"].includes(parsed.protocol)) return false;
-    return true;
+    parsed = new URL(url);
   } catch {
     return false;
   }
+  if (!["http:", "https:"].includes(parsed.protocol)) return false;
+
+  // Bun's URL keeps brackets on IPv6 hostnames; strip them so net.isIP / DNS see the bare address
+  let hostname = parsed.hostname;
+  if (!hostname) return false;
+  if (hostname.startsWith("[") && hostname.endsWith("]")) {
+    hostname = hostname.slice(1, -1);
+  }
+
+  const lowerHost = hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(lowerHost)) return false;
+
+  // If hostname is itself an IP literal, classify directly
+  if (net.isIP(hostname)) {
+    return !isPrivateAddress(hostname);
+  }
+
+  // Otherwise resolve and check every returned address
+  let addresses;
+  try {
+    addresses = await dns.promises.lookup(hostname, { all: true });
+  } catch {
+    return false;
+  }
+  if (!addresses || addresses.length === 0) return false;
+  for (const { address } of addresses) {
+    if (isPrivateAddress(address)) return false;
+  }
+  return true;
 }
 
 // Validation schemas
@@ -166,7 +251,7 @@ providersRouter.post("/", async (c) => {
     const normalizedBaseUrl = normalizeBaseUrl(name, baseUrl);
 
     // SSRF validation for local provider base URLs
-    if (normalizedBaseUrl && !validateProviderUrl(normalizedBaseUrl)) {
+    if (normalizedBaseUrl && !(await validateProviderUrl(normalizedBaseUrl))) {
       return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
     }
 
@@ -259,7 +344,7 @@ providersRouter.put("/:id", async (c) => {
     }
 
     // SSRF validation if base URL is being updated
-    if (updates.baseUrl && !validateProviderUrl(updates.baseUrl)) {
+    if (updates.baseUrl && !(await validateProviderUrl(updates.baseUrl))) {
       return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
     }
 
@@ -446,7 +531,7 @@ async function fetchModelsForProvider(providerName, baseUrl, providerType, displ
  * Fetch models from Ollama
  */
 async function fetchOllamaModels(baseUrl) {
-  if (!validateProviderUrl(baseUrl)) {
+  if (!(await validateProviderUrl(baseUrl))) {
     throw new Error("Invalid Ollama base URL");
   }
   try {
@@ -494,7 +579,7 @@ async function fetchOllamaModels(baseUrl) {
  * Used by lmstudio, llama-cpp, and llamafile providers
  */
 async function fetchOpenAICompatibleModels(baseUrl, displayProvider = "OpenAI-compatible server") {
-  if (!validateProviderUrl(baseUrl)) {
+  if (!(await validateProviderUrl(baseUrl))) {
     throw new Error(`Invalid ${displayProvider} base URL`);
   }
   try {

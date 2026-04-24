@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import dns from "node:dns";
 import {
   createTestApp,
   resetDatabase,
@@ -7,6 +8,14 @@ import {
   makeRequest,
 } from "./helpers.js";
 import { dbUtils } from "../lib/db.js";
+
+// Stub DNS so tests using fictitious hostnames don't depend on real network resolution.
+// Returns a public-looking (TEST-NET-3) IP for any hostname.
+dns.promises.lookup = async (_hostname, opts) => {
+  const all = opts && opts.all;
+  const result = [{ address: "203.0.113.10", family: 4 }];
+  return all ? result : result[0];
+};
 
 describe("provider routes", () => {
   let app, adminCookie, memberCookie;
@@ -113,6 +122,80 @@ describe("provider routes", () => {
         cookie: adminCookie,
       });
       expect(res.status).toBe(400);
+    });
+
+    // Comprehensive SSRF rejection cases — POST creation
+    const REJECT_CASES = [
+      ["loopback IPv4", "http://127.0.0.1:11434"],
+      ["localhost hostname", "http://localhost:8080"],
+      ["10.0.0.0/8 private", "http://10.0.0.5/"],
+      ["192.168.0.0/16 private", "http://192.168.1.1/"],
+      ["172.16.0.0/12 private", "http://172.16.0.1/"],
+      ["AWS metadata service", "http://169.254.169.254/"],
+      ["unspecified 0.0.0.0", "http://0.0.0.0/"],
+      ["IPv6 loopback ::1", "http://[::1]/"],
+      ["IPv4-mapped IPv6 loopback", "http://[::ffff:127.0.0.1]/"],
+      ["non-http(s) ftp scheme", "ftp://example.com/"],
+    ];
+
+    for (const [label, url] of REJECT_CASES) {
+      test(`POST rejects ${label}: ${url}`, async () => {
+        const res = await makeRequest(app, "POST", "/api/admin/providers", {
+          body: {
+            name: `ssrf-post-${label.replace(/\W+/g, "-")}`,
+            displayName: "ssrf",
+            providerType: "openai-compatible",
+            baseUrl: url,
+            apiKey: "sk-test-key",
+          },
+          cookie: adminCookie,
+        });
+        expect([400, 422]).toContain(res.status);
+      });
+    }
+
+    test("POST accepts valid public https URL", async () => {
+      const res = await makeRequest(app, "POST", "/api/admin/providers", {
+        body: {
+          name: "ssrf-accept-public",
+          displayName: "Public OpenAI",
+          providerType: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: "sk-public-key",
+        },
+        cookie: adminCookie,
+      });
+      // Provider creation succeeds with 201 even if model fetch fails
+      expect(res.status).toBe(201);
+    });
+
+    describe("PUT rejection mirror", () => {
+      let putTargetId;
+
+      beforeAll(async () => {
+        const createRes = await makeRequest(app, "POST", "/api/admin/providers", {
+          body: {
+            name: "ssrf-put-target",
+            displayName: "PUT target",
+            providerType: "openai-compatible",
+            baseUrl: "https://api.example-public.com/v1",
+            apiKey: "sk-put-key",
+          },
+          cookie: adminCookie,
+        });
+        const data = await createRes.json();
+        putTargetId = data.provider.id;
+      });
+
+      for (const [label, url] of REJECT_CASES) {
+        test(`PUT rejects ${label}: ${url}`, async () => {
+          const res = await makeRequest(app, "PUT", `/api/admin/providers/${putTargetId}`, {
+            body: { baseUrl: url },
+            cookie: adminCookie,
+          });
+          expect([400, 422]).toContain(res.status);
+        });
+      }
     });
   });
 
@@ -388,7 +471,7 @@ describe("provider routes", () => {
             name: "llama-cpp",
             displayName: "llama.cpp",
             providerType: "openai-compatible",
-            baseUrl: "http://localhost:8080",
+            baseUrl: "http://llama-cpp.test.local:8080",
             apiKey: "sk-test",
           },
           cookie: adminCookie,
@@ -432,7 +515,7 @@ describe("provider routes", () => {
             name: "llamafile",
             displayName: "Llamafile",
             providerType: "openai-compatible",
-            baseUrl: "http://localhost:8081",
+            baseUrl: "http://llamafile.test.local:8081",
             apiKey: "sk-test",
           },
           cookie: adminCookie,
@@ -461,7 +544,7 @@ describe("provider routes", () => {
       beforeAll(async () => {
         llamaCppUrlnormId = await createTestProvider({
           name: "llama-cpp-urlnorm",
-          baseUrl: "http://localhost:8082",
+          baseUrl: "http://urlnorm.test.local:8082",
         });
 
         globalThis.fetch = async (input, init) => {
@@ -487,7 +570,7 @@ describe("provider routes", () => {
           "PUT",
           `/api/admin/providers/${llamaCppUrlnormId}`,
           {
-            body: { baseUrl: "http://localhost:8082/v1" },
+            body: { baseUrl: "http://urlnorm.test.local:8082/v1" },
             cookie: adminCookie,
           }
         );
@@ -500,7 +583,7 @@ describe("provider routes", () => {
           { cookie: adminCookie }
         );
         expect(refreshRes.status).toBe(200);
-        expect(capturedUrl).toBe("http://localhost:8082/v1/models");
+        expect(capturedUrl).toBe("http://urlnorm.test.local:8082/v1/models");
         expect(capturedUrl).not.toContain("/v1/v1/models");
       });
     });
@@ -518,7 +601,7 @@ describe("provider routes", () => {
 
         embedProviderId = await createTestProvider({
           name: "llama-cpp-embed",
-          baseUrl: "http://localhost:8083",
+          baseUrl: "http://embed.test.local:8083",
         });
       });
 
@@ -555,7 +638,7 @@ describe("provider routes", () => {
 
         errorProviderId = await createTestProvider({
           name: "llama-cpp-error",
-          baseUrl: "http://localhost:8084",
+          baseUrl: "http://error-host.test.local:8084",
         });
 
         globalThis.fetch = async () => {
@@ -602,7 +685,7 @@ describe("provider routes", () => {
 
         invalidProviderId = await createTestProvider({
           name: "llama-cpp-invalid",
-          baseUrl: "http://localhost:8085",
+          baseUrl: "http://invalid-host.test.local:8085",
         });
       });
 
@@ -665,7 +748,7 @@ describe("provider routes", () => {
           name: "ollama",
           displayName: "ollama",
           providerType: "openai-compatible",
-          baseUrl: "http://localhost:11434",
+          baseUrl: "http://ollama.test.local:11434",
           apiKey: "sk-test",
         },
         cookie: adminCookie,

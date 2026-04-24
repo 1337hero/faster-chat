@@ -43,6 +43,9 @@ export const COMPLETION_CONSTANTS = {
   MAX_TOKENS: 4096,
 };
 
+/** Maximum facts persisted per memory extraction turn */
+export const MEMORY_EXTRACTION_MAX_FACTS_PER_TURN = 10;
+
 /** Web Search Constants */
 export const WEB_SEARCH_CONSTANTS = {
   MAX_RESULTS: 5,

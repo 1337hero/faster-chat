@@ -22,6 +22,7 @@ function formatMessagesForTransport(messages) {
     id: message.id ?? crypto.randomUUID(),
     role: message.role,
     content: (message.parts ?? []).map((part) => (part.type === "text" ? part.text : "")).join(""),
+    fileIds: message.fileIds || [],
   }));
 }
 
@@ -62,6 +63,7 @@ export function useChatStream({
             id: msg.id,
             role: msg.role,
             parts: [{ type: "text", text: msg.content ?? "" }],
+            fileIds: msg.fileIds || [],
           }));
 
           // Merge persisted history with new messages from SDK
