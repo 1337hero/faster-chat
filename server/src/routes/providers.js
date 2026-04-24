@@ -347,7 +347,7 @@ providersRouter.post("/:id/refresh-models", async (c) => {
       dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
     }
 
-    const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl);
+    const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl, provider.provider_type, provider.display_name);
 
     // Atomic model refresh
     const refreshModels = db.transaction(() => {
@@ -417,17 +417,22 @@ providersRouter.delete("/:id", async (c) => {
  */
 const MODEL_FETCHERS = {
   ollama: fetchOllamaModels,
-  lmstudio: fetchLMStudioModels,
+  lmstudio: (url) => fetchOpenAICompatibleModels(url, "LM Studio"),
+  "llama-cpp": (url) => fetchOpenAICompatibleModels(url, "llama.cpp server"),
+  llamafile: (url) => fetchOpenAICompatibleModels(url, "llamafile server"),
   replicate: () => Promise.resolve(getReplicateImageModels()),
 };
 
 /**
  * Fetch models for a provider using the appropriate fetcher
  */
-async function fetchModelsForProvider(providerName, baseUrl) {
+async function fetchModelsForProvider(providerName, baseUrl, providerType, displayName) {
   const fetcher = MODEL_FETCHERS[providerName];
   if (fetcher) {
     return await fetcher(baseUrl);
+  }
+  if (providerType === "openai-compatible") {
+    return await fetchOpenAICompatibleModels(baseUrl, displayName || providerName);
   }
   return await getModelsForProvider(providerName);
 }
@@ -454,22 +459,25 @@ async function fetchOllamaModels(baseUrl) {
       throw new Error("Invalid response from Ollama");
     }
 
-    return data.models.map((m) => ({
-      model_id: m.name,
-      display_name: m.name,
-      enabled: true,
-      metadata: {
-        context_window: 8192,
-        max_output_tokens: 2048,
-        supports_streaming: true,
-        supports_vision: m.name.includes("llava") || m.name.includes("vision"),
-        supports_tools: m.name.includes("qwen") || m.name.includes("llama3"),
-        input_price_per_1m: 0,
-        output_price_per_1m: 0,
-        size_bytes: m.size,
-        modified_at: m.modified_at,
-      },
-    }));
+    return data.models.map((m) => {
+      const modelId = m.name.replace(/:latest$/, "");
+      return {
+        model_id: modelId,
+        display_name: modelId,
+        enabled: true,
+        metadata: {
+          context_window: 8192,
+          max_output_tokens: 2048,
+          supports_streaming: true,
+          supports_vision: modelId.includes("llava") || modelId.includes("vision"),
+          supports_tools: modelId.includes("qwen") || modelId.includes("llama3"),
+          input_price_per_1m: 0,
+          output_price_per_1m: 0,
+          size_bytes: m.size,
+          modified_at: m.modified_at,
+        },
+      };
+    });
   } catch (error) {
     console.error("Failed to fetch Ollama models:", error.message);
     throw new Error(`Could not connect to Ollama at ${baseUrl}. Make sure Ollama is running.`);
@@ -477,30 +485,38 @@ async function fetchOllamaModels(baseUrl) {
 }
 
 /**
- * Fetch models from LM Studio
+ * Fetch models from an OpenAI-compatible /v1/models endpoint
+ * Used by lmstudio, llama-cpp, and llamafile providers
  */
-async function fetchLMStudioModels(baseUrl) {
+async function fetchOpenAICompatibleModels(
+  baseUrl,
+  displayProvider = "OpenAI-compatible server"
+) {
   if (!validateProviderUrl(baseUrl)) {
-    throw new Error("Invalid LM Studio base URL");
+    throw new Error(`Invalid ${displayProvider} base URL`);
   }
   try {
-    const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+    const modelsUrl = baseUrl.endsWith("/v1")
+      ? `${baseUrl}/models`
+      : `${baseUrl}/v1/models`;
 
     const response = await fetch(modelsUrl, {
       signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
     });
 
     if (!response.ok) {
-      throw new Error(`LM Studio API returned ${response.status}`);
+      throw new Error(`${displayProvider} API returned ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.data || !Array.isArray(data.data)) {
-      throw new Error("Invalid response from LM Studio");
+      throw new Error(`Invalid response from ${displayProvider}`);
     }
 
-    const chatModels = data.data.filter((m) => !m.id.toLowerCase().includes("embedding"));
+    const chatModels = data.data.filter(
+      (m) => !m.id.toLowerCase().includes("embedding")
+    );
 
     return chatModels.map((m) => ({
       model_id: m.id,
@@ -511,17 +527,20 @@ async function fetchLMStudioModels(baseUrl) {
         max_output_tokens: 2048,
         supports_streaming: true,
         supports_vision:
-          m.id.toLowerCase().includes("vision") || m.id.toLowerCase().includes("llava"),
-        supports_tools: m.id.toLowerCase().includes("qwen") || m.id.toLowerCase().includes("llama"),
+          m.id.toLowerCase().includes("vision") ||
+          m.id.toLowerCase().includes("llava"),
+        supports_tools:
+          m.id.toLowerCase().includes("qwen") ||
+          m.id.toLowerCase().includes("llama"),
         input_price_per_1m: 0,
         output_price_per_1m: 0,
         owned_by: m.owned_by || "local",
       },
     }));
   } catch (error) {
-    console.error("Failed to fetch LM Studio models:", error.message);
+    console.error(`Failed to fetch ${displayProvider} models:`, error.message);
     throw new Error(
-      `Could not connect to LM Studio at ${baseUrl}. Make sure LM Studio is running.`
+      `Could not connect to ${displayProvider} at ${baseUrl}`
     );
   }
 }
