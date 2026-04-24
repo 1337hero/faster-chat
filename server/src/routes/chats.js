@@ -65,6 +65,7 @@ chatsRouter.get("/", async (c) => {
       chats: chats.map((chat) => ({
         id: chat.id,
         title: chat.title,
+        folderId: chat.folder_id,
         pinnedAt: chat.pinned_at,
         archivedAt: chat.archived_at,
         createdAt: chat.created_at,
@@ -105,7 +106,7 @@ chatsRouter.post("/", async (c) => {
       {
         id: chat.id,
         title: chat.title,
-        folder_id: chat.folder_id,
+        folderId: chat.folder_id,
         createdAt: chat.created_at,
         updatedAt: chat.updated_at,
       },
@@ -358,17 +359,26 @@ chatsRouter.post("/:chatId/messages", async (c) => {
       validated.metadata || null
     );
 
-    const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
-    if (isFirstMessage && validated.role === "user") {
-      let title;
-      if (validated.model) {
-        title = await generateChatTitle(validated.content, validated.model);
+    if (validated.role === "user") {
+      const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
+      if (isFirstMessage) {
+        let title = truncateToTitle(validated.content); // always computed
+        if (validated.model) {
+          try {
+            const aiTitle = await generateChatTitle(validated.content, validated.model);
+            if (aiTitle && aiTitle.trim()) title = aiTitle;
+          } catch (err) {
+            console.warn("AI title upgrade failed, keeping fallback:", err.message);
+          }
+        }
+        try {
+          dbUtils.updateChatTitle(chatId, title);
+        } catch (err) {
+          console.error("updateChatTitle failed:", err);
+        }
       } else {
-        title = truncateToTitle(validated.content);
+        dbUtils.updateChatTimestamp(chatId);
       }
-      dbUtils.updateChatTitle(chatId, title);
-    } else {
-      dbUtils.updateChatTimestamp(chatId);
     }
 
     return c.json(
@@ -433,6 +443,7 @@ const CompletionRequestSchema = z.object({
       id: z.string(),
       role: z.enum(["user", "assistant", "system"]),
       content: z.string(),
+      fileIds: z.array(z.string()).optional(),
     })
   ),
   fileIds: z.array(z.string()).optional(),
@@ -561,7 +572,7 @@ function applyCacheControl(messages, modelId) {
 /**
  * Create multimodal content array with text and file attachments
  */
-async function createMultimodalContent(message, fileIds, userId) {
+export async function createMultimodalContent(message, fileIds, userId) {
   const content = [];
 
   if (message.content.trim()) {
@@ -574,12 +585,8 @@ async function createMultimodalContent(message, fileIds, userId) {
   }
 
   for (const file of files) {
-    try {
-      const contentPart = await fileToContentPart(file);
-      content.push(contentPart);
-    } catch (error) {
-      console.error(`Failed to process file ${file.id}:`, error);
-    }
+    const contentPart = await fileToContentPart(file);
+    content.push(contentPart);
   }
 
   return content;
@@ -595,11 +602,13 @@ async function convertToModelMessages(messages, systemPrompt, fileIds = [], user
     const msg = messages[i];
     if (msg.role === "system") continue;
 
-    const isLastUserWithFiles =
-      i === messages.length - 1 && msg.role === "user" && fileIds.length > 0;
+    const isLastUser = i === messages.length - 1 && msg.role === "user";
+    // top-level fileIds is the legacy per-last-message path; messages[].fileIds takes precedence
+    const msgFileIds =
+      msg.fileIds && msg.fileIds.length > 0 ? msg.fileIds : isLastUser ? fileIds : [];
 
-    if (isLastUserWithFiles) {
-      const content = await createMultimodalContent(msg, fileIds, userId);
+    if (msg.role === "user" && msgFileIds.length > 0) {
+      const content = await createMultimodalContent(msg, msgFileIds, userId);
       result.push({ role: msg.role, content });
     } else {
       result.push({ role: msg.role, content: msg.content });

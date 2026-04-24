@@ -12,8 +12,8 @@ const debug = process.env.NODE_ENV !== "production";
 export const modelsRouter = new Hono();
 
 // Admin-only routes
-const adminRouter = new Hono();
-adminRouter.use("*", ensureSession, requireRole("admin"));
+const adminModelsRouter = new Hono();
+adminModelsRouter.use("*", ensureSession, requireRole("admin"));
 
 // Public route (for users to see available models)
 const publicRouter = new Hono();
@@ -60,7 +60,7 @@ publicRouter.get("/", async (c) => {
  * GET /api/admin/models
  * List all models (admin only)
  */
-adminRouter.get("/", async (c) => {
+adminModelsRouter.get("/", async (c) => {
   try {
     const type = c.req.query("type");
     const models = type ? dbUtils.getModelsByType(type) : dbUtils.getAllModels();
@@ -93,7 +93,7 @@ adminRouter.get("/", async (c) => {
  * GET /api/admin/models/:id
  * Get model details
  */
-adminRouter.get("/:id", async (c) => {
+adminModelsRouter.get("/:id", async (c) => {
   try {
     const modelId = parseInt(c.req.param("id"), 10);
 
@@ -133,7 +133,7 @@ adminRouter.get("/:id", async (c) => {
  * PUT /api/admin/models/:id
  * Update model
  */
-adminRouter.put("/:id", async (c) => {
+adminModelsRouter.put("/:id", async (c) => {
   try {
     const modelId = parseInt(c.req.param("id"), 10);
     const body = await c.req.json();
@@ -160,7 +160,7 @@ adminRouter.put("/:id", async (c) => {
  * PUT /api/admin/models/:id/default
  * Set model as default
  */
-adminRouter.put("/:id/default", async (c) => {
+adminModelsRouter.put("/:id/default", async (c) => {
   try {
     const modelId = parseInt(c.req.param("id"), 10);
 
@@ -182,7 +182,7 @@ adminRouter.put("/:id/default", async (c) => {
  * DELETE /api/admin/models/:id
  * Delete model
  */
-adminRouter.delete("/:id", async (c) => {
+adminModelsRouter.delete("/:id", async (c) => {
   try {
     const modelId = parseInt(c.req.param("id"), 10);
 
@@ -205,173 +205,177 @@ adminRouter.delete("/:id", async (c) => {
  * Pull an Ollama model from the Ollama registry
  * Streams progress via Server-Sent Events
  */
-adminRouter.post("/ollama/pull", createRateLimiter(ENDPOINT_RATE_LIMITS.OLLAMA_PULL), async (c) => {
-  try {
-    const body = await c.req.json();
-    const { providerId, modelName } = z
-      .object({
-        providerId: z.number().int().positive(),
-        modelName: z.string().min(1),
-      })
-      .parse(body);
+adminModelsRouter.post(
+  "/ollama/pull",
+  createRateLimiter(ENDPOINT_RATE_LIMITS.OLLAMA_PULL),
+  async (c) => {
+    try {
+      const body = await c.req.json();
+      const { providerId, modelName } = z
+        .object({
+          providerId: z.number().int().positive(),
+          modelName: z.string().min(1),
+        })
+        .parse(body);
 
-    const provider = dbUtils.getProviderById(providerId);
-    if (!provider) {
-      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
-    }
+      const provider = dbUtils.getProviderById(providerId);
+      if (!provider) {
+        return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
+      }
 
-    if (provider.name !== "ollama") {
-      return c.json({ error: "Provider is not an Ollama instance" }, HTTP_STATUS.BAD_REQUEST);
-    }
+      if (provider.name !== "ollama") {
+        return c.json({ error: "Provider is not an Ollama instance" }, HTTP_STATUS.BAD_REQUEST);
+      }
 
-    if (!provider.enabled) {
-      return c.json({ error: "Provider is disabled" }, HTTP_STATUS.BAD_REQUEST);
-    }
+      if (!provider.enabled) {
+        return c.json({ error: "Provider is disabled" }, HTTP_STATUS.BAD_REQUEST);
+      }
 
-    const baseUrl = provider.base_url;
-    if (!baseUrl) {
-      return c.json({ error: "Provider base URL not configured" }, HTTP_STATUS.BAD_REQUEST);
-    }
+      const baseUrl = provider.base_url;
+      if (!baseUrl) {
+        return c.json({ error: "Provider base URL not configured" }, HTTP_STATUS.BAD_REQUEST);
+      }
 
-    // Remove /v1 suffix if present (Ollama API doesn't use /v1 for pull endpoint)
-    const ollamaBaseUrl = baseUrl.replace(/\/v1\/?$/, "");
+      // Remove /v1 suffix if present (Ollama API doesn't use /v1 for pull endpoint)
+      const ollamaBaseUrl = baseUrl.replace(/\/v1\/?$/, "");
 
-    return streamSSE(c, async (stream) => {
-      try {
-        const pullUrl = `${ollamaBaseUrl}/api/pull`;
-        if (debug) console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
-        if (debug) console.log(`[Ollama Pull] URL: ${pullUrl}`);
+      return streamSSE(c, async (stream) => {
+        try {
+          const pullUrl = `${ollamaBaseUrl}/api/pull`;
+          if (debug) console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
+          if (debug) console.log(`[Ollama Pull] URL: ${pullUrl}`);
 
-        const response = await fetch(pullUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: modelName, stream: true }),
-        });
-
-        if (debug)
-          console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[Ollama Pull] Error response: ${errorText}`);
-          await stream.writeSSE({
-            data: JSON.stringify({
-              status: "error",
-              error: `Ollama API error: ${response.statusText} - ${errorText}`,
-            }),
+          const response = await fetch(pullUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: modelName, stream: true }),
           });
-          return;
-        }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let chunkCount = 0;
+          if (debug)
+            console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
 
-        if (debug) console.log(`[Ollama Pull] Starting to read stream...`);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            if (debug) console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
-            break;
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Ollama Pull] Error response: ${errorText}`);
+            await stream.writeSSE({
+              data: JSON.stringify({
+                status: "error",
+                error: `Ollama API error: ${response.statusText} - ${errorText}`,
+              }),
+            });
+            return;
           }
 
-          chunkCount++;
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let chunkCount = 0;
 
-          if (debug && chunkCount <= 3) {
-            console.log(`[Ollama Pull] Chunk ${chunkCount}: ${chunk.substring(0, 200)}`);
+          if (debug) console.log(`[Ollama Pull] Starting to read stream...`);
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              if (debug) console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
+              break;
+            }
+
+            chunkCount++;
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            if (debug && chunkCount <= 3) {
+              console.log(`[Ollama Pull] Chunk ${chunkCount}: ${chunk.substring(0, 200)}`);
+            }
+
+            const lines = buffer.split("\n");
+
+            // Keep the last (potentially incomplete) line in the buffer
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const data = JSON.parse(line);
+
+                // Check if Ollama returned an error
+                if (data.error) {
+                  console.error(`[Ollama Pull] Ollama error: ${data.error}`);
+                  await stream.writeSSE({
+                    data: JSON.stringify({
+                      status: "error",
+                      error: data.error,
+                    }),
+                  });
+                  return; // Stop processing - we hit an error
+                }
+
+                await stream.writeSSE({ data: JSON.stringify(data) });
+
+                if (data.status === "success") {
+                  if (debug) console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
+                }
+              } catch (parseError) {
+                console.error(
+                  "[Ollama Pull] Failed to parse line:",
+                  line.substring(0, 100),
+                  parseError.message
+                );
+              }
+            }
           }
 
-          const lines = buffer.split("\n");
-
-          // Keep the last (potentially incomplete) line in the buffer
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.trim()) continue;
+          // Process any remaining buffer content
+          if (buffer.trim()) {
+            if (debug)
+              console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
             try {
-              const data = JSON.parse(line);
+              const data = JSON.parse(buffer);
 
               // Check if Ollama returned an error
               if (data.error) {
-                console.error(`[Ollama Pull] Ollama error: ${data.error}`);
+                console.error(`[Ollama Pull] Ollama error in final buffer: ${data.error}`);
                 await stream.writeSSE({
                   data: JSON.stringify({
                     status: "error",
                     error: data.error,
                   }),
                 });
-                return; // Stop processing - we hit an error
+                return;
               }
 
               await stream.writeSSE({ data: JSON.stringify(data) });
-
-              if (data.status === "success") {
-                if (debug) console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
-              }
             } catch (parseError) {
               console.error(
-                "[Ollama Pull] Failed to parse line:",
-                line.substring(0, 100),
+                "[Ollama Pull] Failed to parse final buffer:",
+                buffer.substring(0, 100),
                 parseError.message
               );
             }
           }
+
+          if (debug) console.log(`[Ollama Pull] Sending completed event`);
+          await stream.writeSSE({ data: JSON.stringify({ status: "completed" }) });
+        } catch (error) {
+          console.error("Ollama pull error:", error);
+          await stream.writeSSE({
+            data: JSON.stringify({
+              status: "error",
+              error: error.message || "Failed to pull model",
+            }),
+          });
         }
-
-        // Process any remaining buffer content
-        if (buffer.trim()) {
-          if (debug)
-            console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
-          try {
-            const data = JSON.parse(buffer);
-
-            // Check if Ollama returned an error
-            if (data.error) {
-              console.error(`[Ollama Pull] Ollama error in final buffer: ${data.error}`);
-              await stream.writeSSE({
-                data: JSON.stringify({
-                  status: "error",
-                  error: data.error,
-                }),
-              });
-              return;
-            }
-
-            await stream.writeSSE({ data: JSON.stringify(data) });
-          } catch (parseError) {
-            console.error(
-              "[Ollama Pull] Failed to parse final buffer:",
-              buffer.substring(0, 100),
-              parseError.message
-            );
-          }
-        }
-
-        if (debug) console.log(`[Ollama Pull] Sending completed event`);
-        await stream.writeSSE({ data: JSON.stringify({ status: "completed" }) });
-      } catch (error) {
-        console.error("Ollama pull error:", error);
-        await stream.writeSSE({
-          data: JSON.stringify({
-            status: "error",
-            error: error.message || "Failed to pull model",
-          }),
-        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
       }
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
+      console.error("Pull model error:", error);
+      return c.json({ error: "Failed to pull model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
-    console.error("Pull model error:", error);
-    return c.json({ error: "Failed to pull model" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
-});
+);
 
 // Mount routers
-modelsRouter.route("/admin/models", adminRouter);
+modelsRouter.route("/admin/models", adminModelsRouter);
 modelsRouter.route("/models", publicRouter);
