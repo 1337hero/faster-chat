@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatsClient } from "@/lib/chatsClient";
 import { useAuthState } from "@/state/useAuthState";
 import { getMessageTimestamp } from "@/lib/messageUtils";
+import { toCanonicalMessage } from "@/lib/messageShape.js";
+import { sortChatsLikeServer } from "@/lib/chatSort.js";
 import { chatKeys, folderKeys } from "./queryKeys";
 
 // Re-export for backward compatibility
@@ -33,22 +35,7 @@ export function useMessagesQuery(chatId) {
   return useQuery({
     queryKey: chatKeys.messages(userId, chatId),
     queryFn: () => chatsClient.getMessages(chatId),
-    select: (messages) =>
-      messages.map((msg) => {
-        const parts = [{ type: "text", text: msg.content }];
-        if (msg.metadata?.toolParts) {
-          parts.push(...msg.metadata.toolParts);
-        }
-        return {
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          parts,
-          fileIds: msg.fileIds || [],
-          model: msg.model || null,
-          createdAt: getMessageTimestamp(msg),
-        };
-      }),
+    select: (messages) => messages.map(toCanonicalMessage),
     enabled: userId !== null && !!chatId,
   });
 }
@@ -62,7 +49,7 @@ export function useCreateChatMutation() {
     onSuccess: (newChat, { folderId } = {}) => {
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
         if (!old) return [newChat];
-        return [newChat, ...old];
+        return sortChatsLikeServer([newChat, ...old]);
       });
       // Invalidate folder chats if created in a folder
       if (folderId) {
@@ -102,6 +89,9 @@ export function useDeleteChatMutation() {
       queryClient.removeQueries({ queryKey: chatKeys.detail(userId, chatId) });
       queryClient.removeQueries({ queryKey: chatKeys.messages(userId, chatId) });
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    },
   });
 }
 
@@ -124,14 +114,15 @@ export function useCreateMessageMutation() {
       // Create optimistic message with stable id/createdAt
       const optimisticId = message.id || `temp-${crypto.randomUUID()}`;
       const optimisticCreatedAt = getMessageTimestamp(message);
-      const optimisticMessage = {
+      const optimisticMessage = toCanonicalMessage({
         id: optimisticId,
         role: message.role,
         content: message.content,
         fileIds: message.fileIds || [],
         model: message.model || null,
         createdAt: optimisticCreatedAt,
-      };
+        metadata: message.metadata,
+      });
 
       if (message.role === "user") {
         // Insert optimistic message into cache
@@ -145,27 +136,29 @@ export function useCreateMessageMutation() {
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
         if (!old) return old;
         const now = Date.now();
-        return old
-          .map((chat) => (chat.id === chatId ? { ...chat, updatedAt: now } : chat))
-          .sort((a, b) => b.updatedAt - a.updatedAt);
+        const updated = old.map((chat) =>
+          chat.id === chatId ? { ...chat, updatedAt: now } : chat
+        );
+        return sortChatsLikeServer(updated);
       });
 
       return { previousMessages, previousChats, optimisticMessage };
     },
 
     onSuccess: (savedMessage, { chatId }, context) => {
+      const canonical = toCanonicalMessage(savedMessage);
       // Replace optimistic message with saved one from server (by id)
       queryClient.setQueryData(chatKeys.messages(userId, chatId), (old) => {
-        if (!old) return [savedMessage];
+        if (!old) return [canonical];
         let found = false;
         const mapped = old.map((msg) => {
-          if (msg.id === savedMessage.id || msg.id === context?.optimisticMessage?.id) {
+          if (msg.id === canonical.id || msg.id === context?.optimisticMessage?.id) {
             found = true;
-            return savedMessage;
+            return canonical;
           }
           return msg;
         });
-        return found ? mapped : [...mapped, savedMessage];
+        return found ? mapped : [...mapped, canonical];
       });
     },
 

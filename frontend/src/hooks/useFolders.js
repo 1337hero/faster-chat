@@ -17,7 +17,6 @@ export function useFolders() {
   const { data, isLoading, error } = useQuery({
     queryKey: folderKeys.list(userId),
     queryFn: () => apiFetch("/api/folders"),
-    select: (data) => data.folders || [],
     enabled: userId !== null,
   });
 
@@ -143,7 +142,7 @@ export function useFolders() {
   });
 
   return {
-    folders: data || [],
+    folders: data?.folders ?? [],
     isLoading,
     error,
     createFolder: createMutation.mutateAsync,

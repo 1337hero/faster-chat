@@ -6,6 +6,11 @@ import {
   seedMemberUser,
   makeRequest,
 } from "./helpers.js";
+import { dbUtils } from "../lib/db.js";
+import { createMultimodalContent } from "../routes/chats.js";
+import { unlink } from "fs/promises";
+import path from "path";
+import { FILE_CONFIG } from "../lib/fileUtils.js";
 
 describe("chat routes", () => {
   let app, adminCookie, memberCookie;
@@ -374,6 +379,142 @@ describe("chat routes", () => {
       expect(data.limit).toBe(2);
       expect(data.offset).toBe(0);
       expect(data.chats.length).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe("file error surfacing", () => {
+    test("createMultimodalContent throws when physical file is missing instead of swallowing", async () => {
+      const adminUser = dbUtils.getUserByUsername("admin");
+      const fileId = `missing-file-${crypto.randomUUID()}`;
+      const storedFilename = `${fileId}.bin`;
+      const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
+
+      dbUtils.createFile(
+        fileId,
+        adminUser.id,
+        "ghost.png",
+        storedFilename,
+        filePath,
+        "image/png",
+        100,
+        null,
+        null
+      );
+
+      // Ensure no physical file exists
+      try {
+        await unlink(filePath);
+      } catch {
+        /* not present, ok */
+      }
+
+      let threw = false;
+      try {
+        await createMultimodalContent({ content: "hello" }, [fileId], adminUser.id);
+      } catch {
+        threw = true;
+      }
+      expect(threw).toBe(true);
+
+      dbUtils.deleteFile(fileId);
+    });
+  });
+
+  describe("folderId contract", () => {
+    test("GET /api/chats returns chat objects with camelCase folderId key", async () => {
+      const res = await makeRequest(app, "GET", "/api/chats", {
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.chats.length).toBeGreaterThanOrEqual(1);
+      for (const chat of data.chats) {
+        expect(chat).toHaveProperty("folderId");
+        expect(chat).not.toHaveProperty("folder_id");
+      }
+    });
+
+    test("POST /api/chats with folder_id returns folderId (camelCase) in response", async () => {
+      const folderRes = await makeRequest(app, "POST", "/api/folders", {
+        body: { name: "Contract Folder" },
+        cookie: adminCookie,
+      });
+      expect(folderRes.status).toBe(201);
+      const folderData = await folderRes.json();
+      const folderId = folderData.folder?.id || folderData.id;
+
+      const res = await makeRequest(app, "POST", "/api/chats", {
+        body: { folder_id: folderId },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data).toHaveProperty("folderId", folderId);
+      expect(data).not.toHaveProperty("folder_id");
+    });
+  });
+
+  describe("title fallback", () => {
+    test("AI title generation failure falls back to truncated content", async () => {
+      const createRes = await makeRequest(app, "POST", "/api/chats", {
+        body: {},
+        cookie: adminCookie,
+      });
+      expect(createRes.status).toBe(201);
+      const { id: chatId } = await createRes.json();
+
+      const userContent = "Hello world, please help me plan a trip to Japan next spring";
+
+      // Use a non-existent model ID so generateChatTitle's underlying call fails.
+      const msgRes = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+        body: {
+          role: "user",
+          content: userContent,
+          model: "non-existent-model-for-fallback-test",
+        },
+        cookie: adminCookie,
+      });
+      expect(msgRes.status).toBe(201);
+
+      const getRes = await makeRequest(app, "GET", `/api/chats/${chatId}`, {
+        cookie: adminCookie,
+      });
+      expect(getRes.status).toBe(200);
+      const chat = await getRes.json();
+      expect(chat.title).not.toBeNull();
+      expect(typeof chat.title).toBe("string");
+      // The fallback should match what truncateToTitle would return
+      // (For short content, it's the content verbatim; for long, it's truncated.)
+      const expectedPrefix = userContent.slice(0, 40);
+      expect(chat.title.startsWith(expectedPrefix.slice(0, 20))).toBe(true);
+    });
+
+    test("first user message with no model still gets a title via direct truncation", async () => {
+      const createRes = await makeRequest(app, "POST", "/api/chats", {
+        body: {},
+        cookie: adminCookie,
+      });
+      expect(createRes.status).toBe(201);
+      const { id: chatId } = await createRes.json();
+
+      const userContent = "Short prompt without a model";
+
+      const msgRes = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+        body: {
+          role: "user",
+          content: userContent,
+          // No model field — must skip AI path entirely.
+        },
+        cookie: adminCookie,
+      });
+      expect(msgRes.status).toBe(201);
+
+      const getRes = await makeRequest(app, "GET", `/api/chats/${chatId}`, {
+        cookie: adminCookie,
+      });
+      expect(getRes.status).toBe(200);
+      const chat = await getRes.json();
+      expect(chat.title).toBe(userContent);
     });
   });
 });

@@ -1,5 +1,6 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import { createMemoryMiddleware, isMemoryEnabledForRequest } from "../lib/memory.js";
+import { MEMORY_EXTRACTION_MAX_FACTS_PER_TURN } from "@faster-chat/shared";
 
 describe("memory helpers", () => {
   test("isMemoryEnabledForRequest requires all memory gates to pass", () => {
@@ -60,6 +61,37 @@ describe("memory helpers", () => {
 
     expect(result.system).toContain("Base system prompt");
     expect(result.system).toContain("uses Arch Linux");
+  });
+
+  test("extractMemories caps persisted facts to MEMORY_EXTRACTION_MAX_FACTS_PER_TURN", async () => {
+    const fiftyFacts = Array.from({ length: 50 }, (_, i) => `fact ${i}`);
+    await mock.module("ai", () => ({
+      wrapLanguageModel: (opts) => opts.model,
+      generateText: async () => ({ text: JSON.stringify(fiftyFacts) }),
+    }));
+
+    // Re-import after mock so memory.js binds to mocked generateText
+    const { extractMemories } = await import(`../lib/memory.js?cap=${Date.now()}`);
+
+    let receivedFacts = null;
+    const dbUtils = {
+      upsertMemories: (_userId, facts) => {
+        receivedFacts = facts;
+      },
+    };
+
+    await extractMemories({
+      model: {},
+      userMessage: "hi",
+      assistantMessage: "hello",
+      userId: 1,
+      chatId: "chat-1",
+      dbUtils,
+    });
+
+    expect(receivedFacts).not.toBeNull();
+    expect(receivedFacts.length).toBe(MEMORY_EXTRACTION_MAX_FACTS_PER_TURN);
+    expect(receivedFacts.length).toBe(10);
   });
 
   test("memory middleware skips injection when the request disables memory", async () => {
