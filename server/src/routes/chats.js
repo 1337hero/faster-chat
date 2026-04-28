@@ -18,7 +18,13 @@ import { decryptApiKey } from "../lib/encryption.js";
 import { getModelInstance } from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
 import path from "path";
-import { FILE_CONFIG } from "../lib/fileUtils.js";
+import {
+  FILE_CONFIG,
+  isTextLikeAttachment,
+  decodeAttachmentText,
+  formatInlineAttachmentText,
+  MAX_INLINE_TEXT_ATTACHMENT_CHARS,
+} from "../lib/fileUtils.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   wrapModelWithMemory,
@@ -507,34 +513,46 @@ async function generateChatTitle(userMessage, modelId) {
   }
 }
 
-/**
- * Convert file to multimodal content part
- */
-async function fileToContentPart(file) {
-  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
-  let fileBuffer;
-  try {
-    fileBuffer = await readFile(filePath);
-  } catch (err) {
-    console.error(`Missing or unreadable file ${file.id} at ${filePath}:`, err);
-    throw err;
-  }
-
-  const isImage = file.mime_type?.startsWith("image/");
-  if (isImage) {
-    const base64Data = fileBuffer.toString("base64");
-    return {
-      type: "image",
-      image: `data:${file.mime_type};base64,${base64Data}`,
-    };
-  }
-
+function asFileContentPart(file, fileBuffer) {
   return {
     type: "file",
     data: fileBuffer,
     mediaType: file.mime_type,
     filename: file.filename,
   };
+}
+
+async function fileToContentPart(file) {
+  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+  const fileBuffer = await readFile(filePath).catch((err) => {
+    throw new Error(`Cannot read ${file.id} at ${filePath}: ${err.message}`);
+  });
+
+  if (file.mime_type?.startsWith("image/")) {
+    return {
+      type: "image",
+      image: `data:${file.mime_type};base64,${fileBuffer.toString("base64")}`,
+    };
+  }
+
+  if (isTextLikeAttachment(file)) {
+    const fullText = decodeAttachmentText(fileBuffer).text;
+    const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
+    const isTruncated = displayText.length < fullText.length;
+
+    return {
+      type: "text",
+      text: formatInlineAttachmentText({
+        filename: file.filename,
+        mimeType: file.mime_type,
+        size: fileBuffer.length,
+        text: displayText,
+        totalCharCount: isTruncated ? fullText.length : undefined,
+      }),
+    };
+  }
+
+  return asFileContentPart(file, fileBuffer);
 }
 
 /**
@@ -569,9 +587,6 @@ function applyCacheControl(messages, modelId) {
   });
 }
 
-/**
- * Create multimodal content array with text and file attachments
- */
 export async function createMultimodalContent(message, fileIds, userId) {
   const content = [];
 
