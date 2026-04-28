@@ -6,7 +6,9 @@ import {
   extractOfficeText,
   isOfficeModernFile,
   isOfficeLegacyFile,
+  decodeXmlEntities,
 } from "../lib/officeExtraction.js";
+import AdmZip from "adm-zip";
 import { FILE_CATEGORIES, classifyAttachment } from "../lib/fileUtils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -248,6 +250,45 @@ describe("officeExtraction", () => {
       });
 
       expect(result.kind).toBe("docx");
+    });
+  });
+
+  describe("decodeXmlEntities", () => {
+    test("decodes the five named entities", () => {
+      expect(decodeXmlEntities("AT&amp;T &lt;tag&gt; &quot;x&quot; &apos;y&apos;")).toBe(
+        "AT&T <tag> \"x\" 'y'"
+      );
+    });
+
+    test("decodes numeric and hex character references", () => {
+      expect(decodeXmlEntities("caf&#233; &#xe9;")).toBe("café é");
+    });
+
+    test("leaves unknown entities intact", () => {
+      expect(decodeXmlEntities("&unknown; &amp;")).toBe("&unknown; &");
+    });
+  });
+
+  describe("entity decoding in extraction", () => {
+    function makeDocx(text) {
+      const zip = new AdmZip();
+      zip.addFile(
+        "word/document.xml",
+        Buffer.from(
+          `<?xml version="1.0"?><w:document xmlns:w="x"><w:body><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:body></w:document>`
+        )
+      );
+      return zip.toBuffer();
+    }
+
+    test("docx text containing &amp; round-trips to a literal &", () => {
+      const result = extractOfficeText({
+        buffer: makeDocx("AT&amp;T meeting &lt;today&gt;"),
+        filename: "deal.docx",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      expect(result.text).toContain("AT&T meeting <today>");
+      expect(result.text).not.toContain("&amp;");
     });
   });
 });

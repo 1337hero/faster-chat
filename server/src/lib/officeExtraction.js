@@ -1,19 +1,35 @@
 import path from "path";
 import AdmZip from "adm-zip";
 
-// Office document MIME type mappings
 const OFFICE_MIME_TYPES = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
 };
 
-// Office extension to kind mapping
-const OFFICE_EXTENSIONS = {
-  docx: "docx",
-  xlsx: "xlsx",
-  pptx: "pptx",
-};
+const OFFICE_EXTENSIONS = { docx: "docx", xlsx: "xlsx", pptx: "pptx" };
+
+const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+export function decodeXmlEntities(text) {
+  return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (match, body) => {
+    if (body[0] === "#") {
+      const code = body[1] === "x" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    return NAMED_ENTITIES[body] ?? match;
+  });
+}
+
+function extractTagText(xml, tag) {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "g");
+  const out = [];
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    out.push(decodeXmlEntities(m[1]));
+  }
+  return out;
+}
 
 /**
  * Extract text from a DOCX file
@@ -24,40 +40,15 @@ function extractDocxText(buffer) {
   const texts = [];
 
   try {
-    const zip = new AdmZip(buffer);
-
-    // Get all entries in the ZIP
-    const entries = zip.getEntries();
-
+    const entries = new AdmZip(buffer).getEntries();
     for (const entry of entries) {
-      // Extract text from document.xml (main document content)
       if (entry.entryName === "word/document.xml") {
-        const xmlContent = entry.getData().toString("utf8");
-
-        // Match <w:t> tags and extract their content
-        // DOCX uses <w:t> for text nodes within runs
-        const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-        if (textMatches) {
-          for (const match of textMatches) {
-            const text = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
-            if (text.trim()) {
-              texts.push(text.trim());
-            }
-          }
+        for (const t of extractTagText(entry.getData().toString("utf8"), "w:t")) {
+          if (t.trim()) texts.push(t.trim());
         }
-      }
-
-      // Extract from header files if present
-      if (entry.entryName.startsWith("word/header") && entry.entryName.endsWith(".xml")) {
-        const xmlContent = entry.getData().toString("utf8");
-        const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-        if (textMatches) {
-          for (const match of textMatches) {
-            const text = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
-            if (text.trim()) {
-              texts.push(`[Header: ${text.trim()}]`);
-            }
-          }
+      } else if (entry.entryName.startsWith("word/header") && entry.entryName.endsWith(".xml")) {
+        for (const t of extractTagText(entry.getData().toString("utf8"), "w:t")) {
+          if (t.trim()) texts.push(`[Header: ${t.trim()}]`);
         }
       }
     }
@@ -65,10 +56,7 @@ function extractDocxText(buffer) {
     warnings.push(`DOCX extraction warning: ${error.message}`);
   }
 
-  return {
-    text: texts.join("\n\n"),
-    warnings,
-  };
+  return { text: texts.join("\n\n"), warnings };
 }
 
 /**
@@ -85,16 +73,10 @@ function extractXlsxText(buffer) {
     // Get all entries in the ZIP
     const entries = zip.getEntries();
 
-    // First, read shared strings if present
     let sharedStrings = [];
     const sharedStringsEntry = entries.find((e) => e.entryName === "xl/sharedStrings.xml");
     if (sharedStringsEntry) {
-      const xmlContent = sharedStringsEntry.getData().toString("utf8");
-      // Extract <t> tags from sharedStrings.xml
-      const textMatches = xmlContent.match(/<t[^>]*>([^<]*)<\/t>/g);
-      if (textMatches) {
-        sharedStrings = textMatches.map((m) => m.replace(/<t[^>]*>/, "").replace(/<\/t>/, ""));
-      }
+      sharedStrings = extractTagText(sharedStringsEntry.getData().toString("utf8"), "t");
     }
 
     // Extract from each worksheet
@@ -138,18 +120,15 @@ function extractXlsxText(buffer) {
               // Get cell reference
               // Get cell value
               let cellValue = "";
-              const vMatch = cell.match(/<v[^>]*>([^<]*)<\/v>/);
+              const vMatch = cell.match(/<v[^>]*>([\s\S]*?)<\/v>/);
               if (vMatch) {
                 const val = vMatch[1];
-                // Check if this is a shared string index
                 const tAttr = cell.match(/t="s"/);
-                if (tAttr && sharedStrings[val] !== undefined) {
-                  cellValue = sharedStrings[val];
-                } else {
-                  cellValue = val;
-                }
+                cellValue =
+                  tAttr && sharedStrings[val] !== undefined
+                    ? sharedStrings[val]
+                    : decodeXmlEntities(val);
               }
-
               cells.push(cellValue);
             }
           }
@@ -191,36 +170,12 @@ function extractPptxText(buffer) {
 
     for (const entry of slideEntries) {
       const xmlContent = entry.getData().toString("utf8");
-
-      // Find slide number
       const slideNumMatch = entry.entryName.match(/slide(\d+)\.xml$/);
       const slideLabel = `Slide ${slideNumMatch ? slideNumMatch[1] : ""}`;
 
-      // Extract text from the slide
-      // PPTX uses <a:t> tags for text content (DrawingML)
-      const texts = [];
-
-      // Match <a:t> tags (DrawingML text)
-      const atMatches = xmlContent.match(/<a:t[^>]*>([^<]*)<\/a:t>/g);
-      if (atMatches) {
-        for (const match of atMatches) {
-          const text = match.replace(/<a:t[^>]*>/, "").replace(/<\/a:t>/, "");
-          if (text.trim()) {
-            texts.push(text.trim());
-          }
-        }
-      }
-
-      // Also try <w:t> tags (WordprocessingML text in some cases)
-      const wtMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-      if (wtMatches) {
-        for (const match of wtMatches) {
-          const text = match.replace(/<w:t[^>]*>/, "").replace(/<\/w:t>/, "");
-          if (text.trim()) {
-            texts.push(text.trim());
-          }
-        }
-      }
+      const texts = [...extractTagText(xmlContent, "a:t"), ...extractTagText(xmlContent, "w:t")]
+        .map((t) => t.trim())
+        .filter(Boolean);
 
       // Add title extraction (first text element is often the title)
       let slideText = "";
