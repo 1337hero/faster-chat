@@ -17,7 +17,6 @@ import { extractOfficeText, isOfficeModernFile, isOfficeLegacyFile } from "./off
 import { providerSupportsImages, providerSupportsNativePdf } from "./providerFactory.js";
 import { validateImageDimensions, MAX_IMAGE_DIMENSION_PX } from "./imageValidation.js";
 
-// Phase 3: Text-like attachment inlining limits
 export const MAX_INLINE_TEXT_ATTACHMENT_CHARS = 200_000;
 
 export {
@@ -213,11 +212,6 @@ export function validateFile({ mimeType, size, filename }) {
   return { valid: true, classification };
 }
 
-export function getMimeTypeFromExtension(filename) {
-  const ext = getFileExtension(filename);
-  return getMimeFromExtension(ext);
-}
-
 export function getAttachmentCategory(file) {
   return (
     file.meta?.attachmentCategory ||
@@ -225,10 +219,6 @@ export function getAttachmentCategory(file) {
   );
 }
 
-/**
- * Get the download policy for a file
- * Uses stored metadata when available, falls back to classification
- */
 export function getAttachmentDownloadPolicy(file) {
   return (
     file.meta?.downloadPolicy ||
@@ -248,175 +238,126 @@ export function isOfficeLegacyAttachment(file) {
   return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_LEGACY;
 }
 
-/**
- * Collect all attachment IDs from a completion request
- * Handles both top-level fileIds and per-message fileIds
- */
-export function collectAttachmentIdsFromRequest(validated) {
-  const allFileIds = [
-    ...new Set([
-      ...(validated.fileIds || []),
-      ...validated.messages.flatMap((m) => m.fileIds || []),
-    ]),
-  ];
-  return allFileIds;
-}
-
-/**
- * Get the appropriate strategy for a category
- */
 export function getStrategyForCategory(category) {
   const catDef = FILE_CATEGORY_DEFINITIONS[category];
   return catDef?.defaultStrategy || FILE_STRATEGIES.REJECT;
 }
 
-/**
- * Preflight attachments against provider/model capabilities
- * Returns an ok result if all attachments are supported, or an error object with details.
- */
-export async function preflightAttachments({ files, modelRecord, providerName }) {
-  const results = [];
-  let hasImageDimensionIssue = false;
+async function classifyForModel(file, modelRecord, providerName) {
+  const category = getAttachmentCategory(file);
 
-  // Check each file and collect detailed results
-  for (const file of files) {
-    const category = getAttachmentCategory(file);
-    const extension = getFileExtension(file.filename);
-
-    let allowed = true;
-    let reason = "";
-    let suggestion = "";
-    let warnings = [];
-
-    switch (category) {
-      case FILE_CATEGORIES.IMAGE: {
-        // Check if provider supports images
-        const providerSupportsImg = providerSupportsImages(providerName);
-        const modelSupportsImg = modelRecord?.supports_vision || false;
-
-        // Allow image if either:
-        // 1. Provider is known to support images, OR
-        // 2. Model explicitly supports vision (for generic/openai-compatible providers)
-        if (!providerSupportsImg && !modelSupportsImg) {
-          allowed = false;
-          reason =
-            "The selected model cannot read image attachments. Choose a vision-capable model or remove the image.";
-          suggestion =
-            "Choose a model with vision capabilities (e.g., Claude 3.5 Sonnet, GPT-4 Turbo) or remove the image attachment.";
-          break;
-        }
-
-        // Validate dimensions before the model call
-        try {
-          const imgPath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
-          const buf = await readFile(imgPath);
-          validateImageDimensions(buf, file.mime_type, file.filename);
-        } catch (err) {
-          allowed = false;
-          reason = err.message;
-          suggestion = `Resize "${file.filename}" so neither side exceeds ${MAX_IMAGE_DIMENSION_PX} px and re-upload.`;
-          hasImageDimensionIssue = true;
-        }
-        break;
+  switch (category) {
+    case FILE_CATEGORIES.IMAGE: {
+      const providerSupports = providerSupportsImages(providerName);
+      const modelSupports = !!modelRecord?.supports_vision;
+      if (!providerSupports && !modelSupports) {
+        return {
+          category,
+          allowed: false,
+          errorCode: "ATTACHMENT_UNSUPPORTED",
+          reason:
+            "The selected model cannot read image attachments. Choose a vision-capable model or remove the image.",
+          suggestion:
+            "Choose a model with vision capabilities (e.g., Claude 3.5 Sonnet, GPT-4 Turbo) or remove the image attachment.",
+        };
       }
-
-      case FILE_CATEGORIES.PDF: {
-        if (!providerSupportsNativePdf(providerName)) {
-          allowed = false;
-          reason = "The selected provider cannot read PDF attachments directly.";
-          suggestion = "Choose Claude, OpenAI, Mistral, or upload a text version.";
-        }
-        break;
+      try {
+        const buf = await readFile(path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename));
+        validateImageDimensions(buf, file.mime_type, file.filename);
+      } catch (err) {
+        return {
+          category,
+          allowed: false,
+          errorCode: "ATTACHMENT_IMAGE_DIMENSIONS",
+          reason: err.message,
+          suggestion: `Resize "${file.filename}" so neither side exceeds ${MAX_IMAGE_DIMENSION_PX} px and re-upload.`,
+        };
       }
-
-      case FILE_CATEGORIES.TEXT_LIKE: {
-        // Always allowed via inlineText strategy
-        allowed = true;
-        break;
-      }
-
-      case FILE_CATEGORIES.OFFICE_MODERN: {
-        // Phase 5: Office modern requires extraction
-        if (!isOfficeModernFile({ filename: file.filename, mimeType: file.mime_type })) {
-          allowed = false;
-          reason = "Office document type not recognized.";
-          suggestion = "Ensure the file has a .docx, .xlsx, or .pptx extension.";
-        }
-        break;
-      }
-
-      case FILE_CATEGORIES.OFFICE_LEGACY: {
-        allowed = false;
-        reason = "Legacy Office documents (.doc, .xls, .ppt) are not supported.";
-        suggestion = "Save as .docx, .xlsx, .pptx, PDF, CSV, or plain text and upload again.";
-        break;
-      }
-
-      case FILE_CATEGORIES.UNKNOWN_BINARY: {
-        allowed = false;
-        reason = "File type is not supported.";
-        suggestion = "Upload a supported file type (image, PDF, text-like, or Office document).";
-        break;
-      }
-
-      default: {
-        allowed = false;
-        reason = `Unknown attachment category: ${category}`;
-        suggestion = "Please contact support if you believe this file type should be supported.";
-      }
+      return { category, allowed: true };
     }
 
-    results.push({
-      fileId: file.id,
-      filename: file.filename,
-      category,
-      strategy: allowed ? getStrategyForCategory(category) : FILE_STRATEGIES.REJECT,
-      allowed,
-      reason,
-      suggestion,
-      warnings,
-    });
+    case FILE_CATEGORIES.PDF:
+      return providerSupportsNativePdf(providerName)
+        ? { category, allowed: true }
+        : {
+            category,
+            allowed: false,
+            errorCode: "ATTACHMENT_PROVIDER_UNSUPPORTED",
+            reason: "The selected provider cannot read PDF attachments directly.",
+            suggestion: "Choose Claude, OpenAI, Mistral, or upload a text version.",
+          };
+
+    case FILE_CATEGORIES.TEXT_LIKE:
+      return { category, allowed: true };
+
+    case FILE_CATEGORIES.OFFICE_MODERN:
+      return isOfficeModernFile({ filename: file.filename, mimeType: file.mime_type })
+        ? { category, allowed: true }
+        : {
+            category,
+            allowed: false,
+            errorCode: "ATTACHMENT_UNSUPPORTED",
+            reason: "Office document type not recognized.",
+            suggestion: "Ensure the file has a .docx, .xlsx, or .pptx extension.",
+          };
+
+    case FILE_CATEGORIES.OFFICE_LEGACY:
+      return {
+        category,
+        allowed: false,
+        errorCode: "ATTACHMENT_PROVIDER_UNSUPPORTED",
+        reason: "Legacy Office documents (.doc, .xls, .ppt) are not supported.",
+        suggestion: "Save as .docx, .xlsx, .pptx, PDF, CSV, or plain text and upload again.",
+      };
+
+    case FILE_CATEGORIES.UNKNOWN_BINARY:
+    default:
+      return {
+        category,
+        allowed: false,
+        errorCode: "ATTACHMENT_UNSUPPORTED",
+        reason: "File type is not supported.",
+        suggestion: "Upload a supported file type (image, PDF, text-like, or Office document).",
+      };
   }
+}
 
-  // Check if any file is not allowed
+export async function preflightAttachments({ files, modelRecord, providerName }) {
+  const results = await Promise.all(
+    files.map(async (file) => {
+      const r = await classifyForModel(file, modelRecord, providerName);
+      return {
+        fileId: file.id,
+        filename: file.filename,
+        category: r.category,
+        strategy: r.allowed ? getStrategyForCategory(r.category) : FILE_STRATEGIES.REJECT,
+        allowed: r.allowed,
+        reason: r.reason ?? "",
+        suggestion: r.suggestion ?? "",
+        errorCode: r.errorCode,
+      };
+    })
+  );
+
   const denied = results.filter((r) => !r.allowed);
-  if (denied.length > 0) {
-    // Determine the error code based on the most severe issue
-    let errorCode = "ATTACHMENT_UNSUPPORTED";
-    for (const d of denied) {
-      if (hasImageDimensionIssue) {
-        errorCode = "ATTACHMENT_IMAGE_DIMENSIONS";
-        break;
-      }
-      if (d.category === FILE_CATEGORIES.OFFICE_LEGACY) {
-        errorCode = "ATTACHMENT_PROVIDER_UNSUPPORTED";
-        break;
-      }
-    }
-
-    return {
-      ok: false,
-      results,
-      code: errorCode,
-      error: "One or more attachments are not supported by the selected model.",
-      details: denied.map((d) => ({
-        filename: d.filename,
-        category: d.category,
-        reason: d.reason,
-        suggestion: d.suggestion,
-      })),
-    };
+  if (denied.length === 0) {
+    return { ok: true, results };
   }
 
   return {
-    ok: true,
+    ok: false,
     results,
+    code: denied[0].errorCode,
+    error: "One or more attachments are not supported by the selected model.",
+    details: denied.map(({ filename, category, reason, suggestion }) => ({
+      filename,
+      category,
+      reason,
+      suggestion,
+    })),
   };
 }
 
-/**
- * Phase 5: Extract text from Office documents
- */
 export async function extractOfficeDocumentText(file) {
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
   const fileBuffer = await readFile(filePath).catch((err) => {

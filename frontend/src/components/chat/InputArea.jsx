@@ -8,8 +8,10 @@ import {
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ChatMemoryButton from "./ChatMemoryButton";
-import FileUpload, { FilePreviewList } from "./FileUpload";
+import { useFileUploader, FilePreviewList } from "./FileUpload";
 import { useUiState } from "@/state/useUiState";
+
+const FILE_INPUT_ID = "chat-input-file-upload";
 
 const InputArea = ({
   input,
@@ -22,13 +24,21 @@ const InputArea = ({
   onToggleWebSearch,
   modelSupportsTools,
   chatId,
-  onFilesCleared,
   selectedFiles,
   setSelectedFiles,
 }) => {
   const textareaRef = useRef(null);
-  const fileUploadRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
+  const { uploadFiles, uploading, currentFile } = useFileUploader({
+    onFilesUploaded: (files) => {
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setUploadError(null);
+    },
+    onError: (msg) => {
+      setUploadError(msg);
+      setTimeout(() => setUploadError(null), FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
+    },
+  });
   const imageMode = useUiState((state) => state.imageMode);
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
   const setImageMode = useUiState((state) => state.setImageMode);
@@ -97,35 +107,35 @@ const InputArea = ({
     setUploadError(null);
   };
 
-  const handleFilesUploaded = (files) => {
-    setSelectedFiles((prev) => [...prev, ...files]);
-    setUploadError(null);
-  };
-
-  const handleFileError = (error) => {
-    setUploadError(error);
-    setTimeout(() => setUploadError(null), FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
-  };
-
   const removeFile = (fileId) => {
     setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const handleFileChange = (e) => {
+    uploadFiles(e.target.files);
+    e.target.value = "";
   };
 
   const isSubmitDisabled = !hasContent || disabled;
 
   return (
     <div className="flex w-full flex-col">
-      {/* File Upload Component (hidden) */}
-      <FileUpload
-        ref={fileUploadRef}
-        onFilesUploaded={handleFilesUploaded}
-        onError={handleFileError}
-        disabled={disabled}
+      <input
+        id={FILE_INPUT_ID}
+        type="file"
+        multiple
+        onChange={handleFileChange}
+        disabled={disabled || uploading}
+        className="sr-only"
+        accept={ATTACHMENT_INPUT_ACCEPT}
       />
+
+      {uploading && currentFile && (
+        <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
+      )}
 
       <ErrorBanner message={uploadError} className="mb-2" />
 
-      {/* File Previews */}
       {!imageMode && <FilePreviewList files={selectedFiles} onRemove={removeFile} />}
 
       {/* Textarea - Top */}
@@ -145,15 +155,17 @@ const InputArea = ({
       <div className="flex items-center justify-between px-2 pb-1">
         {/* Tool Buttons - Left */}
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => fileUploadRef.current?.handleButtonClick?.()}
-            className="text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-lg p-2 transition-colors"
+          <label
+            htmlFor={FILE_INPUT_ID}
+            className={`rounded-lg p-2 transition-colors ${
+              disabled || uploading
+                ? "text-theme-muted/40 cursor-not-allowed opacity-50"
+                : "text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 cursor-pointer"
+            }`}
             title={ATTACHMENT_TITLE_TEXT}
-            aria-label="Add attachment"
-            disabled={disabled}>
+            aria-label="Add attachment">
             <Paperclip size={18} />
-          </button>
+          </label>
           <button
             type="button"
             onClick={handleToggleImageMode}

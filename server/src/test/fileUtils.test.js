@@ -6,7 +6,6 @@ import {
   calculateFileHash,
   validateFileAccess,
   validateFile,
-  getMimeTypeFromExtension,
   getFileExtension,
   normalizeMimeType,
   isGenericMimeType,
@@ -176,20 +175,6 @@ describe("fileUtils", () => {
       expect(result.valid).toBe(false);
       expect(result.classification).toBeNull();
       expect(result.error).toContain("Filename is required");
-    });
-  });
-
-  describe("getMimeTypeFromExtension", () => {
-    test("maps .jpg to image/jpeg", () => {
-      expect(getMimeTypeFromExtension("photo.jpg")).toBe("image/jpeg");
-    });
-
-    test("maps .pdf to application/pdf", () => {
-      expect(getMimeTypeFromExtension("doc.pdf")).toBe("application/pdf");
-    });
-
-    test("returns null for unknown extension (.xyz)", () => {
-      expect(getMimeTypeFromExtension("file.xyz")).toBeNull();
     });
   });
 

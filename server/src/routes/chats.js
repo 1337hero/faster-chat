@@ -28,48 +28,26 @@ import {
   preflightAttachments,
 } from "../lib/fileUtils.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
-
-// Map AI SDK and provider errors to user-friendly messages
-function mapAttachmentError(error) {
-  const message = error.message || String(error);
-
-  // Image dimension errors - preserve full filename + dimensions detail
-  if (message.includes("maximum supported dimension")) {
-    return { code: "ATTACHMENT_IMAGE_DIMENSIONS", error: message };
-  }
-
-  // Provider-side unsupported media type
-  if (message.includes("media type") || message.includes("content type")) {
-    return {
-      code: "ATTACHMENT_UNSUPPORTED",
-      error: "One or more attachments are not supported by the selected model.",
-    };
-  }
-
-  return null;
-}
-
-// Format error details for UI display
-function formatErrorDetails(details) {
-  if (!details || details.length === 0) return "";
-
-  const lines = details.map((d) => {
-    const filename = d.filename ? `"${d.filename}"` : "Attachment";
-    return `- ${filename}: ${d.reason} ${d.suggestion ? "(" + d.suggestion + ")" : ""}`;
-  });
-
-  if (details.length === 1) {
-    return lines[0];
-  }
-
-  return "Attachment issue:\n" + lines.join("\n");
-}
 import {
   wrapModelWithMemory,
   extractMemories,
   getExtractionModel,
   isMemoryEnabledForRequest,
 } from "../lib/memory.js";
+
+function mapAttachmentError(error) {
+  const message = error.message || String(error);
+  if (message.includes("maximum supported dimension")) {
+    return { code: "ATTACHMENT_IMAGE_DIMENSIONS", error: message };
+  }
+  if (message.includes("media type") || message.includes("content type")) {
+    return {
+      code: "ATTACHMENT_UNSUPPORTED",
+      error: "One or more attachments are not supported by the selected model.",
+    };
+  }
+  return null;
+}
 
 export const chatsRouter = new Hono();
 
@@ -555,12 +533,16 @@ async function generateChatTitle(userMessage, modelId) {
   }
 }
 
-function asFileContentPart(file, fileBuffer) {
+function inlineTextPart(file, size, text, totalCharCount) {
   return {
-    type: "file",
-    data: fileBuffer,
-    mediaType: file.mime_type,
-    filename: file.filename,
+    type: "text",
+    text: formatInlineAttachmentText({
+      filename: file.filename,
+      mimeType: file.mime_type,
+      size,
+      text,
+      totalCharCount,
+    }),
   };
 }
 
@@ -577,48 +559,38 @@ async function fileToContentPart(file) {
     };
   }
 
-  // Phase 5: Office modern documents (docx, xlsx, pptx) - extract text
   if (isOfficeModernAttachment(file)) {
-    try {
-      const extractionResult = await extractOfficeDocumentText(file);
-
-      // Apply text budget from Phase 3
-      const displayText = extractionResult.text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-      const isTruncated = displayText.length < extractionResult.text.length;
-
-      return {
-        type: "text",
-        text: formatInlineAttachmentText({
-          filename: file.filename,
-          mimeType: file.mime_type,
-          size: fileBuffer.length,
-          text: displayText,
-          totalCharCount: isTruncated ? extractionResult.text.length : undefined,
-        }),
-      };
-    } catch (err) {
+    const { text } = await extractOfficeDocumentText(file).catch((err) => {
       throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
-    }
+    });
+    const displayText = text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
+    const truncated = displayText.length < text.length;
+    return inlineTextPart(
+      file,
+      fileBuffer.length,
+      displayText,
+      truncated ? text.length : undefined
+    );
   }
 
   if (isTextLikeAttachment(file)) {
     const fullText = fileBuffer.toString("utf8");
     const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-    const isTruncated = displayText.length < fullText.length;
-
-    return {
-      type: "text",
-      text: formatInlineAttachmentText({
-        filename: file.filename,
-        mimeType: file.mime_type,
-        size: fileBuffer.length,
-        text: displayText,
-        totalCharCount: isTruncated ? fullText.length : undefined,
-      }),
-    };
+    const truncated = displayText.length < fullText.length;
+    return inlineTextPart(
+      file,
+      fileBuffer.length,
+      displayText,
+      truncated ? fullText.length : undefined
+    );
   }
 
-  return asFileContentPart(file, fileBuffer);
+  return {
+    type: "file",
+    data: fileBuffer,
+    mediaType: file.mime_type,
+    filename: file.filename,
+  };
 }
 
 /**
@@ -819,34 +791,10 @@ chatsRouter.post(
       return stream.toUIMessageStreamResponse();
     } catch (error) {
       console.error("Completion error:", error);
-
-      // Check if this is an attachment-related error
-      const mappedError = mapAttachmentError(error);
-      if (mappedError) {
-        return c.json(
-          { code: mappedError.code, error: mappedError.error },
-          HTTP_STATUS.BAD_REQUEST
-        );
+      const mapped = mapAttachmentError(error);
+      if (mapped) {
+        return c.json({ code: mapped.code, error: mapped.error }, HTTP_STATUS.BAD_REQUEST);
       }
-
-      // Check if the error has a response body with details
-      if (error.response && error.response.body) {
-        try {
-          const body = await error.response.text();
-          if (body) {
-            const parsed = JSON.parse(body);
-            if (parsed.error) {
-              return c.json(
-                { code: "ATTACHMENT_PROVIDER_UNSUPPORTED", error: parsed.error },
-                HTTP_STATUS.BAD_REQUEST
-              );
-            }
-          }
-        } catch (e) {
-          // Ignore parsing errors
-        }
-      }
-
       return c.json({ error: "Completion failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   }

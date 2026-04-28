@@ -232,7 +232,6 @@ const ChatInterface = ({ chatId }) => {
                 chatId={chatId}
                 selectedFiles={inputFiles}
                 setSelectedFiles={setInputFiles}
-                onFilesCleared={() => setInputFiles([])}
               />
             </div>
           </div>
