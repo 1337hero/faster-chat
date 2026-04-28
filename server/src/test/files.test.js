@@ -227,4 +227,84 @@ describe("file routes", () => {
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
   });
+
+  describe("POST /api/files (upload)", () => {
+    async function uploadFile(app, cookie, { name, type, content }) {
+      const fd = new FormData();
+      fd.append("file", new File([content], name, { type }));
+      return app.request("/api/files", { method: "POST", headers: { Cookie: cookie }, body: fd });
+    }
+
+    it("accepts a PNG", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "photo.png",
+        type: "image/png",
+        content: Buffer.from("fake png data"),
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.id).toBeTruthy();
+      expect(body.filename).toBe("photo.png");
+    });
+
+    it("accepts a CSV with application/octet-stream MIME (extension fallback)", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "data.csv",
+        type: "application/octet-stream",
+        content: Buffer.from("a,b\n1,2"),
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts a Markdown file with empty MIME", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "readme.md",
+        type: "",
+        content: Buffer.from("# hi"),
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("rejects a legacy .doc upload", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "report.doc",
+        type: "application/msword",
+        content: Buffer.from("legacy"),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects an unknown binary upload", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "blob.bin",
+        type: "application/octet-stream",
+        content: Buffer.from([0x00, 0x01, 0x02]),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects an SVG upload (unsafe active content)", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "icon.svg",
+        type: "image/svg+xml",
+        content: Buffer.from("<svg/>"),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("persists Phase 2 classification metadata in meta", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "notes.csv",
+        type: "application/octet-stream",
+        content: Buffer.from("a,b\n1,2"),
+      });
+      expect(res.status).toBe(200);
+      const { id } = await res.json();
+      const metaRes = await makeRequest(app, "GET", `/api/files/${id}`, { cookie: adminCookie });
+      const body = await metaRes.json();
+      expect(body.meta.attachmentCategory).toBe("textLike");
+      expect(body.meta.normalizedMimeType).toBe("text/csv");
+      expect(body.meta.downloadPolicy).toBe("inlineSafe");
+    });
+  });
 });

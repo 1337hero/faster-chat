@@ -15,70 +15,37 @@ import {
 import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
 import { decryptApiKey } from "../lib/encryption.js";
-import {
-  getModelInstance,
-  providerSupportsNativePdf,
-  providerSupportsImages,
-} from "../lib/providerFactory.js";
+import { getModelInstance } from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import {
   FILE_CONFIG,
-  FILE_CATEGORIES,
-  getAttachmentCategory,
   isTextLikeAttachment,
   isOfficeModernAttachment,
-  isOfficeLegacyAttachment,
   extractOfficeDocumentText,
   formatInlineAttachmentText,
   MAX_INLINE_TEXT_ATTACHMENT_CHARS,
-  collectAttachmentIdsFromRequest,
   preflightAttachments,
 } from "../lib/fileUtils.js";
-import { validateImageDimensions } from "../lib/imageValidation.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 
 // Map AI SDK and provider errors to user-friendly messages
 function mapAttachmentError(error) {
   const message = error.message || String(error);
 
-  // Image dimension errors
-  if (message.includes("dimensions") || message.includes("exceeds maximum")) {
-    return {
-      code: "ATTACHMENT_IMAGE_DIMENSIONS",
-      error: "Image dimensions exceed the supported limit.",
-    };
+  // Image dimension errors - preserve full filename + dimensions detail
+  if (message.includes("maximum supported dimension")) {
+    return { code: "ATTACHMENT_IMAGE_DIMENSIONS", error: message };
   }
 
-  // Unsupported media type
-  if (
-    message.includes("unsupported") ||
-    message.includes("media type") ||
-    message.includes("content type")
-  ) {
+  // Provider-side unsupported media type
+  if (message.includes("media type") || message.includes("content type")) {
     return {
       code: "ATTACHMENT_UNSUPPORTED",
       error: "One or more attachments are not supported by the selected model.",
     };
   }
 
-  // Invalid request with attachment details
-  if (message.includes("invalid") || message.includes("request")) {
-    return {
-      code: "ATTACHMENT_PROVIDER_UNSUPPORTED",
-      error: "The provider cannot process the request with these attachments.",
-    };
-  }
-
-  // Default mapping for attachment-related errors
-  if (message.includes("attachment") || message.includes("file")) {
-    return {
-      code: "ATTACHMENT_UNSUPPORTED",
-      error: "One or more attachments are not supported by the selected model.",
-    };
-  }
-
-  // No mapping found - return generic
   return null;
 }
 
@@ -604,7 +571,6 @@ async function fileToContentPart(file) {
   });
 
   if (file.mime_type?.startsWith("image/")) {
-    validateImageDimensions(fileBuffer, file.mime_type, file.filename);
     return {
       type: "image",
       image: `data:${file.mime_type};base64,${fileBuffer.toString("base64")}`,
@@ -772,7 +738,7 @@ chatsRouter.post(
         return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
       }
 
-      const issue = preflightAttachments({
+      const issue = await preflightAttachments({
         files: allFiles,
         modelRecord,
         providerName: modelRecord.provider_name,

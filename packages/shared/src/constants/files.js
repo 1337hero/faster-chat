@@ -50,8 +50,8 @@ function mimesForExtensions(exts) {
 
 export const FILE_CATEGORY_DEFINITIONS = {
   [FILE_CATEGORIES.IMAGE]: {
-    extensions: ["jpg", "jpeg", "png", "gif", "webp", "svg"],
-    mimeTypes: mimesForExtensions(["jpg", "jpeg", "png", "gif", "webp", "svg"]),
+    extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+    mimeTypes: mimesForExtensions(["jpg", "jpeg", "png", "gif", "webp"]),
     uploadAllowed: true,
     defaultStrategy: FILE_STRATEGIES.NATIVE_IMAGE,
     downloadPolicy: FILE_DOWNLOAD_POLICIES.INLINE_SAFE,
