@@ -3,35 +3,42 @@ import { createHash } from "crypto";
 import { unlink, mkdir } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { FILE_CONSTANTS, formatFileSize } from "@faster-chat/shared";
+import {
+  FILE_CONSTANTS,
+  FILE_CATEGORIES,
+  FILE_STRATEGIES,
+  FILE_DOWNLOAD_POLICIES,
+  FILE_CATEGORY_DEFINITIONS,
+  UNSAFE_INLINE_EXTENSIONS,
+  UNSAFE_INLINE_MIME_TYPES,
+  getMimeFromExtension,
+  formatFileSize,
+} from "@faster-chat/shared";
 
-// Get the directory name of the current module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Phase 3: Text-like attachment inlining limits
+export const MAX_INLINE_TEXT_ATTACHMENT_CHARS = 200_000;
 
-// Resolve upload directory relative to project root
+export { formatFileSize } from "@faster-chat/shared";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../../..");
 const UPLOAD_DIR = path.join(PROJECT_ROOT, "server/data/uploads");
 
 export const FILE_CONFIG = {
   MAX_SIZE: FILE_CONSTANTS.MAX_FILE_SIZE_BYTES,
   ALLOWED_TYPES: [
-    // Images (SVG excluded — stored XSS vector; served as attachment if bypassed)
     "image/jpeg",
     "image/jpg",
     "image/png",
     "image/gif",
     "image/webp",
-    // Documents
     "application/pdf",
     "text/plain",
     "text/markdown",
     "text/csv",
-    // Office documents
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
-    // Code files
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/json",
     "application/javascript",
     "text/javascript",
@@ -40,209 +47,225 @@ export const FILE_CONFIG = {
     "application/xml",
     "text/xml",
   ],
-  UPLOAD_DIR: UPLOAD_DIR,
+  UPLOAD_DIR,
 };
 
-/**
- * Ensure upload directory exists
- */
 export async function ensureUploadDirectory() {
   try {
     await mkdir(UPLOAD_DIR, { recursive: true });
   } catch (error) {
-    if (error.code !== "EEXIST") {
-      console.error("Failed to create upload directory:", error);
-      throw error;
-    }
+    if (error.code !== "EEXIST") throw error;
   }
 }
 
-/**
- * Generate a unique file ID (UUID v4)
- * @returns {string} UUID
- */
 export function generateFileId() {
   return randomUUID();
 }
 
 export function sanitizeFilename(filename) {
-  let sanitized = filename.replace(/[\/\\]/g, "");
-  sanitized = sanitized.replace(/\0/g, "");
-  sanitized = sanitized.trim().replace(/^\.+/, "");
-
-  if (!sanitized) {
-    sanitized = FILE_CONSTANTS.DEFAULT_FILENAME;
-  }
-
-  const maxLength = FILE_CONSTANTS.MAX_FILENAME_LENGTH;
-  if (sanitized.length > maxLength) {
+  let sanitized = filename
+    .replace(/[\/\\]/g, "")
+    .replace(/\0/g, "")
+    .trim()
+    .replace(/^\.+/, "");
+  if (!sanitized) sanitized = FILE_CONSTANTS.DEFAULT_FILENAME;
+  if (sanitized.length > FILE_CONSTANTS.MAX_FILENAME_LENGTH) {
     const ext = path.extname(sanitized);
     const basename = path.basename(sanitized, ext);
-    sanitized = basename.substring(0, maxLength - ext.length) + ext;
+    sanitized = basename.substring(0, FILE_CONSTANTS.MAX_FILENAME_LENGTH - ext.length) + ext;
   }
-
   return sanitized;
 }
 
-/**
- * Create stored filename with UUID prefix
- * @param {string} fileId - UUID for the file
- * @param {string} originalFilename - Original filename
- * @returns {string} Stored filename ({uuid}_{sanitized_filename})
- */
 export function createStoredFilename(fileId, originalFilename) {
-  const sanitized = sanitizeFilename(originalFilename);
-  return `${fileId}_${sanitized}`;
+  return `${fileId}_${sanitizeFilename(originalFilename)}`;
 }
 
-/**
- * Validate file type against allowed MIME types
- * @param {string} mimeType - MIME type to validate
- * @param {string[]} allowedTypes - Array of allowed MIME types (optional, uses default if not provided)
- * @returns {boolean} True if valid
- */
 export function validateFileType(mimeType, allowedTypes = FILE_CONFIG.ALLOWED_TYPES) {
   if (!mimeType) return false;
-
-  // Check exact match
-  if (allowedTypes.includes(mimeType)) {
-    return true;
-  }
-
-  // Check wildcard patterns (e.g., "image/*")
-  const [type, subtype] = mimeType.split("/");
-  const wildcardPattern = `${type}/*`;
-  return allowedTypes.includes(wildcardPattern);
+  const normalized = mimeType.trim().toLowerCase().split(";")[0];
+  if (allowedTypes.includes(normalized)) return true;
+  const [type] = normalized.split("/");
+  return allowedTypes.includes(`${type}/*`);
 }
 
-/**
- * Validate file size against maximum allowed size
- * @param {number} size - File size in bytes
- * @param {number} maxSize - Maximum allowed size in bytes (optional, uses default if not provided)
- * @returns {boolean} True if valid
- */
 export function validateFileSize(size, maxSize = FILE_CONFIG.MAX_SIZE) {
   return size > 0 && size <= maxSize;
 }
 
-/**
- * Calculate SHA-256 hash of file contents
- * @param {Buffer} fileBuffer - File contents as buffer
- * @returns {string} SHA-256 hash
- */
 export function calculateFileHash(fileBuffer) {
-  const hash = createHash("sha256");
-  hash.update(fileBuffer);
-  return hash.digest("hex");
+  return createHash("sha256").update(fileBuffer).digest("hex");
 }
 
-/**
- * Delete file from disk
- * @param {string} filePath - Path to file
- * @returns {Promise<boolean>} True if deleted successfully
- */
 export async function deleteFileFromDisk(filePath) {
   try {
     await unlink(filePath);
     return true;
   } catch (error) {
-    if (error.code === "ENOENT") {
-      // File doesn't exist, consider it deleted
-      return true;
-    }
-    console.error("Error deleting file:", error);
-    return false;
+    return error.code === "ENOENT";
   }
 }
 
-/**
- * Get file extension from filename
- * @param {string} filename - Filename
- * @returns {string} Extension (without dot)
- */
 export function getFileExtension(filename) {
   const ext = path.extname(filename);
   return ext ? ext.substring(1).toLowerCase() : "";
 }
 
-export { formatFileSize };
-
 export function validateFileAccess(file, user, requireOwnership = true) {
-  if (!file) {
-    return { authorized: false, reason: "File not found" };
-  }
-
-  if (!requireOwnership) {
-    return { authorized: true };
-  }
-
-  const isOwner = file.user_id === user.id;
-  const isAdmin = user.role === "admin";
-
-  if (!isOwner && !isAdmin) {
+  if (!file) return { authorized: false, reason: "File not found" };
+  if (!requireOwnership) return { authorized: true };
+  if (file.user_id !== user.id && user.role !== "admin")
     return { authorized: false, reason: "Access denied" };
-  }
-
   return { authorized: true };
 }
 
-/**
- * Validate file completely (type and size)
- * @param {string} mimeType - MIME type
- * @param {number} size - File size in bytes
- * @returns {{ valid: boolean, error?: string }} Validation result
- */
-export function validateFile(mimeType, size) {
+export function normalizeMimeType(mimeType) {
+  if (!mimeType || typeof mimeType !== "string") return "";
+  return mimeType.trim().split(";")[0].trim().toLowerCase();
+}
+
+export function isGenericMimeType(mimeType) {
+  const normalized = normalizeMimeType(mimeType);
+  return (
+    !normalized || normalized === "application/octet-stream" || normalized === "binary/octet-stream"
+  );
+}
+
+export function classifyAttachment({ filename, mimeType }) {
+  const extension = getFileExtension(filename);
+  const originalMimeType = mimeType || "";
+  const normalizedMimeType = normalizeMimeType(originalMimeType);
+  const effectiveMimeType = isGenericMimeType(normalizedMimeType)
+    ? getMimeFromExtension(filename) || normalizedMimeType
+    : normalizedMimeType;
+
+  let category = FILE_CATEGORIES.UNKNOWN_BINARY;
+  let uploadAllowed = false;
+  let defaultStrategy = FILE_STRATEGIES.REJECT;
+  let downloadPolicy = FILE_DOWNLOAD_POLICIES.ATTACHMENT_ONLY;
+
+  for (const [catKey, catDef] of Object.entries(FILE_CATEGORY_DEFINITIONS)) {
+    if (catDef.mimeTypes.some((mt) => mt.toLowerCase() === effectiveMimeType.toLowerCase())) {
+      category = catKey;
+      uploadAllowed = catDef.uploadAllowed;
+      defaultStrategy = catDef.defaultStrategy;
+      downloadPolicy = catDef.downloadPolicy;
+      break;
+    }
+  }
+
+  if (category === FILE_CATEGORIES.UNKNOWN_BINARY) {
+    for (const [catKey, catDef] of Object.entries(FILE_CATEGORY_DEFINITIONS)) {
+      if (catDef.extensions.includes(extension)) {
+        category = catKey;
+        uploadAllowed = catDef.uploadAllowed;
+        defaultStrategy = catDef.defaultStrategy;
+        downloadPolicy = catDef.downloadPolicy;
+        break;
+      }
+    }
+  }
+
+  const overlays = [];
+  if (
+    UNSAFE_INLINE_EXTENSIONS.includes(extension) ||
+    UNSAFE_INLINE_MIME_TYPES.includes(effectiveMimeType.toLowerCase())
+  ) {
+    overlays.push("unsafeActiveContent");
+    downloadPolicy = FILE_DOWNLOAD_POLICIES.TEXT_ATTACHMENT_ONLY;
+  }
+
+  return {
+    filename,
+    extension,
+    originalMimeType,
+    normalizedMimeType,
+    effectiveMimeType,
+    category,
+    overlays,
+    uploadAllowed,
+    defaultStrategy,
+    downloadPolicy,
+  };
+}
+
+export function validateFile({ mimeType, size, filename }) {
+  const classification = filename ? classifyAttachment({ filename, mimeType }) : null;
+
+  if (classification && !classification.uploadAllowed) {
+    return {
+      valid: false,
+      error: `File type ${mimeType} (${filename}) is not allowed for upload.`,
+      classification,
+    };
+  }
+
   if (!validateFileType(mimeType)) {
     return {
       valid: false,
-      error: `File type ${mimeType} is not allowed. Allowed types: images, PDFs, text files, and office documents.`,
+      error: classification
+        ? `File type ${classification.effectiveMimeType} (${filename}) is not allowed.`
+        : `File type ${mimeType} is not allowed.`,
+      classification,
     };
   }
 
   if (!validateFileSize(size)) {
     return {
       valid: false,
-      error: `File size ${formatFileSize(size)} exceeds maximum allowed size of ${formatFileSize(
-        FILE_CONFIG.MAX_SIZE
-      )}.`,
+      error: `File size ${formatFileSize(size)} exceeds maximum of ${formatFileSize(FILE_CONFIG.MAX_SIZE)}.`,
+      classification,
     };
   }
 
-  return { valid: true };
+  return { valid: true, classification };
+}
+
+export function getMimeTypeFromExtension(filename) {
+  const ext = getFileExtension(filename);
+  return getMimeFromExtension(ext);
 }
 
 /**
- * Get MIME type from file extension (basic mapping)
- * @param {string} filename - Filename
- * @returns {string|null} MIME type or null if unknown
+ * Phase 3: Detect if file is text-like (should be converted to text part)
  */
-export function getMimeTypeFromExtension(filename) {
-  const ext = getFileExtension(filename);
-  const mimeMap = {
-    // Images
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    // Documents
-    pdf: "application/pdf",
-    txt: "text/plain",
-    md: "text/markdown",
-    csv: "text/csv",
-    // Office
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    // Code
-    json: "application/json",
-    js: "application/javascript",
-    html: "text/html",
-    css: "text/css",
-    xml: "application/xml",
-  };
+export function isTextLikeAttachment(file) {
+  const category =
+    file.meta?.attachmentCategory ||
+    classifyAttachment({ filename: file.filename, mimeType: file.mime_type }).category;
+  return category === FILE_CATEGORIES.TEXT_LIKE;
+}
 
-  return mimeMap[ext] || null;
+export function decodeAttachmentText(buffer) {
+  return { text: buffer.toString("utf8") };
+}
+
+const FENCE_LANGUAGE_MAP = {
+  markdown: "markdown",
+  json: "json",
+  csv: "csv",
+  html: "html",
+  xml: "xml",
+  yaml: "yaml",
+  javascript: "javascript",
+  css: "css",
+};
+
+export function formatInlineAttachmentText({ filename, mimeType, size, text, totalCharCount }) {
+  const normalizedMimeType = normalizeMimeType(mimeType);
+  const extension = getFileExtension(filename);
+
+  const fenceLanguage =
+    Object.entries(FENCE_LANGUAGE_MAP).find(([mime]) => normalizedMimeType.includes(mime))?.[1] ??
+    extension ??
+    "txt";
+
+  const header = `Attached file: ${filename}\nContent-Type: ${normalizedMimeType}\nSize: ${formatFileSize(size)}\n\n`;
+  const codeBlock = `\`\`\`${fenceLanguage}\n${text}\n\`\`\``;
+  const truncationNotice =
+    totalCharCount && totalCharCount > text.length
+      ? `\n\n[Attachment truncated: showing first ${text.length} characters of ${totalCharCount} characters]`
+      : "";
+
+  return header + codeBlock + truncationNotice;
 }
