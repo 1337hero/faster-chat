@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import db, { dbUtils } from "../lib/db.js";
 import { encryptApiKey } from "../lib/encryption.js";
+import { isLikelyValidApiKey } from "../lib/providerErrors.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import {
   getAvailableProviders as getModelsDevProviders,
@@ -32,18 +33,23 @@ function normalizeBaseUrl(providerName, baseUrl) {
     : baseUrl || null;
 }
 
+const apiKeySchema = z.string().min(1).refine(isLikelyValidApiKey, {
+  message:
+    "API key contains invalid characters. Paste the raw key — no quotes, bullets, or whitespace artifacts.",
+});
+
 const CreateProviderSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
   providerType: z.enum(["official", "openai-compatible"]),
   baseUrl: z.string().url().nullable().optional(),
-  apiKey: z.string().min(1),
+  apiKey: apiKeySchema,
 });
 
 const UpdateProviderSchema = z.object({
   displayName: z.string().min(1).optional(),
   baseUrl: z.string().url().nullable().optional(),
-  apiKey: z.string().min(1).optional(),
+  apiKey: apiKeySchema.optional(),
   enabled: z.boolean().optional(),
 });
 

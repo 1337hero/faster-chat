@@ -16,6 +16,7 @@ import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
 import { decryptApiKey } from "../lib/encryption.js";
 import { getModelInstance } from "../lib/providerFactory.js";
+import { humanizeProviderError } from "../lib/providerErrors.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import {
@@ -651,7 +652,13 @@ chatsRouter.post(
         ...toolConfig,
       });
 
-      return stream.toUIMessageStreamResponse();
+      const providerLabel = modelRecord.provider_display_name || modelRecord.provider_name;
+      return stream.toUIMessageStreamResponse({
+        onError: (error) => {
+          console.error("Stream error:", error);
+          return humanizeProviderError(error, providerLabel);
+        },
+      });
     } catch (error) {
       console.error("Completion error:", error);
       const mapped = mapAttachmentError(error);

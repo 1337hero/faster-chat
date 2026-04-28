@@ -283,8 +283,8 @@ async function classifyForModel(file, modelRecord, providerName) {
             category,
             allowed: false,
             errorCode: "ATTACHMENT_PROVIDER_UNSUPPORTED",
-            reason: "The selected provider cannot read PDF attachments directly.",
-            suggestion: "Choose Claude, OpenAI, Mistral, or upload a text version.",
+            reason: `${providerName} does not support PDFs. Switch models and try again.`,
+            suggestion: `Claude, GPT-4o, Gemini, and Mistral support PDFs.`,
           };
 
     case FILE_CATEGORIES.TEXT_LIKE:

@@ -21,7 +21,7 @@ mock.module("ai", () => ({
 }));
 
 // Stub provider factory so getModelInstance() doesn't talk to a real LLM.
-const PROVIDER_PDF_CAPABLE = new Set(["anthropic", "openai", "mistral"]);
+const PROVIDER_PDF_CAPABLE = new Set(["anthropic", "openai", "mistral", "google", "google-vertex"]);
 const PROVIDER_IMAGE_CAPABLE = new Set([
   "anthropic",
   "openai",
@@ -528,7 +528,7 @@ describe("chat completion - Phase 4 PDF preflight", () => {
     expect(body.error).toBe("One or more attachments are not supported by the selected model.");
     expect(body.details).toHaveLength(1);
     expect(body.details[0].filename).toBe("report.pdf");
-    expect(body.details[0].reason).toContain("provider cannot read PDF");
+    expect(body.details[0].reason).toContain("does not support PDFs");
     expect(streamTextCalls).toHaveLength(0);
   });
 

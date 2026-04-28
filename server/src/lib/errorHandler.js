@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export function handleRouteError(error, c) {
   if (error instanceof z.ZodError) {
-    return c.json({ error: "Invalid input", details: error.issues }, 400);
+    const firstIssue = error.issues[0];
+    const message = firstIssue?.message || "Invalid input";
+    return c.json({ error: message, details: error.issues }, 400);
   }
 
   console.error("Unhandled route error:", error);
