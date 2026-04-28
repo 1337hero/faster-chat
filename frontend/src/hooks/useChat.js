@@ -6,6 +6,7 @@ import { useChatStream } from "./useChatStream";
 export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) {
   const [input, setInput] = useState("");
   const [inputFiles, setInputFiles] = useState([]);
+  const [sendError, setSendError] = useState(null);
 
   const {
     chat,
@@ -42,6 +43,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     const messageId = crypto.randomUUID();
     const createdAt = Date.now();
     setInput("");
+    setSendError(null);
 
     try {
       await saveUserMessage(
@@ -49,11 +51,10 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
         chatId
       );
       await stream.send({ id: messageId, content: trimmedContent, fileIds, createdAt });
-      // Clear files only on success
       setInputFiles([]);
     } catch (err) {
       console.error("Failed to send message", err);
-      // Files are not cleared on failure - they remain in the input
+      setSendError(err);
     }
   }
 
@@ -100,7 +101,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     submitMessage,
     isLoading,
     isChatError,
-    error: stream.error,
+    error: sendError || stream.error,
     currentChat: chat,
     stop: stream.stop,
     regenerateResponse: stream.isStreaming ? undefined : regenerateResponse,

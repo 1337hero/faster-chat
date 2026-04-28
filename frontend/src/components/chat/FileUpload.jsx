@@ -56,29 +56,30 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
     }
 
     setUploading(true);
+    setCurrentFile(files.length === 1 ? files[0].name : `${files.length} files`);
+
     const uploadedFiles = [];
     const errors = [];
+    const oversizeMsg = (f) =>
+      `${f.name}: File too large (${formatFileSize(f.size)}). Maximum size is ${formatFileSize(FILE_CONSTANTS.MAX_FILE_SIZE_BYTES)}`;
 
+    const uploadable = [];
     for (const file of files) {
       if (file.size > FILE_CONSTANTS.MAX_FILE_SIZE_BYTES) {
-        errors.push(
-          `${file.name}: File too large (${formatFileSize(file.size)}). Maximum size is ${formatFileSize(FILE_CONSTANTS.MAX_FILE_SIZE_BYTES)}`
-        );
-        continue;
-      }
-
-      try {
-        setCurrentFile(file.name);
-
-        const uploadedFile = await uploadFile(file);
-
-        if (uploadedFile) {
-          uploadedFiles.push(uploadedFile);
-        }
-      } catch (error) {
-        errors.push(`${file.name}: ${error.message}`);
+        errors.push(oversizeMsg(file));
+      } else {
+        uploadable.push(file);
       }
     }
+
+    const results = await Promise.allSettled(uploadable.map(uploadFile));
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value) {
+        uploadedFiles.push(r.value);
+      } else if (r.status === "rejected") {
+        errors.push(`${uploadable[i].name}: ${r.reason?.message ?? "Upload failed"}`);
+      }
+    });
 
     setUploading(false);
     setCurrentFile(null);
