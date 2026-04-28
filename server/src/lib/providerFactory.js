@@ -70,7 +70,13 @@ const PROVIDER_FACTORIES = {
     }),
 };
 
-const PDF_CAPABLE_PROVIDERS = new Set(["anthropic", "openai", "mistral"]);
+const PDF_CAPABLE_PROVIDERS = new Set([
+  "anthropic",
+  "openai",
+  "mistral",
+  "google",
+  "google-vertex",
+]);
 const IMAGE_CAPABLE_PROVIDERS = new Set([
   "anthropic",
   "openai",

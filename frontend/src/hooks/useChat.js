@@ -1,12 +1,11 @@
 import { extractTextContent } from "@/lib/messageUtils";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
 export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) {
   const [input, setInput] = useState("");
   const [inputFiles, setInputFiles] = useState([]);
-  const [sendError, setSendError] = useState(null);
 
   const {
     chat,
@@ -30,20 +29,24 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     },
   });
 
-  // Imperative API for submitting messages (used by voice and form)
+  // Clear error when model changes
+  const modelRef = useRef(model);
+  useEffect(() => {
+    if (modelRef.current !== model) {
+      modelRef.current = model;
+      stream.clearError?.();
+    }
+  }, [model]);
+
   async function submitMessage({ content, fileIds = [] }) {
     const trimmedContent = content.trim();
-    if (!trimmedContent && fileIds.length === 0) {
-      return;
-    }
-    if (!chatId) {
-      return;
-    } // Route should ensure chatId exists
+    if (!trimmedContent && fileIds.length === 0) return;
+    if (!chatId) return;
 
     const messageId = crypto.randomUUID();
     const createdAt = Date.now();
     setInput("");
-    setSendError(null);
+    stream.clearError();
 
     try {
       await saveUserMessage(
@@ -54,11 +57,9 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
       setInputFiles([]);
     } catch (err) {
       console.error("Failed to send message", err);
-      setSendError(err);
     }
   }
 
-  // Form handler wraps imperative API
   function handleSubmit(e, fileIds = []) {
     e.preventDefault();
     submitMessage({ content: input, fileIds });
@@ -71,23 +72,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
   const isLoading = (chatId && isChatLoading) || stream.isStreaming;
 
   async function regenerateResponse() {
-    const messages = stream.messages;
-    if (!messages || messages.length === 0) {
-      return;
-    }
-
-    const lastUserMessage = messages.findLast((msg) => msg.role === "user");
-    if (!lastUserMessage) {
-      return;
-    }
-
-    const content = extractTextContent(lastUserMessage);
-    if (!content.trim()) {
-      return;
-    }
-
-    const fileIds = lastUserMessage.fileIds || [];
-    await submitMessage({ content, fileIds });
+    stream.reload();
   }
 
   const appendFiles = (files) => setInputFiles((prev) => [...prev, ...files]);
@@ -105,7 +90,8 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     submitMessage,
     isLoading,
     isChatError,
-    error: sendError || stream.error,
+    error: stream.error,
+    clearError: stream.clearError,
     currentChat: chat,
     stop: stream.stop,
     regenerateResponse: stream.isStreaming ? undefined : regenerateResponse,
