@@ -89,14 +89,6 @@ export const FILE_CATEGORY_DEFINITIONS = {
 export const UNSAFE_INLINE_EXTENSIONS = ["html", "htm", "svg", "js", "mjs", "cjs", "xml"];
 export const UNSAFE_INLINE_MIME_TYPES = ["text/html", "image/svg+xml", "application/javascript", "text/javascript", "application/xml", "text/xml"];
 
-export const PROVIDER_ATTACHMENT_CAPABILITIES = {
-  anthropic: { images: true, pdfs: true, textStrategy: FILE_STRATEGIES.INLINE_TEXT },
-  openai: { images: true, pdfs: true, textStrategy: FILE_STRATEGIES.INLINE_TEXT },
-  mistral: { images: true, pdfs: true, textStrategy: FILE_STRATEGIES.INLINE_TEXT },
-  groq: { images: true, pdfs: false, textStrategy: FILE_STRATEGIES.INLINE_TEXT },
-  cohere: { images: false, pdfs: false, textStrategy: FILE_STRATEGIES.INLINE_TEXT },
-};
-
 export const FILE_CONSTANTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024,
   BYTES_PER_KB: 1024,
