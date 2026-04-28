@@ -10,7 +10,6 @@ import {
   FILE_CATEGORY_DEFINITIONS,
   UNSAFE_INLINE_EXTENSIONS,
   UNSAFE_INLINE_MIME_TYPES,
-  PROVIDER_ATTACHMENT_CAPABILITIES,
   getMimeFromExtension,
   formatFileSize,
 } from "@faster-chat/shared";
@@ -38,27 +37,6 @@ const UPLOAD_DIR = path.join(PROJECT_ROOT, "server/data/uploads");
 
 export const FILE_CONFIG = {
   MAX_SIZE: FILE_CONSTANTS.MAX_FILE_SIZE_BYTES,
-  ALLOWED_TYPES: [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    "application/pdf",
-    "text/plain",
-    "text/markdown",
-    "text/csv",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/json",
-    "application/javascript",
-    "text/javascript",
-    "text/html",
-    "text/css",
-    "application/xml",
-    "text/xml",
-  ],
   UPLOAD_DIR,
 };
 
@@ -95,18 +73,6 @@ export function sanitizeFilename(filename) {
 
 export function createStoredFilename(fileId, originalFilename) {
   return `${fileId}_${sanitizeFilename(originalFilename)}`;
-}
-
-export function validateFileType(mimeType, allowedTypes = FILE_CONFIG.ALLOWED_TYPES) {
-  if (!mimeType) {
-    return false;
-  }
-  const normalized = mimeType.trim().toLowerCase().split(";")[0];
-  if (allowedTypes.includes(normalized)) {
-    return true;
-  }
-  const [type] = normalized.split("/");
-  return allowedTypes.includes(`${type}/*`);
 }
 
 export function validateFileSize(size, maxSize = FILE_CONFIG.MAX_SIZE) {
@@ -217,21 +183,11 @@ export function classifyAttachment({ filename, mimeType }) {
 }
 
 export function validateFile({ mimeType, size, filename }) {
-  const classification = filename ? classifyAttachment({ filename, mimeType }) : null;
-
-  if (!classification) {
-    if (!validateFileType(mimeType)) {
-      return { valid: false, error: `File type ${mimeType} is not allowed.`, classification: null };
-    }
-    if (!validateFileSize(size)) {
-      return {
-        valid: false,
-        error: `File size ${formatFileSize(size)} exceeds maximum of ${formatFileSize(FILE_CONFIG.MAX_SIZE)}.`,
-        classification: null,
-      };
-    }
-    return { valid: true, classification: null };
+  if (!filename) {
+    return { valid: false, error: "Filename is required.", classification: null };
   }
+
+  const classification = classifyAttachment({ filename, mimeType });
 
   // Reject images carrying the unsafeActiveContent overlay (SVG today).
   const isUnsafeImage =

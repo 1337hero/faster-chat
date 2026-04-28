@@ -2,7 +2,6 @@ import { describe, test, expect } from "bun:test";
 import {
   sanitizeFilename,
   createStoredFilename,
-  validateFileType,
   validateFileSize,
   calculateFileHash,
   validateFileAccess,
@@ -55,35 +54,6 @@ describe("fileUtils", () => {
       const id = "abc-123";
       const result = createStoredFilename(id, "photo.png");
       expect(result).toBe("abc-123_photo.png");
-    });
-  });
-
-  describe("validateFileType", () => {
-    test("accepts allowed MIME type (image/png)", () => {
-      expect(validateFileType("image/png")).toBe(true);
-    });
-
-    test("accepts allowed MIME type (application/pdf)", () => {
-      expect(validateFileType("application/pdf")).toBe(true);
-    });
-
-    test("rejects disallowed type (application/exe)", () => {
-      expect(validateFileType("application/exe")).toBe(false);
-    });
-
-    test("rejects image/svg+xml (not in allowed list)", () => {
-      expect(validateFileType("image/svg+xml")).toBe(false);
-    });
-
-    test("rejects null/undefined mimeType", () => {
-      expect(validateFileType(null)).toBe(false);
-      expect(validateFileType(undefined)).toBe(false);
-    });
-
-    test("supports wildcard patterns (image/*)", () => {
-      expect(validateFileType("image/png", ["image/*"])).toBe(true);
-      expect(validateFileType("image/jpeg", ["image/*"])).toBe(true);
-      expect(validateFileType("text/plain", ["image/*"])).toBe(false);
     });
   });
 
@@ -201,11 +171,11 @@ describe("fileUtils", () => {
       expect(result.classification.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
     });
 
-    test("returns error without filename when classification not provided", () => {
+    test("rejects when filename is missing", () => {
       const result = validateFile({ mimeType: "application/exe", size: 1024 });
       expect(result.valid).toBe(false);
       expect(result.classification).toBeNull();
-      expect(result.error).toContain("not allowed");
+      expect(result.error).toContain("Filename is required");
     });
   });
 
