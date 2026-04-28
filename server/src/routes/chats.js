@@ -35,6 +35,8 @@ import {
   isMemoryEnabledForRequest,
 } from "../lib/memory.js";
 
+const MAX_MODEL_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+
 function mapAttachmentError(error) {
   const message = error.message || String(error);
   if (message.includes("maximum supported dimension")) {
@@ -74,386 +76,251 @@ function truncateToTitle(text) {
   return text.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) + UI_CONSTANTS.CHAT_TITLE_ELLIPSIS;
 }
 
-/**
- * GET /api/chats
- * List chats for the current user (paginated)
- */
-chatsRouter.get("/", async (c) => {
-  try {
-    const user = c.get("user");
-    const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
-    const offset = parseInt(c.req.query("offset") || "0", 10);
-    const chats = dbUtils.getChatsByUserIdPaginated(user.id, limit, offset);
-
-    return c.json({
-      chats: chats.map((chat) => ({
-        id: chat.id,
-        title: chat.title,
-        folderId: chat.folder_id,
-        pinnedAt: chat.pinned_at,
-        archivedAt: chat.archived_at,
-        createdAt: chat.created_at,
-        updatedAt: chat.updated_at,
-      })),
-      limit,
-      offset,
-    });
-  } catch (error) {
-    console.error("List chats error:", error);
-    return c.json({ error: "Failed to list chats" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * POST /api/chats
- * Create a new chat (optionally in a folder)
- */
-chatsRouter.post("/", async (c) => {
-  try {
-    const user = c.get("user");
-    const body = await c.req.json().catch(() => ({}));
-    const title = body.title || null;
-    const chatId = body.id || crypto.randomUUID();
-    const folderId = body.folder_id || null;
-
-    // Validate folder belongs to user if provided
-    if (folderId) {
-      const folder = dbUtils.getFolderByIdAndUser(folderId, user.id);
-      if (!folder) {
-        return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
-      }
-    }
-
-    const chat = dbUtils.createChat(chatId, user.id, title, folderId);
-
-    return c.json(
-      {
-        id: chat.id,
-        title: chat.title,
-        folderId: chat.folder_id,
-        createdAt: chat.created_at,
-        updatedAt: chat.updated_at,
-      },
-      HTTP_STATUS.CREATED
-    );
-  } catch (error) {
-    console.error("Create chat error:", error);
-    return c.json({ error: "Failed to create chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * GET /api/chats/:chatId
- * Get a specific chat
- */
-chatsRouter.get("/:chatId", async (c) => {
-  try {
+function chatStateHandler(action, message) {
+  return async (c) => {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
 
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
+    const updated = action()(chatId, user.id);
+    if (!updated) {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
 
-    return c.json({
+    return c.json({ message });
+  };
+}
+
+chatsRouter.get("/", async (c) => {
+  const user = c.get("user");
+  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 100);
+  const offset = parseInt(c.req.query("offset") || "0", 10);
+  const chats = dbUtils.getChatsByUserIdPaginated(user.id, limit, offset);
+
+  return c.json({
+    chats: chats.map((chat) => ({
       id: chat.id,
       title: chat.title,
-      memoryDisabled: !!chat.memory_disabled,
+      folderId: chat.folder_id,
+      pinnedAt: chat.pinned_at,
+      archivedAt: chat.archived_at,
       createdAt: chat.created_at,
       updatedAt: chat.updated_at,
-    });
-  } catch (error) {
-    console.error("Get chat error:", error);
-    return c.json({ error: "Failed to get chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+    })),
+    limit,
+    offset,
+  });
 });
 
-/**
- * PATCH /api/chats/:chatId
- * Update a chat (title)
- */
+chatsRouter.post("/", async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json().catch(() => ({}));
+  const title = body.title || null;
+  const chatId = body.id || crypto.randomUUID();
+  const folderId = body.folder_id || null;
+
+  // Validate folder belongs to user if provided
+  if (folderId) {
+    const folder = dbUtils.getFolderByIdAndUser(folderId, user.id);
+    if (!folder) {
+      return c.json({ error: "Folder not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+  }
+
+  const chat = dbUtils.createChat(chatId, user.id, title, folderId);
+
+  return c.json(
+    {
+      id: chat.id,
+      title: chat.title,
+      folderId: chat.folder_id,
+      createdAt: chat.created_at,
+      updatedAt: chat.updated_at,
+    },
+    HTTP_STATUS.CREATED
+  );
+});
+
+chatsRouter.get("/:chatId", async (c) => {
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
+
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  return c.json({
+    id: chat.id,
+    title: chat.title,
+    memoryDisabled: !!chat.memory_disabled,
+    createdAt: chat.created_at,
+    updatedAt: chat.updated_at,
+  });
+});
+
 chatsRouter.patch("/:chatId", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-    const body = await c.req.json();
-    const validated = PatchChatSchema.parse(body);
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
+  const body = await c.req.json();
+  const validated = PatchChatSchema.parse(body);
 
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    if (validated.title !== undefined) {
-      dbUtils.updateChatTitle(chatId, validated.title);
-    }
-
-    const updatedChat = dbUtils.getChatById(chatId);
-    return c.json({
-      id: updatedChat.id,
-      title: updatedChat.title,
-      createdAt: updatedChat.created_at,
-      updatedAt: updatedChat.updated_at,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Update chat error:", error);
-    return c.json({ error: "Failed to update chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  if (validated.title !== undefined) {
+    dbUtils.updateChatTitle(chatId, validated.title);
+  }
+
+  const updatedChat = dbUtils.getChatById(chatId);
+  return c.json({
+    id: updatedChat.id,
+    title: updatedChat.title,
+    createdAt: updatedChat.created_at,
+    updatedAt: updatedChat.updated_at,
+  });
 });
 
-/**
- * DELETE /api/chats/:chatId
- * Soft delete a chat
- */
 chatsRouter.delete("/:chatId", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
 
-    const deleted = dbUtils.softDeleteChatByUser(chatId, user.id);
-    if (!deleted) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Chat deleted successfully" });
-  } catch (error) {
-    console.error("Delete chat error:", error);
-    return c.json({ error: "Failed to delete chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const deleted = dbUtils.softDeleteChatByUser(chatId, user.id);
+  if (!deleted) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  return c.json({ message: "Chat deleted successfully" });
 });
 
-/**
- * POST /api/chats/:chatId/pin
- * Pin a chat
- */
-chatsRouter.post("/:chatId/pin", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
+chatsRouter.post(
+  "/:chatId/pin",
+  chatStateHandler(() => dbUtils.pinChat, "Chat pinned successfully")
+);
+chatsRouter.delete(
+  "/:chatId/pin",
+  chatStateHandler(() => dbUtils.unpinChat, "Chat unpinned successfully")
+);
+chatsRouter.post(
+  "/:chatId/archive",
+  chatStateHandler(() => dbUtils.archiveChat, "Chat archived successfully")
+);
+chatsRouter.delete(
+  "/:chatId/archive",
+  chatStateHandler(() => dbUtils.unarchiveChat, "Chat unarchived successfully")
+);
 
-    const pinned = dbUtils.pinChat(chatId, user.id);
-    if (!pinned) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Chat pinned successfully" });
-  } catch (error) {
-    console.error("Pin chat error:", error);
-    return c.json({ error: "Failed to pin chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * DELETE /api/chats/:chatId/pin
- * Unpin a chat
- */
-chatsRouter.delete("/:chatId/pin", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-
-    const unpinned = dbUtils.unpinChat(chatId, user.id);
-    if (!unpinned) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Chat unpinned successfully" });
-  } catch (error) {
-    console.error("Unpin chat error:", error);
-    return c.json({ error: "Failed to unpin chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * POST /api/chats/:chatId/archive
- * Archive a chat
- */
-chatsRouter.post("/:chatId/archive", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-
-    const archived = dbUtils.archiveChat(chatId, user.id);
-    if (!archived) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Chat archived successfully" });
-  } catch (error) {
-    console.error("Archive chat error:", error);
-    return c.json({ error: "Failed to archive chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * DELETE /api/chats/:chatId/archive
- * Unarchive a chat
- */
-chatsRouter.delete("/:chatId/archive", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-
-    const unarchived = dbUtils.unarchiveChat(chatId, user.id);
-    if (!unarchived) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Chat unarchived successfully" });
-  } catch (error) {
-    console.error("Unarchive chat error:", error);
-    return c.json({ error: "Failed to unarchive chat" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * GET /api/chats/:chatId/messages
- * Get messages for a chat (paginated)
- */
 chatsRouter.get("/:chatId/messages", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
 
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    const limit = Math.min(parseInt(c.req.query("limit") || "200", 10), 500);
-    const offset = parseInt(c.req.query("offset") || "0", 10);
-    const messages = dbUtils.getMessagesByChatAndUserPaginated(chatId, user.id, limit, offset);
-
-    return c.json({
-      messages: messages.map((msg) => ({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content,
-        model: msg.model,
-        fileIds: msg.file_ids,
-        metadata: msg.metadata || null,
-        createdAt: msg.created_at,
-      })),
-      limit,
-      offset,
-    });
-  } catch (error) {
-    console.error("Get messages error:", error);
-    return c.json({ error: "Failed to get messages" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  const limit = Math.min(parseInt(c.req.query("limit") || "200", 10), 500);
+  const offset = parseInt(c.req.query("offset") || "0", 10);
+  const messages = dbUtils.getMessagesByChatAndUserPaginated(chatId, user.id, limit, offset);
+
+  return c.json({
+    messages: messages.map((msg) => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      model: msg.model,
+      fileIds: msg.file_ids,
+      metadata: msg.metadata || null,
+      createdAt: msg.created_at,
+    })),
+    limit,
+    offset,
+  });
 });
 
-/**
- * POST /api/chats/:chatId/messages
- * Add a message to a chat
- */
 chatsRouter.post("/:chatId/messages", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-    const body = await c.req.json();
-    const validated = MessageSchema.parse(body);
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
+  const body = await c.req.json();
+  const validated = MessageSchema.parse(body);
 
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    const messageId = validated.id || crypto.randomUUID();
-    // Validate attachment ownership
-    if (validated.fileIds && validated.fileIds.length > 0) {
-      const userFiles = dbUtils.getFilesByIdsForUser(validated.fileIds, user.id);
-      if (!userFiles || userFiles.length !== validated.fileIds.length) {
-        return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
-      }
-    }
-
-    const message = dbUtils.createMessage(
-      messageId,
-      chatId,
-      user.id,
-      validated.role,
-      validated.content,
-      validated.model || null,
-      validated.fileIds || null,
-      validated.metadata || null
-    );
-
-    if (validated.role === "user") {
-      const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
-      if (isFirstMessage) {
-        let title = truncateToTitle(validated.content); // always computed
-        if (validated.model) {
-          try {
-            const aiTitle = await generateChatTitle(validated.content, validated.model);
-            if (aiTitle && aiTitle.trim()) {
-              title = aiTitle;
-            }
-          } catch (err) {
-            console.warn("AI title upgrade failed, keeping fallback:", err.message);
-          }
-        }
-        try {
-          dbUtils.updateChatTitle(chatId, title);
-        } catch (err) {
-          console.error("updateChatTitle failed:", err);
-        }
-      } else {
-        dbUtils.updateChatTimestamp(chatId);
-      }
-    }
-
-    return c.json(
-      {
-        id: message.id,
-        chatId: message.chat_id,
-        role: message.role,
-        content: message.content,
-        model: message.model,
-        fileIds: message.file_ids,
-        metadata: message.metadata || null,
-        createdAt: message.created_at,
-      },
-      HTTP_STATUS.CREATED
-    );
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Create message error:", error);
-    return c.json({ error: "Failed to create message" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  const messageId = validated.id || crypto.randomUUID();
+  // Validate attachment ownership
+  if (validated.fileIds && validated.fileIds.length > 0) {
+    const userFiles = dbUtils.getFilesByIdsForUser(validated.fileIds, user.id);
+    if (!userFiles || userFiles.length !== validated.fileIds.length) {
+      return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+    }
+  }
+
+  const message = dbUtils.createMessage(
+    messageId,
+    chatId,
+    user.id,
+    validated.role,
+    validated.content,
+    validated.model || null,
+    validated.fileIds || null,
+    validated.metadata || null
+  );
+
+  if (validated.role === "user") {
+    const isFirstMessage = dbUtils.getMessageCountByChat(chatId) === 1;
+    if (isFirstMessage) {
+      let title = truncateToTitle(validated.content); // always computed
+      if (validated.model) {
+        try {
+          const aiTitle = await generateChatTitle(validated.content, validated.model);
+          if (aiTitle && aiTitle.trim()) {
+            title = aiTitle;
+          }
+        } catch (err) {
+          console.warn("AI title upgrade failed, keeping fallback:", err.message);
+        }
+      }
+      dbUtils.setChatTitleIfEmpty(chatId, title);
+    } else {
+      dbUtils.updateChatTimestamp(chatId);
+    }
+  }
+
+  return c.json(
+    {
+      id: message.id,
+      chatId: message.chat_id,
+      role: message.role,
+      content: message.content,
+      model: message.model,
+      fileIds: message.file_ids,
+      metadata: message.metadata || null,
+      createdAt: message.created_at,
+    },
+    HTTP_STATUS.CREATED
+  );
 });
 
-/**
- * DELETE /api/chats/:chatId/messages/:messageId
- * Delete a specific message
- */
 chatsRouter.delete("/:chatId/messages/:messageId", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-    const messageId = c.req.param("messageId");
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
+  const messageId = c.req.param("messageId");
 
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    const deleted = dbUtils.deleteMessageByUser(messageId, user.id);
-    if (!deleted) {
-      return c.json({ error: "Message not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    return c.json({ message: "Message deleted successfully" });
-  } catch (error) {
-    console.error("Delete message error:", error);
-    return c.json({ error: "Failed to delete message" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  const deleted = dbUtils.deleteMessageByUser(messageId, user.id);
+  if (!deleted) {
+    return c.json({ error: "Message not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  return c.json({ message: "Message deleted successfully" });
 });
 
 // =============================================================================
@@ -477,9 +344,6 @@ const CompletionRequestSchema = z.object({
   memoryEnabled: z.boolean().optional().default(true),
 });
 
-/**
- * Get the appropriate model from database
- */
 function getModel(modelId) {
   const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
   if (!modelRecord) {
@@ -488,9 +352,6 @@ function getModel(modelId) {
   return getModelInstance(modelRecord, decryptApiKey);
 }
 
-/**
- * Generate a concise AI-powered title for a chat based on the first user message
- */
 async function generateChatTitle(userMessage, modelId) {
   try {
     const model = getModel(modelId);
@@ -548,6 +409,9 @@ function inlineTextPart(file, size, text, totalCharCount) {
 
 async function fileToContentPart(file) {
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+  if (file.size > MAX_MODEL_ATTACHMENT_BYTES) {
+    throw new Error(`Attachment ${file.filename} exceeds the per-file model limit`);
+  }
   const fileBuffer = await readFile(filePath).catch((err) => {
     throw new Error(`Cannot read ${file.id} at ${filePath}: ${err.message}`);
   });
@@ -593,9 +457,6 @@ async function fileToContentPart(file) {
   };
 }
 
-/**
- * Apply Anthropic prompt caching to messages
- */
 function applyCacheControl(messages, modelId) {
   if (!MODEL_FEATURES.SUPPORTS_PROMPT_CACHING(modelId)) {
     return messages;
@@ -627,11 +488,17 @@ function applyCacheControl(messages, modelId) {
 
 export async function createMultimodalContent(message, fileIds, filesById) {
   const content = [];
+  let totalBytes = 0;
   if (message.content.trim()) {
     content.push({ type: "text", text: message.content });
   }
   for (const id of fileIds) {
-    content.push(await fileToContentPart(filesById.get(id)));
+    const file = filesById.get(id);
+    totalBytes += file?.size || 0;
+    if (totalBytes > MAX_MODEL_ATTACHMENT_BYTES) {
+      throw new Error("Combined attachments exceed the model request limit");
+    }
+    content.push(await fileToContentPart(file));
   }
   return content;
 }
@@ -660,10 +527,6 @@ async function convertToModelMessages(messages, systemPrompt, fileIds = [], file
   return result;
 }
 
-/**
- * POST /api/chats/:chatId/completion
- * Stream an AI completion for a chat
- */
 chatsRouter.post(
   "/:chatId/completion",
   createRateLimiter(ENDPOINT_RATE_LIMITS.COMPLETION),
@@ -800,30 +663,21 @@ chatsRouter.post(
   }
 );
 
-/**
- * GET /api/chats/:chatId/stream
- * Resume endpoint (stub for now)
- */
 chatsRouter.get("/:chatId/stream", async (c) => {
   return c.body(null, 204);
 });
 
 chatsRouter.put("/:chatId/memory", async (c) => {
-  try {
-    const user = c.get("user");
-    const chatId = c.req.param("chatId");
-    const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-    if (!chat) {
-      return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-    const { disabled } = await c.req.json();
-    if (typeof disabled !== "boolean") {
-      return c.json({ error: "disabled must be a boolean" }, HTTP_STATUS.BAD_REQUEST);
-    }
-    dbUtils.setChatMemoryDisabled(chatId, disabled);
-    return c.json({ disabled });
-  } catch (error) {
-    console.error("Toggle chat memory error:", error);
-    return c.json({ error: "Failed to toggle chat memory" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const user = c.get("user");
+  const chatId = c.req.param("chatId");
+  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
+  if (!chat) {
+    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+  const { disabled } = await c.req.json();
+  if (typeof disabled !== "boolean") {
+    return c.json({ error: "disabled must be a boolean" }, HTTP_STATUS.BAD_REQUEST);
+  }
+  dbUtils.setChatMemoryDisabled(chatId, disabled);
+  return c.json({ disabled });
 });

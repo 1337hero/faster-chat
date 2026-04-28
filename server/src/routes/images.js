@@ -10,6 +10,7 @@ import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import { generateFileId, createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
 import { generateImageForProvider } from "../lib/imageProviderFactory.js";
+import { decryptApiKey } from "../lib/encryption.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,9 +27,6 @@ export const imagesRouter = new Hono();
 // Apply auth middleware to all routes
 imagesRouter.use("/*", ensureSession);
 
-/**
- * Ensure generated images directory exists
- */
 async function ensureGeneratedDirectory() {
   try {
     await mkdir(GENERATED_DIR, { recursive: true });
@@ -40,10 +38,6 @@ async function ensureGeneratedDirectory() {
   }
 }
 
-/**
- * POST /api/images/generate
- * Generate an image using Replicate
- */
 imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN), async (c) => {
   try {
     const user = c.get("user");
@@ -73,7 +67,6 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
         modelIdentifier = model.model_id;
         modelDisplayName = model.display_name;
         if (model.provider_encrypted_key) {
-          const { decryptApiKey } = await import("../lib/encryption.js");
           apiKey = decryptApiKey(
             model.provider_encrypted_key,
             model.provider_iv,
@@ -171,10 +164,6 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
   }
 });
 
-/**
- * GET /api/images/status
- * Check if image generation is available
- */
 imagesRouter.get("/status", async (c) => {
   const apiKey = process.env.REPLICATE_API_KEY;
 

@@ -13,44 +13,23 @@ const UpdateSettingsSchema = z.object({
   logoIcon: z.enum(LOGO_ICON_NAMES).optional(),
 });
 
-/**
- * GET /api/settings
- * Get all public settings (no auth required)
- */
 settingsRouter.get("/", async (c) => {
-  try {
-    const settings = dbUtils.getAllSettings();
-    return c.json(normalizeAppSettings(settings));
-  } catch (error) {
-    console.error("Get settings error:", error);
-    return c.json({ error: "Failed to get settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const settings = dbUtils.getAllSettings();
+  return c.json(normalizeAppSettings(settings));
 });
 
-/**
- * PUT /api/settings
- * Update settings (admin only)
- */
 settingsRouter.put("/", ensureSession, requireRole("admin"), async (c) => {
-  try {
-    const body = await c.req.json();
-    const updates = UpdateSettingsSchema.parse(body);
+  const body = await c.req.json();
+  const updates = UpdateSettingsSchema.parse(body);
 
-    if (Object.keys(updates).length === 0) {
-      return c.json({ error: "No valid settings to update" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    dbUtils.setSettings(updates);
-
-    const settings = dbUtils.getAllSettings();
-    return c.json(normalizeAppSettings(settings));
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Update settings error:", error);
-    return c.json({ error: "Failed to update settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  if (Object.keys(updates).length === 0) {
+    return c.json({ error: "No valid settings to update" }, HTTP_STATUS.BAD_REQUEST);
   }
+
+  dbUtils.setSettings(updates);
+
+  const settings = dbUtils.getAllSettings();
+  return c.json(normalizeAppSettings(settings));
 });
 
 // ========================================
@@ -65,27 +44,14 @@ function maskApiKey(key) {
 }
 
 settingsRouter.get("/web-search", ensureSession, requireRole("admin"), async (c) => {
-  try {
-    const apiKey = dbUtils.getWebSearchApiKey();
-    return c.json({ apiKey: maskApiKey(apiKey) });
-  } catch (error) {
-    console.error("Get web search config error:", error);
-    return c.json({ error: "Failed to get web search config" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const apiKey = dbUtils.getWebSearchApiKey();
+  return c.json({ apiKey: maskApiKey(apiKey) });
 });
 
 settingsRouter.put("/web-search", ensureSession, requireRole("admin"), async (c) => {
-  try {
-    const { apiKey } = await c.req.json();
-    dbUtils.setWebSearchApiKey(apiKey);
-    return c.json({ success: true });
-  } catch (error) {
-    console.error("Update web search config error:", error);
-    return c.json(
-      { error: "Failed to update web search config" },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
-  }
+  const { apiKey } = await c.req.json();
+  dbUtils.setWebSearchApiKey(apiKey);
+  return c.json({ success: true });
 });
 
 // ========================================
@@ -93,30 +59,20 @@ settingsRouter.put("/web-search", ensureSession, requireRole("admin"), async (c)
 // ========================================
 
 settingsRouter.get("/memory", ensureSession, requireRole("admin"), async (c) => {
-  try {
-    const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
-    const extractionModel = dbUtils.getMemoryExtractionModel();
-    return c.json({ globalEnabled, extractionModel });
-  } catch (error) {
-    console.error("Get memory settings error:", error);
-    return c.json({ error: "Failed to get memory settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
+  const extractionModel = dbUtils.getMemoryExtractionModel();
+  return c.json({ globalEnabled, extractionModel });
 });
 
 settingsRouter.put("/memory", ensureSession, requireRole("admin"), async (c) => {
-  try {
-    const body = await c.req.json();
-    if (typeof body.globalEnabled === "boolean") {
-      dbUtils.setMemoryGlobalEnabled(body.globalEnabled);
-    }
-    if (body.extractionModel !== undefined) {
-      dbUtils.setMemoryExtractionModel(body.extractionModel || null);
-    }
-    const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
-    const extractionModel = dbUtils.getMemoryExtractionModel();
-    return c.json({ globalEnabled, extractionModel });
-  } catch (error) {
-    console.error("Update memory settings error:", error);
-    return c.json({ error: "Failed to update memory settings" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const body = await c.req.json();
+  if (typeof body.globalEnabled === "boolean") {
+    dbUtils.setMemoryGlobalEnabled(body.globalEnabled);
   }
+  if (body.extractionModel !== undefined) {
+    dbUtils.setMemoryExtractionModel(body.extractionModel || null);
+  }
+  const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
+  const extractionModel = dbUtils.getMemoryExtractionModel();
+  return c.json({ globalEnabled, extractionModel });
 });
