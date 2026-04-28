@@ -1,81 +1,60 @@
-import { useState, useRef, useImperativeHandle, forwardRef } from "preact/compat";
-import {
-  FILE_CATEGORIES,
-  FILE_CONSTANTS,
-  formatFileSize,
-  ATTACHMENT_INPUT_ACCEPT,
-} from "@faster-chat/shared";
+import { useState } from "preact/hooks";
+import { FILE_CATEGORIES, FILE_CONSTANTS, formatFileSize } from "@faster-chat/shared";
 import { toast } from "sonner";
 import { X, File } from "lucide-preact";
 import { API_BASE } from "@/lib/api";
 
-/**
- * FileUpload Component
- * Handles file selection and upload with preview
- */
-const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
+const CATEGORY_LABELS = {
+  [FILE_CATEGORIES.IMAGE]: "Image",
+  [FILE_CATEGORIES.PDF]: "PDF",
+  [FILE_CATEGORIES.TEXT_LIKE]: "Text",
+  [FILE_CATEGORIES.OFFICE_MODERN]: "Office",
+  [FILE_CATEGORIES.OFFICE_LEGACY]: "Office",
+  [FILE_CATEGORIES.UNKNOWN_BINARY]: "File",
+};
+
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${API_BASE}/api/files`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Upload failed");
+  }
+  return response.json();
+}
+
+export function useFileUploader({ onFilesUploaded, onError } = {}) {
   const [uploading, setUploading] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
-  const fileInputRef = useRef(null);
 
-  // Expose handleButtonClick to parent via ref
-  useImperativeHandle(ref, () => ({
-    handleButtonClick: () => {
-      fileInputRef.current?.click();
-    },
-  }));
+  async function uploadFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
 
-  const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch(`${API_BASE}/api/files`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
+    const errors = [];
+    const uploadable = files.filter((f) => {
+      if (f.size > FILE_CONSTANTS.MAX_FILE_SIZE_BYTES) {
+        errors.push(
+          `${f.name}: File too large (${formatFileSize(f.size)}). Maximum size is ${formatFileSize(FILE_CONSTANTS.MAX_FILE_SIZE_BYTES)}`
+        );
+        return false;
       }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw error;
-    }
-  };
-
-  const handleFileSelect = async (event) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) {
-      return;
-    }
+      return true;
+    });
 
     setUploading(true);
-    setCurrentFile(files.length === 1 ? files[0].name : `${files.length} files`);
-
-    const uploadedFiles = [];
-    const errors = [];
-    const oversizeMsg = (f) =>
-      `${f.name}: File too large (${formatFileSize(f.size)}). Maximum size is ${formatFileSize(FILE_CONSTANTS.MAX_FILE_SIZE_BYTES)}`;
-
-    const uploadable = [];
-    for (const file of files) {
-      if (file.size > FILE_CONSTANTS.MAX_FILE_SIZE_BYTES) {
-        errors.push(oversizeMsg(file));
-      } else {
-        uploadable.push(file);
-      }
-    }
+    setCurrentFile(uploadable.length === 1 ? uploadable[0].name : `${uploadable.length} files`);
 
     const results = await Promise.allSettled(uploadable.map(uploadFile));
+    const uploaded = [];
     results.forEach((r, i) => {
       if (r.status === "fulfilled" && r.value) {
-        uploadedFiles.push(r.value);
+        uploaded.push(r.value);
       } else if (r.status === "rejected") {
         errors.push(`${uploadable[i].name}: ${r.reason?.message ?? "Upload failed"}`);
       }
@@ -83,65 +62,22 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
 
     setUploading(false);
     setCurrentFile(null);
-    if (uploadedFiles.length > 0) {
-      onFilesUploaded?.(uploadedFiles);
-      const fileCount = uploadedFiles.length;
-      toast.success(fileCount === 1 ? "File uploaded" : `${fileCount} files uploaded`);
-    }
 
+    if (uploaded.length > 0) {
+      onFilesUploaded?.(uploaded);
+      toast.success(uploaded.length === 1 ? "File uploaded" : `${uploaded.length} files uploaded`);
+    }
     if (errors.length > 0) {
       onError?.(errors.join("\n"));
       toast.error("Upload failed", { description: errors[0] });
     }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  return (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        onChange={handleFileSelect}
-        disabled={disabled || uploading}
-        className="hidden"
-        accept={ATTACHMENT_INPUT_ACCEPT}
-      />
-
-      {uploading && currentFile && (
-        <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
-      )}
-    </>
-  );
-});
-
-FileUpload.displayName = "FileUpload";
-
-/**
- * FilePreview Component
- * Shows selected files before sending
- */
-export function FilePreviewList({ files, onRemove }) {
-  if (!files || files.length === 0) {
-    return null;
   }
 
-  const getCategoryLabel = (mimeType) => {
-    if (mimeType?.startsWith("image/")) return "Image";
-    if (mimeType === "application/pdf") return "PDF";
-    if (mimeType?.startsWith("text/")) return "Text";
-    if (
-      mimeType?.includes("office") ||
-      mimeType?.includes("spreadsheet") ||
-      mimeType?.includes("presentation")
-    )
-      return "Office";
-    return "File";
-  };
+  return { uploadFiles, uploading, currentFile };
+}
+
+export function FilePreviewList({ files, onRemove }) {
+  if (!files || files.length === 0) return null;
 
   return (
     <div className="mb-2 flex flex-wrap gap-2">
@@ -152,7 +88,7 @@ export function FilePreviewList({ files, onRemove }) {
           <File size={16} />
           <span className="max-w-[200px] truncate">{file.filename}</span>
           <span className="bg-theme-surface-strong text-theme-text-muted rounded px-1.5 py-0.5 text-[10px] font-medium">
-            {getCategoryLabel(file.mimeType)}
+            {CATEGORY_LABELS[file.category] ?? "File"}
           </span>
           <span className="text-theme-text-muted text-xs">{file.sizeFormatted}</span>
           {onRemove && (
@@ -169,6 +105,3 @@ export function FilePreviewList({ files, onRemove }) {
     </div>
   );
 }
-
-export { FileUpload };
-export default FileUpload;

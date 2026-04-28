@@ -1,5 +1,3 @@
-// Phase 1: Attachment Capability Model Constants
-
 export const FILE_CATEGORIES = {
   IMAGE: "image",
   PDF: "pdf",
@@ -23,29 +21,22 @@ export const FILE_DOWNLOAD_POLICIES = {
   TEXT_ATTACHMENT_ONLY: "textAttachmentOnly",
 };
 
-// Single source: extension → MIME type mapping
 const EXTENSION_TO_MIME = {
-  // Images
   jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
-  // Documents
   pdf: "application/pdf",
-  // Text
   txt: "text/plain", md: "text/markdown", markdown: "text/markdown", csv: "text/csv",
   json: "application/json", jsonl: "application/json", ndjson: "application/json",
   html: "text/html", htm: "text/html", xml: "application/xml", css: "text/css",
   js: "application/javascript", mjs: "application/javascript", cjs: "application/javascript",
   log: "text/plain", yaml: "application/yaml", yml: "application/yaml",
-  // Office
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  // Legacy
   doc: "application/msword", xls: "application/vnd.ms-excel", ppt: "application/vnd.ms-powerpoint",
 };
 
-// Generate MIME type arrays from extension mappings
 function mimesForExtensions(exts) {
-  return [...new Set(exts.map(e => EXTENSION_TO_MIME[e]).filter(Boolean))];
+  return [...new Set(exts.map((e) => EXTENSION_TO_MIME[e]).filter(Boolean))];
 }
 
 export const FILE_CATEGORY_DEFINITIONS = {
@@ -98,50 +89,23 @@ export const FILE_CONSTANTS = {
   SIZE_UNITS: ["Bytes", "KB", "MB", "GB"],
 };
 
-// Phase 10: Frontend accept list for file upload
-// Matches backend supported categories (excluding legacy Office unless supported)
-export const ATTACHMENT_ACCEPT_EXTENSIONS = [
-  // Images
-  "jpg", "jpeg", "png", "gif", "webp",
-  // Documents
-  "pdf",
-  // Text/code files
-  "txt", "md", "markdown", "csv", "json", "jsonl", "ndjson", "html", "htm", "xml", "js", "mjs", "cjs", "css", "log", "yaml", "yml",
-  // Modern Office (Phase 5)
-  "docx", "xlsx", "pptx",
+const UPLOADABLE_CATEGORIES = [
+  FILE_CATEGORIES.IMAGE,
+  FILE_CATEGORIES.PDF,
+  FILE_CATEGORIES.TEXT_LIKE,
+  FILE_CATEGORIES.OFFICE_MODERN,
 ];
 
-export const ATTACHMENT_ACCEPT_MIME_TYPES = [
-  "image/jpeg", "image/png", "image/gif", "image/webp",
-  "application/pdf",
-  "text/*",
-  "application/json", "application/jsonl", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-];
+const acceptExtensions = UPLOADABLE_CATEGORIES.flatMap(
+  (cat) => FILE_CATEGORY_DEFINITIONS[cat].extensions
+).filter((ext) => ext !== "svg");
 
-// Combined accept string for <input type="file"> element
-export const ATTACHMENT_INPUT_ACCEPT = [
-  // MIME types
-  "image/jpeg", "image/png", "image/gif", "image/webp",
-  "application/pdf",
-  "text/*",
-  "application/json",
-  "application/jsonl",
-  "application/xml",
-  "application/javascript",
-  "text/html",
-  "text/css",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-  "application/yaml",
-  // Extensions for unsupported MIME types
-  ".txt", ".md", ".markdown", ".csv", ".json", ".jsonl", ".html", ".htm", ".xml", ".js", ".mjs", ".cjs", ".css", ".log", ".yaml", ".yml",
-  ".docx", ".xlsx", ".pptx",
-].join(",");
+const acceptMimes = [
+  ...new Set(UPLOADABLE_CATEGORIES.flatMap((cat) => FILE_CATEGORY_DEFINITIONS[cat].mimeTypes)),
+].filter((mt) => mt !== "image/svg+xml");
 
-// User-facing helper text for attachment button tooltip
+export const ATTACHMENT_INPUT_ACCEPT = [...acceptMimes, ...acceptExtensions.map((e) => `.${e}`)].join(",");
+
 export const ATTACHMENT_TITLE_TEXT = "Attach images, PDFs, text/code files, CSV/JSON/Markdown, and modern Office documents. Text-like files are sent as text for broad model compatibility.";
 
 export function getMimeFromExtension(ext) {

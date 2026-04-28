@@ -31,10 +31,6 @@ function extractTagText(xml, tag) {
   return out;
 }
 
-/**
- * Extract text from a DOCX file
- * DOCX files are ZIP archives containing XML files
- */
 function extractDocxText(buffer) {
   const warnings = [];
   const texts = [];
@@ -59,10 +55,6 @@ function extractDocxText(buffer) {
   return { text: texts.join("\n\n"), warnings };
 }
 
-/**
- * Extract text from an XLSX file
- * XLSX files contain workbook and worksheet XML files
- */
 function extractXlsxText(buffer) {
   const warnings = [];
   const sheetData = [];
@@ -149,10 +141,6 @@ function extractXlsxText(buffer) {
   };
 }
 
-/**
- * Extract text from a PPTX file
- * PPTX files contain slide XML files
- */
 function extractPptxText(buffer) {
   const warnings = [];
   const slideData = [];
@@ -203,14 +191,6 @@ function extractPptxText(buffer) {
   };
 }
 
-/**
- * Main extraction function
- * @param {Object} options
- * @param {Buffer} options.buffer - File buffer
- * @param {string} options.filename - Original filename
- * @param {string} options.mimeType - MIME type
- * @returns {Object} Extraction result with text, kind, and warnings
- */
 export function extractOfficeText({ buffer, filename, mimeType }) {
   const extension = path.extname(filename).toLowerCase().replace(".", "");
   const kind = OFFICE_EXTENSIONS[extension] || OFFICE_MIME_TYPES[mimeType] || null;
@@ -249,29 +229,14 @@ export function extractOfficeText({ buffer, filename, mimeType }) {
   };
 }
 
-/**
- * Check if a file is an Office modern document
- */
 export function isOfficeModernFile({ filename, mimeType }) {
   const extension = path.extname(filename).toLowerCase().replace(".", "");
-  const extKind = OFFICE_EXTENSIONS[extension];
-
-  if (extKind) {
-    return true;
-  }
-
-  if (mimeType && OFFICE_MIME_TYPES[mimeType]) {
-    return true;
-  }
-
+  if (OFFICE_EXTENSIONS[extension]) return true;
+  if (mimeType && OFFICE_MIME_TYPES[mimeType]) return true;
   return false;
 }
 
-/**
- * Check if a file is an Office legacy document
- */
 export function isOfficeLegacyFile({ filename }) {
   const extension = path.extname(filename).toLowerCase().replace(".", "");
-  const legacyExtensions = ["doc", "xls", "ppt"];
-  return legacyExtensions.includes(extension);
+  return ["doc", "xls", "ppt"].includes(extension);
 }

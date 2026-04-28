@@ -99,13 +99,13 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
       return c.json({ error: "Failed to save file metadata" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
 
-    // Return file metadata
     return c.json({
       id: fileId,
       filename: file.name,
       size: file.size,
       sizeFormatted: formatFileSize(file.size),
       mimeType: file.type,
+      category: classification?.category ?? null,
       hash: fileHash,
       createdAt: Date.now(),
     });
