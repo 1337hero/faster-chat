@@ -1,5 +1,10 @@
 import { useRef, useState } from "preact/hooks";
-import { UI_CONSTANTS, FILE_CONSTANTS, ATTACHMENT_INPUT_ACCEPT } from "@faster-chat/shared";
+import {
+  UI_CONSTANTS,
+  FILE_CONSTANTS,
+  ATTACHMENT_INPUT_ACCEPT,
+  ATTACHMENT_TITLE_TEXT,
+} from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ChatMemoryButton from "./ChatMemoryButton";
@@ -19,6 +24,7 @@ const InputArea = ({
   chatId,
   onFilesCleared,
   selectedFiles,
+  setSelectedFiles,
 }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);

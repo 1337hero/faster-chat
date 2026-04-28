@@ -231,6 +231,7 @@ const ChatInterface = ({ chatId }) => {
                 modelSupportsTools={modelSupportsTools}
                 chatId={chatId}
                 selectedFiles={inputFiles}
+                setSelectedFiles={setInputFiles}
                 onFilesCleared={() => setInputFiles([])}
               />
             </div>

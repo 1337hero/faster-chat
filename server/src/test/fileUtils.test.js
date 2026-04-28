@@ -183,10 +183,10 @@ describe("fileUtils", () => {
       expect(result.classification.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
     });
 
-    test("returns classification for SVG even though rejected by validateFileType", () => {
+    test("rejects SVG as unsafe active image content", () => {
       const result = validateFile({ mimeType: "image/svg+xml", size: 1024, filename: "icon.svg" });
       expect(result.valid).toBe(false);
-      expect(result.classification.category).toBe(FILE_CATEGORIES.IMAGE);
+      expect(result.classification.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
       expect(result.classification.overlays).toContain("unsafeActiveContent");
     });
 
@@ -376,9 +376,9 @@ describe("fileUtils", () => {
       expect(result.overlays).toContain("unsafeActiveContent");
     });
 
-    test("classifies .svg as image + unsafeActiveContent overlay", () => {
+    test("classifies .svg as unknown binary + unsafeActiveContent overlay", () => {
       const result = classifyAttachment({ filename: "icon.svg", mimeType: "image/svg+xml" });
-      expect(result.category).toBe(FILE_CATEGORIES.IMAGE);
+      expect(result.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
       expect(result.effectiveMimeType).toBe("image/svg+xml");
       expect(result.overlays).toContain("unsafeActiveContent");
     });

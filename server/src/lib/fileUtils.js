@@ -219,20 +219,29 @@ export function classifyAttachment({ filename, mimeType }) {
 export function validateFile({ mimeType, size, filename }) {
   const classification = filename ? classifyAttachment({ filename, mimeType }) : null;
 
-  if (classification && !classification.uploadAllowed) {
-    return {
-      valid: false,
-      error: `File type ${mimeType} (${filename}) is not allowed for upload.`,
-      classification,
-    };
+  if (!classification) {
+    if (!validateFileType(mimeType)) {
+      return { valid: false, error: `File type ${mimeType} is not allowed.`, classification: null };
+    }
+    if (!validateFileSize(size)) {
+      return {
+        valid: false,
+        error: `File size ${formatFileSize(size)} exceeds maximum of ${formatFileSize(FILE_CONFIG.MAX_SIZE)}.`,
+        classification: null,
+      };
+    }
+    return { valid: true, classification: null };
   }
 
-  if (!validateFileType(mimeType)) {
+  // Reject images carrying the unsafeActiveContent overlay (SVG today).
+  const isUnsafeImage =
+    classification.category === FILE_CATEGORIES.IMAGE &&
+    classification.overlays.includes("unsafeActiveContent");
+
+  if (!classification.uploadAllowed || isUnsafeImage) {
     return {
       valid: false,
-      error: classification
-        ? `File type ${classification.effectiveMimeType} (${filename}) is not allowed.`
-        : `File type ${mimeType} is not allowed.`,
+      error: `File type ${classification.effectiveMimeType || mimeType} (${filename}) is not allowed for upload.`,
       classification,
     };
   }
@@ -307,9 +316,9 @@ export function getStrategyForCategory(category) {
 
 /**
  * Preflight attachments against provider/model capabilities
- * Returns null if all attachments are supported, or an error object with details
+ * Returns an ok result if all attachments are supported, or an error object with details.
  */
-export function preflightAttachments({ files, modelRecord, providerName }) {
+export async function preflightAttachments({ files, modelRecord, providerName }) {
   const results = [];
   let hasImageDimensionIssue = false;
 
@@ -338,6 +347,18 @@ export function preflightAttachments({ files, modelRecord, providerName }) {
             "The selected model cannot read image attachments. Choose a vision-capable model or remove the image.";
           suggestion =
             "Choose a model with vision capabilities (e.g., Claude 3.5 Sonnet, GPT-4 Turbo) or remove the image attachment.";
+          break;
+        }
+
+        // Validate dimensions before the model call
+        try {
+          const imgPath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+          const buf = await readFile(imgPath);
+          validateImageDimensions(buf, file.mime_type, file.filename);
+        } catch (err) {
+          allowed = false;
+          reason = err.message;
+          suggestion = `Resize "${file.filename}" so neither side exceeds ${MAX_IMAGE_DIMENSION_PX} px and re-upload.`;
           hasImageDimensionIssue = true;
         }
         break;
@@ -407,12 +428,12 @@ export function preflightAttachments({ files, modelRecord, providerName }) {
     // Determine the error code based on the most severe issue
     let errorCode = "ATTACHMENT_UNSUPPORTED";
     for (const d of denied) {
-      if (d.category === FILE_CATEGORIES.OFFICE_LEGACY) {
-        errorCode = "ATTACHMENT_PROVIDER_UNSUPPORTED";
-        break;
-      }
       if (hasImageDimensionIssue) {
         errorCode = "ATTACHMENT_IMAGE_DIMENSIONS";
+        break;
+      }
+      if (d.category === FILE_CATEGORIES.OFFICE_LEGACY) {
+        errorCode = "ATTACHMENT_PROVIDER_UNSUPPORTED";
         break;
       }
     }

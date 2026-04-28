@@ -44,10 +44,15 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
     }
 
     // Validate file type and size
-    const validation = validateFile(file.type, file.size);
+    const validation = validateFile({
+      mimeType: file.type,
+      size: file.size,
+      filename: file.name,
+    });
     if (!validation.valid) {
       return c.json({ error: validation.error }, HTTP_STATUS.BAD_REQUEST);
     }
+    const classification = validation.classification;
 
     // Generate file ID and create stored filename
     const fileId = generateFileId();
@@ -80,6 +85,10 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
       fileHash,
       {
         originalName: file.name,
+        originalMimeType: classification?.originalMimeType ?? file.type,
+        normalizedMimeType: classification?.effectiveMimeType ?? file.type,
+        attachmentCategory: classification?.category ?? null,
+        downloadPolicy: classification?.downloadPolicy ?? null,
         uploadedAt: Date.now(),
       }
     );
