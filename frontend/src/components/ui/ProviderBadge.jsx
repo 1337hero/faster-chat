@@ -29,8 +29,12 @@ const BADGE_CONFIGS = {
  */
 function resolveBadgeType(provider) {
   // Use explicit type/category from provider data
-  if (provider.type) return provider.type;
-  if (provider.category) return provider.category;
+  if (provider.type) {
+    return provider.type;
+  }
+  if (provider.category) {
+    return provider.category;
+  }
 
   // Fall back to ID-based categorization
   return categorizeProvider(provider.id || provider.name || "");

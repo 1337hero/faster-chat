@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense } from "preact/compat";
 import { adminClient } from "@/lib/adminClient";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,6 @@ const UsersTab = () => {
   const [editRoleUser, setEditRoleUser] = useState(null);
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
   const [deleteUser, setDeleteUser] = useState(null);
-
-  const queryClient = useQueryClient();
 
   // Fetch users
   const { data, isLoading, error } = useQuery({

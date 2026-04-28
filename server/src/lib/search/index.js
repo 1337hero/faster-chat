@@ -12,7 +12,9 @@ export async function searchWeb(query, { apiKey }) {
 
   const results = await searchBrave(query, { apiKey, count: WEB_SEARCH_CONSTANTS.MAX_RESULTS });
 
-  if (results.error) return results;
+  if (results.error) {
+    return results;
+  }
 
   cache.set(cacheKey, { results, timestamp: Date.now() });
   return results;

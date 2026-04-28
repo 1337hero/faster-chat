@@ -20,6 +20,8 @@
     "install:all": "bun install",
     "format": "prettier --write \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\"",
     "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\"",
+    "lint": "oxlint -c .oxlintrc.json --deny-warnings .",
+    "lint:fix": "oxlint -c .oxlintrc.json --fix .",
     "test": "cd server && bun test"
   },
   "repository": {
@@ -30,8 +32,9 @@
   "author": "1337 Hero, LLC",
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "oxlint": "^1.62.0",
     "prettier": "^3.8.3",
-    "prettier-plugin-tailwindcss": "^0.7.3"
+    "prettier-plugin-tailwindcss": "^0.7.4"
   },
   "dependencies": {
     "fuzzysort": "^3.1.0"

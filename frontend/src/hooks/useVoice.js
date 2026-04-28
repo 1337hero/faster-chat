@@ -1,5 +1,5 @@
 import { useRef, useState } from "preact/hooks";
-import { CHAT_STATES } from "@faster-chat/shared";
+import { CHAT_STATES, VOICE_CONSTANTS } from "@faster-chat/shared";
 import { useSpeechRecognition } from "./voice/useSpeechRecognition";
 import { useTextToSpeech } from "./voice/useTextToSpeech";
 import { useVoiceSelection } from "./voice/useVoiceSelection";
@@ -64,7 +64,9 @@ export function useVoice({ onSpeechResult, onError }) {
 
   const startConversation = () => {
     if (!checkVoiceSupport()) {
-      if (onError) onError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
+      if (onError) {
+        onError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
+      }
       return;
     }
 

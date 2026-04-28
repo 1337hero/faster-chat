@@ -57,7 +57,11 @@ const ChatContextMenu = ({
       icon: isPinned ? PinOff : Pin,
       label: isPinned ? "Unpin" : "Pin",
       onClick: () => {
-        isPinned ? onUnpin(chat.id) : onPin(chat.id);
+        if (isPinned) {
+          onUnpin(chat.id);
+        } else {
+          onPin(chat.id);
+        }
         onClose();
       },
     },

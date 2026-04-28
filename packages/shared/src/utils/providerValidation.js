@@ -72,10 +72,10 @@ export function shouldUseChatMethod(providerId) {
   const id = providerId.toLowerCase();
 
   // Ollama and unknown/custom providers use .chat() method
-  if (id === "ollama") return true;
+  if (id === "ollama") {return true;}
 
   // OpenAI-compatible providers use .chat()
-  if (isOpenAICompatible(id)) return true;
+  if (isOpenAICompatible(id)) {return true;}
 
   // Native SDK providers don't use .chat()
   if (PROVIDER_LISTS.OFFICIAL.some(name => id.includes(name))) {
@@ -117,9 +117,9 @@ export function getProviderType(providerId, providerInfo) {
  */
 export function isLocalProvider(providerId, provider = null) {
   // Check provider object fields first
-  if (provider?.category === "local") return true;
-  if (provider?.type === "openai-compatible") return true;
-  if (provider?.requiresApiKey === false) return true;
+  if (provider?.category === "local") {return true;}
+  if (provider?.type === "openai-compatible") {return true;}
+  if (provider?.requiresApiKey === false) {return true;}
 
   // Fall back to ID-based detection
   return categorizeProvider(providerId) === "local";
@@ -134,8 +134,8 @@ export function isLocalProvider(providerId, provider = null) {
  */
 export function requiresApiKey(providerId, provider = null) {
   // Explicit flag takes precedence
-  if (provider?.requiresApiKey === false) return false;
-  if (provider?.requiresApiKey === true) return true;
+  if (provider?.requiresApiKey === false) {return false;}
+  if (provider?.requiresApiKey === true) {return true;}
 
   return !isLocalProvider(providerId, provider);
 }

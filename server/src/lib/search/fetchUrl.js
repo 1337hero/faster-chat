@@ -28,7 +28,9 @@ const CONTENT_SELECTORS = ["article", "main", "[role='main']", "body"];
 
 function isPrivateIPv4(ip) {
   const parts = ip.split(".").map(Number);
-  if (parts.length !== 4) return true;
+  if (parts.length !== 4) {
+    return true;
+  }
   const [a, b] = parts;
   return (
     a === 127 || // 127.0.0.0/8
@@ -100,7 +102,9 @@ function extractContent(html) {
   let contentNode;
   for (const sel of CONTENT_SELECTORS) {
     contentNode = root.querySelector(sel);
-    if (contentNode) break;
+    if (contentNode) {
+      break;
+    }
   }
 
   const rawText = (contentNode || root).textContent;
@@ -121,7 +125,9 @@ function extractContent(html) {
 
 export async function fetchAndExtract(url) {
   const validation = await validateUrl(url);
-  if (!validation.valid) return validation;
+  if (!validation.valid) {
+    return validation;
+  }
 
   let currentUrl = validation.url;
 
@@ -141,7 +147,9 @@ export async function fetchAndExtract(url) {
 
         const next = new URL(location, currentUrl).href;
         const redirectCheck = await validateUrl(next);
-        if (!redirectCheck.valid) return redirectCheck;
+        if (!redirectCheck.valid) {
+          return redirectCheck;
+        }
 
         currentUrl = redirectCheck.url;
         continue;

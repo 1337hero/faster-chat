@@ -13,13 +13,7 @@ import {
   isGenericMimeType,
   classifyAttachment,
 } from "../lib/fileUtils.js";
-import {
-  FILE_CATEGORIES,
-  FILE_STRATEGIES,
-  FILE_DOWNLOAD_POLICIES,
-  UNSAFE_INLINE_EXTENSIONS,
-  FILE_CONSTANTS,
-} from "@faster-chat/shared";
+import { FILE_CATEGORIES, FILE_STRATEGIES, FILE_DOWNLOAD_POLICIES } from "@faster-chat/shared";
 
 describe("fileUtils", () => {
   describe("sanitizeFilename", () => {

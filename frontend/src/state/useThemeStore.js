@@ -87,7 +87,9 @@ const applyThemeColors = (colors, mode) => {
   const root = document.documentElement;
   const modeColors = colors[mode];
 
-  if (!modeColors) return;
+  if (!modeColors) {
+    return;
+  }
 
   // Set CSS variables for all theme colors
   Object.entries(modeColors).forEach(([key, value]) => {
@@ -171,7 +173,9 @@ export const useThemeStore = create(
       // Set theme by ID
       setTheme: async (themeId) => {
         const themeMeta = BUNDLED_THEMES.find((t) => t.id === themeId);
-        if (!themeMeta) return;
+        if (!themeMeta) {
+          return;
+        }
 
         const { mode } = get();
         set({ isLoading: true });

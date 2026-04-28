@@ -5,6 +5,7 @@ import { useChatStream } from "./useChatStream";
 
 export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) {
   const [input, setInput] = useState("");
+  const [inputFiles, setInputFiles] = useState([]);
 
   const {
     chat,
@@ -31,8 +32,12 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
   // Imperative API for submitting messages (used by voice and form)
   async function submitMessage({ content, fileIds = [] }) {
     const trimmedContent = content.trim();
-    if (!trimmedContent && fileIds.length === 0) return;
-    if (!chatId) return; // Route should ensure chatId exists
+    if (!trimmedContent && fileIds.length === 0) {
+      return;
+    }
+    if (!chatId) {
+      return;
+    } // Route should ensure chatId exists
 
     const messageId = crypto.randomUUID();
     const createdAt = Date.now();
@@ -44,8 +49,11 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
         chatId
       );
       await stream.send({ id: messageId, content: trimmedContent, fileIds, createdAt });
+      // Clear files only on success
+      setInputFiles([]);
     } catch (err) {
       console.error("Failed to send message", err);
+      // Files are not cleared on failure - they remain in the input
     }
   }
 
@@ -63,13 +71,19 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
 
   async function regenerateResponse() {
     const messages = stream.messages;
-    if (!messages || messages.length === 0) return;
+    if (!messages || messages.length === 0) {
+      return;
+    }
 
     const lastUserMessage = messages.findLast((msg) => msg.role === "user");
-    if (!lastUserMessage) return;
+    if (!lastUserMessage) {
+      return;
+    }
 
     const content = extractTextContent(lastUserMessage);
-    if (!content.trim()) return;
+    if (!content.trim()) {
+      return;
+    }
 
     const fileIds = lastUserMessage.fileIds || [];
     await submitMessage({ content, fileIds });
@@ -79,6 +93,8 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     messages: stream.messages,
     input,
     setInput,
+    inputFiles,
+    setInputFiles,
     handleInputChange,
     handleSubmit,
     submitMessage,

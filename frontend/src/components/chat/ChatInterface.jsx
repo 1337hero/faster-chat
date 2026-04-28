@@ -68,6 +68,8 @@ const ChatInterface = ({ chatId }) => {
   const {
     messages,
     input,
+    inputFiles,
+    setInputFiles,
     handleInputChange,
     handleSubmit,
     submitMessage,
@@ -100,7 +102,9 @@ const ChatInterface = ({ chatId }) => {
   });
 
   async function handleImageSubmit(prompt) {
-    if (!prompt || !chatId) return;
+    if (!prompt || !chatId) {
+      return;
+    }
 
     // Save user message with the prompt
     const userMessageId = crypto.randomUUID();
@@ -143,7 +147,9 @@ const ChatInterface = ({ chatId }) => {
   }
 
   useLayoutEffect(() => {
-    if (!scrollContainerRef.current || !autoScroll) return;
+    if (!scrollContainerRef.current || !autoScroll) {
+      return;
+    }
     scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
   }, [messages.length, autoScroll]);
 
@@ -224,6 +230,8 @@ const ChatInterface = ({ chatId }) => {
                 onToggleWebSearch={toggleWebSearch}
                 modelSupportsTools={modelSupportsTools}
                 chatId={chatId}
+                selectedFiles={inputFiles}
+                onFilesCleared={() => setInputFiles([])}
               />
             </div>
           </div>

@@ -8,7 +8,9 @@ const DISMISS_KEY_PREFIX = "fc-update-dismissed-";
 export function compareSemver(current, latest) {
   const [a, b] = [current, latest].map((v) => v.split(".").map(Number));
   for (let i = 0; i < 3; i++) {
-    if ((a[i] || 0) !== (b[i] || 0)) return (b[i] || 0) > (a[i] || 0);
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (b[i] || 0) > (a[i] || 0);
+    }
   }
   return false;
 }
@@ -19,7 +21,9 @@ async function fetchCurrentVersion() {
 
 async function fetchLatestRelease() {
   const data = await apiFetch("/api/version/latest-release");
-  if (!data?.version) return null;
+  if (!data?.version) {
+    return null;
+  }
   return { version: data.version, url: data.url };
 }
 
@@ -53,7 +57,9 @@ export function useUpdateCheck() {
     : false;
 
   const dismiss = () => {
-    if (!latestVersion) return;
+    if (!latestVersion) {
+      return;
+    }
     localStorage.setItem(`${DISMISS_KEY_PREFIX}${latestVersion}`, "1");
     bump((n) => n + 1);
   };

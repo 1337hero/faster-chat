@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { z } from "zod";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -10,7 +9,6 @@ import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   generateFileId,
-  sanitizeFilename,
   createStoredFilename,
   validateFile,
   calculateFileHash,
@@ -18,6 +16,7 @@ import {
   formatFileSize,
   ensureUploadDirectory,
   validateFileAccess,
+  getAttachmentDownloadPolicy,
   FILE_CONFIG,
 } from "../lib/fileUtils.js";
 
@@ -160,14 +159,26 @@ filesRouter.get("/:id/content", async (c) => {
     const filePath = path.join(PROJECT_ROOT, file.path);
     const fileContent = await readFile(filePath);
 
-    // Set appropriate headers — SVG must be served as attachment to prevent stored XSS
-    const disposition = file.mime_type === "image/svg+xml" ? "attachment" : "inline";
+    // Determine download policy based on file type
+    const downloadPolicy = getAttachmentDownloadPolicy(file);
+
+    // Set appropriate headers
+    let disposition;
+    if (downloadPolicy === "attachmentOnly" || downloadPolicy === "textAttachmentOnly") {
+      disposition = "attachment";
+    } else {
+      disposition = "inline";
+    }
+
     c.header("Content-Type", file.mime_type || "application/octet-stream");
     c.header("Content-Length", file.size.toString());
     c.header(
       "Content-Disposition",
       `${disposition}; filename="${encodeURIComponent(file.filename)}"`
     );
+
+    // Add nosniff header for all file downloads to prevent MIME type sniffing
+    c.header("X-Content-Type-Options", "nosniff");
 
     // Return file content
     return c.body(fileContent);

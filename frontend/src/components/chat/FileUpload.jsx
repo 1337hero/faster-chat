@@ -1,5 +1,10 @@
 import { useState, useRef, useImperativeHandle, forwardRef } from "preact/compat";
-import { FILE_CONSTANTS, formatFileSize } from "@faster-chat/shared";
+import {
+  FILE_CATEGORIES,
+  FILE_CONSTANTS,
+  formatFileSize,
+  ATTACHMENT_INPUT_ACCEPT,
+} from "@faster-chat/shared";
 import { toast } from "sonner";
 import { X, File } from "lucide-preact";
 import { API_BASE } from "@/lib/api";
@@ -46,7 +51,9 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
 
   const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      return;
+    }
 
     setUploading(true);
     const uploadedFiles = [];
@@ -101,7 +108,7 @@ const FileUpload = forwardRef(({ onFilesUploaded, onError, disabled }, ref) => {
         onChange={handleFileSelect}
         disabled={disabled || uploading}
         className="hidden"
-        accept="image/*,application/pdf,text/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.json,.md,.csv"
+        accept={ATTACHMENT_INPUT_ACCEPT}
       />
 
       {uploading && currentFile && (
@@ -118,7 +125,22 @@ FileUpload.displayName = "FileUpload";
  * Shows selected files before sending
  */
 export function FilePreviewList({ files, onRemove }) {
-  if (!files || files.length === 0) return null;
+  if (!files || files.length === 0) {
+    return null;
+  }
+
+  const getCategoryLabel = (mimeType) => {
+    if (mimeType?.startsWith("image/")) return "Image";
+    if (mimeType === "application/pdf") return "PDF";
+    if (mimeType?.startsWith("text/")) return "Text";
+    if (
+      mimeType?.includes("office") ||
+      mimeType?.includes("spreadsheet") ||
+      mimeType?.includes("presentation")
+    )
+      return "Office";
+    return "File";
+  };
 
   return (
     <div className="mb-2 flex flex-wrap gap-2">
@@ -128,6 +150,9 @@ export function FilePreviewList({ files, onRemove }) {
           className="bg-theme-surface text-theme-text flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
           <File size={16} />
           <span className="max-w-[200px] truncate">{file.filename}</span>
+          <span className="bg-theme-surface-strong text-theme-text-muted rounded px-1.5 py-0.5 text-[10px] font-medium">
+            {getCategoryLabel(file.mimeType)}
+          </span>
           <span className="text-theme-text-muted text-xs">{file.sizeFormatted}</span>
           {onRemove && (
             <button

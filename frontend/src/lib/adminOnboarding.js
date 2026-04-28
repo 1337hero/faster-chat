@@ -1,10 +1,14 @@
 const ADMIN_ONBOARDING_FLAG = "fc_admin_connections_onboarding_seen";
 
 export const hasSeenAdminConnectionsOnboarding = (userId) => {
-  if (!userId) return false;
+  if (!userId) {
+    return false;
+  }
 
   const raw = localStorage.getItem(ADMIN_ONBOARDING_FLAG);
-  if (!raw) return false;
+  if (!raw) {
+    return false;
+  }
 
   try {
     const parsed = JSON.parse(raw);
@@ -15,7 +19,9 @@ export const hasSeenAdminConnectionsOnboarding = (userId) => {
 };
 
 export const markAdminConnectionsOnboardingSeen = (userId) => {
-  if (!userId) return;
+  if (!userId) {
+    return;
+  }
 
   const raw = localStorage.getItem(ADMIN_ONBOARDING_FLAG);
 

@@ -8,7 +8,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const previouslyFocused = document.activeElement;
 
@@ -18,10 +20,14 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         return;
       }
 
-      if (e.key !== "Tab" || !modalRef.current) return;
+      if (e.key !== "Tab" || !modalRef.current) {
+        return;
+      }
 
       const focusable = modalRef.current.querySelectorAll(FOCUSABLE_SELECTOR);
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        return;
+      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -39,7 +45,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     document.body.style.overflow = "hidden";
 
     const focusable = modalRef.current?.querySelectorAll(FOCUSABLE_SELECTOR);
-    if (focusable?.length) focusable[0].focus();
+    if (focusable?.length) {
+      focusable[0].focus();
+    }
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
@@ -48,7 +56,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">

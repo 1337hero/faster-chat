@@ -39,11 +39,15 @@ export function useSidebarState() {
   async function handleNewChat() {
     const newChat = await createChatMutation.mutateAsync({});
     navigateToChat(newChat.id);
-    if (isMobile) setIsSidebarOpen(false);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   }
 
   function handleLinkClick() {
-    if (isMobile) setIsSidebarOpen(false);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   }
 
   function handleSelectChat(chatId, replace = false) {

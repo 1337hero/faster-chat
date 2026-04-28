@@ -48,7 +48,9 @@ export function useCreateChatMutation() {
     mutationFn: ({ id, title, folderId } = {}) => chatsClient.createChat(id, title, folderId),
     onSuccess: (newChat, { folderId } = {}) => {
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return [newChat];
+        if (!old) {
+          return [newChat];
+        }
         return sortChatsLikeServer([newChat, ...old]);
       });
       // Invalidate folder chats if created in a folder
@@ -68,7 +70,9 @@ export function useUpdateChatMutation() {
     onSuccess: (updatedChat, { chatId }) => {
       queryClient.setQueryData(chatKeys.detail(userId, chatId), updatedChat);
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.map((chat) => (chat.id === chatId ? updatedChat : chat));
       });
     },
@@ -83,7 +87,9 @@ export function useDeleteChatMutation() {
     mutationFn: (chatId) => chatsClient.deleteChat(chatId),
     onSuccess: (_, chatId) => {
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.filter((chat) => chat.id !== chatId);
       });
       queryClient.removeQueries({ queryKey: chatKeys.detail(userId, chatId) });
@@ -127,14 +133,18 @@ export function useCreateMessageMutation() {
       if (message.role === "user") {
         // Insert optimistic message into cache
         queryClient.setQueryData(chatKeys.messages(userId, chatId), (old) => {
-          if (!old) return [optimisticMessage];
+          if (!old) {
+            return [optimisticMessage];
+          }
           return [...old, optimisticMessage];
         });
       }
 
       // Bump chat to top of list with updated timestamp
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         const now = Date.now();
         const updated = old.map((chat) =>
           chat.id === chatId ? { ...chat, updatedAt: now } : chat
@@ -149,7 +159,9 @@ export function useCreateMessageMutation() {
       const canonical = toCanonicalMessage(savedMessage);
       // Replace optimistic message with saved one from server (by id)
       queryClient.setQueryData(chatKeys.messages(userId, chatId), (old) => {
-        if (!old) return [canonical];
+        if (!old) {
+          return [canonical];
+        }
         let found = false;
         const mapped = old.map((msg) => {
           if (msg.id === canonical.id || msg.id === context?.optimisticMessage?.id) {
@@ -188,7 +200,9 @@ export function useDeleteMessageMutation() {
     mutationFn: ({ chatId, messageId }) => chatsClient.deleteMessage(chatId, messageId),
     onSuccess: (_, { chatId, messageId }) => {
       queryClient.setQueryData(chatKeys.messages(userId, chatId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.filter((msg) => msg.id !== messageId);
       });
     },
@@ -206,7 +220,9 @@ export function usePinChatMutation() {
       const previousChats = queryClient.getQueryData(chatKeys.list(userId));
 
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.map((chat) => (chat.id === chatId ? { ...chat, pinnedAt: Date.now() } : chat));
       });
 
@@ -234,7 +250,9 @@ export function useUnpinChatMutation() {
       const previousChats = queryClient.getQueryData(chatKeys.list(userId));
 
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.map((chat) => (chat.id === chatId ? { ...chat, pinnedAt: null } : chat));
       });
 
@@ -263,7 +281,9 @@ export function useArchiveChatMutation() {
 
       // Remove from list (archived chats are filtered out)
       queryClient.setQueryData(chatKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return old.filter((chat) => chat.id !== chatId);
       });
 

@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import { dbUtils } from "../lib/db.js";
-import db from "../lib/db.js";
+import db, { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { IMPORT_CONSTANTS } from "@faster-chat/shared";

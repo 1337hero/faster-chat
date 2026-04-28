@@ -71,8 +71,12 @@ const FolderHeader = ({ folder, onUpdate, onDelete, onToggleSidebar, sidebarColl
     }
     try {
       const updates = {};
-      if (nameChanged) updates.name = editName.trim();
-      if (colorChanged) updates.color = editColor;
+      if (nameChanged) {
+        updates.name = editName.trim();
+      }
+      if (colorChanged) {
+        updates.color = editColor;
+      }
       await onUpdate(updates);
       setIsEditing(false);
       toast.success("Folder updated");
@@ -82,7 +86,9 @@ const FolderHeader = ({ folder, onUpdate, onDelete, onToggleSidebar, sidebarColl
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete "${folder.name}"? Chats will be moved to All Chats.`)) return;
+    if (!confirm(`Delete "${folder.name}"? Chats will be moved to All Chats.`)) {
+      return;
+    }
     try {
       await onDelete();
       toast.success("Folder deleted");
@@ -91,7 +97,9 @@ const FolderHeader = ({ folder, onUpdate, onDelete, onToggleSidebar, sidebarColl
     }
   };
 
-  if (!folder) return null;
+  if (!folder) {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-3 pb-6">
@@ -124,8 +132,12 @@ const FolderHeader = ({ folder, onUpdate, onDelete, onToggleSidebar, sidebarColl
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSubmit();
-                if (e.key === "Escape") setIsEditing(false);
+                if (e.key === "Enter") {
+                  handleSubmit();
+                }
+                if (e.key === "Escape") {
+                  setIsEditing(false);
+                }
               }}
               autoFocus
               maxLength={FOLDER_CONSTANTS.MAX_NAME_LENGTH}

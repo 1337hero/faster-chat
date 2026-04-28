@@ -30,7 +30,7 @@ const PROVIDER_FACTORIES = {
 
   google: (config) => createGoogleGenerativeAI({ apiKey: config.apiKey }),
 
-  "google-vertex": (config) =>
+  "google-vertex": (_config) =>
     createVertex({
       project: process.env.GOOGLE_VERTEX_PROJECT,
       location: process.env.GOOGLE_VERTEX_LOCATION || PROVIDER_DEFAULTS.GOOGLE_VERTEX_LOCATION,
@@ -42,7 +42,7 @@ const PROVIDER_FACTORIES = {
 
   cohere: (config) => createCohere({ apiKey: config.apiKey }),
 
-  "amazon-bedrock": (config) =>
+  "amazon-bedrock": (_config) =>
     createAmazonBedrock({
       region: process.env.AWS_REGION || PROVIDER_DEFAULTS.AWS_REGION,
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -69,6 +69,28 @@ const PROVIDER_FACTORIES = {
       apiKey: config.apiKey,
     }),
 };
+
+const PDF_CAPABLE_PROVIDERS = new Set(["anthropic", "openai", "mistral"]);
+const IMAGE_CAPABLE_PROVIDERS = new Set([
+  "anthropic",
+  "openai",
+  "mistral",
+  "groq",
+  "google",
+  "google-vertex",
+  "xai",
+  "deepseek",
+  "cerebras",
+  "fireworks",
+]);
+
+export function providerSupportsNativePdf(providerName) {
+  return PDF_CAPABLE_PROVIDERS.has(providerName);
+}
+
+export function providerSupportsImages(providerName) {
+  return IMAGE_CAPABLE_PROVIDERS.has(providerName);
+}
 
 /**
  * Create a provider instance

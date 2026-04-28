@@ -7,7 +7,9 @@ const UpdateBanner = () => {
   const { hasUpdate, latestVersion, releaseUrl, dismiss, isDismissed, isLoading } =
     useUpdateCheck();
 
-  if (!user || user.role !== "admin" || isLoading || !hasUpdate || isDismissed) return null;
+  if (!user || user.role !== "admin" || isLoading || !hasUpdate || isDismissed) {
+    return null;
+  }
 
   return (
     <div className="bg-theme-primary/10 border-theme-primary/20 text-theme-primary flex items-center justify-between border-b px-4 py-2 text-sm">

@@ -4,7 +4,9 @@ import { extractTextContent, hasTextContent } from "@/lib/messageUtils";
 import { useEffect, useRef } from "preact/hooks";
 
 const shouldSpeakMessage = (message, lastSpokenId) => {
-  if (!message) return false;
+  if (!message) {
+    return false;
+  }
   const isAssistantMessage = message.role === "assistant";
   const notAlreadySpoken = lastSpokenId !== message.id;
   return isAssistantMessage && hasTextContent(message) && notAlreadySpoken;
@@ -25,10 +27,14 @@ export function useChatVoice({ messages, isLoading, setInput, submitMessage }) {
   });
 
   useEffect(() => {
-    if (!voice.isActive || messages.length === 0 || isLoading) return;
+    if (!voice.isActive || messages.length === 0 || isLoading) {
+      return;
+    }
 
     const lastMessage = messages[messages.length - 1];
-    if (!shouldSpeakMessage(lastMessage, lastSpokenMessageRef.current)) return;
+    if (!shouldSpeakMessage(lastMessage, lastSpokenMessageRef.current)) {
+      return;
+    }
 
     const content = extractTextContent(lastMessage);
     lastSpokenMessageRef.current = lastMessage.id;

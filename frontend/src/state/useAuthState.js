@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { authClient } from "../lib/authClient.js";
 import { queryClient } from "../App.jsx";
 
-export const useAuthState = create((set, get) => ({
+export const useAuthState = create((set) => ({
   user: null,
   isLoading: true,
   error: null,

@@ -4,13 +4,31 @@ import { toast } from "sonner";
  * Extract error message from various error formats
  */
 export function extractErrorMessage(error) {
-  if (!error) return "An unexpected error occurred.";
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
+  if (!error) {
+    return "An unexpected error occurred.";
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
   if (typeof error === "object") {
-    if (typeof error.message === "string") return error.message;
-    if (typeof error.error === "string") return error.error;
-    if (error.error && typeof error.error.message === "string") return error.error.message;
+    // Check for structured attachment error with code and details
+    if (error.code && error.details) {
+      const detailsText = formatErrorDetails(error.details);
+      return detailsText || error.error || error.message || "Attachment error";
+    }
+
+    if (typeof error.message === "string") {
+      return error.message;
+    }
+    if (typeof error.error === "string") {
+      return error.error;
+    }
+    if (error.error && typeof error.error.message === "string") {
+      return error.error.message;
+    }
   }
 
   try {
@@ -21,10 +39,30 @@ export function extractErrorMessage(error) {
 }
 
 /**
+ * Format error details for UI display
+ */
+function formatErrorDetails(details) {
+  if (!details || details.length === 0) return "";
+
+  const lines = details.map((d) => {
+    const filename = d.filename ? `"${d.filename}"` : "Attachment";
+    return `- ${filename}: ${d.reason} ${d.suggestion ? "(" + d.suggestion + ")" : ""}`;
+  });
+
+  if (details.length === 1) {
+    return lines[0];
+  }
+
+  return "Attachment issue:\n" + lines.join("\n");
+}
+
+/**
  * Categorize error type for better UX
  */
 function categorizeError(message) {
-  if (!message) return "error";
+  if (!message) {
+    return "error";
+  }
 
   const msg = message.toLowerCase();
   if (msg.includes("network") || msg.includes("offline") || msg.includes("connection")) {

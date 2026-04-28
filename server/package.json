@@ -28,6 +28,7 @@
     "@faster-chat/shared": "workspace:*",
     "@hono/node-server": "^1.19.12",
     "@node-rs/argon2": "^2.0.2",
+    "adm-zip": "^0.5.17",
     "ai": "^6.0.144",
     "dotenv": "^16.6.1",
     "hono": "^4.12.10",
