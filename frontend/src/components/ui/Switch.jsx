@@ -15,7 +15,9 @@ export const Switch = ({
 
   const onClickEvent = (event) => {
     event.preventDefault();
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
     if (onChange && typeof onChange === "function") {
       onChange(!value);
     }
@@ -27,7 +29,9 @@ export const Switch = ({
     }
 
     event.preventDefault();
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
     if (onChange && typeof onChange === "function") {
       onChange(!value);
     }

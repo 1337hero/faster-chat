@@ -249,7 +249,7 @@ function parseFileMeta(file) {
   if (file && file.meta) {
     try {
       file.meta = JSON.parse(file.meta);
-    } catch (e) {
+    } catch {
       file.meta = null;
     }
   }
@@ -260,14 +260,14 @@ function parseMessageFileIds(message) {
   if (message && message.file_ids) {
     try {
       message.file_ids = JSON.parse(message.file_ids);
-    } catch (e) {
+    } catch {
       message.file_ids = null;
     }
   }
   if (message && message.metadata) {
     try {
       message.metadata = JSON.parse(message.metadata);
-    } catch (e) {
+    } catch {
       message.metadata = null;
     }
   }
@@ -502,7 +502,9 @@ export const dbUtils = {
       }
     }
 
-    if (fields.length === 0) return;
+    if (fields.length === 0) {
+      return;
+    }
 
     fields.push("updated_at = ?");
     values.push(Date.now());
@@ -619,9 +621,17 @@ export const dbUtils = {
         p.base_url as provider_base_url,
         p.encrypted_key as provider_encrypted_key,
         p.iv as provider_iv,
-        p.auth_tag as provider_auth_tag
+        p.auth_tag as provider_auth_tag,
+        md.context_window,
+        md.max_output_tokens,
+        md.input_price_per_1m,
+        md.output_price_per_1m,
+        md.supports_streaming,
+        md.supports_vision,
+        md.supports_tools
       FROM models m
       JOIN providers p ON m.provider_id = p.id
+      LEFT JOIN model_metadata md ON m.id = md.model_id
       WHERE m.model_id = ? AND m.enabled = 1 AND p.enabled = 1
       LIMIT 1
     `);
@@ -664,7 +674,9 @@ export const dbUtils = {
         }
       }
 
-      if (fields.length === 0) return;
+      if (fields.length === 0) {
+        return;
+      }
 
       fields.push("updated_at = ?");
       values.push(Date.now());
@@ -834,14 +846,18 @@ export const dbUtils = {
   },
 
   getFilesByIds(fileIds) {
-    if (!fileIds || fileIds.length === 0) return [];
+    if (!fileIds || fileIds.length === 0) {
+      return [];
+    }
     const placeholders = fileIds.map(() => "?").join(",");
     const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`);
     return stmt.all(...fileIds).map(parseFileMeta);
   },
 
   getFilesByIdsForUser(fileIds, userId) {
-    if (!fileIds || fileIds.length === 0) return [];
+    if (!fileIds || fileIds.length === 0) {
+      return [];
+    }
     const placeholders = fileIds.map(() => "?").join(",");
     const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders}) AND user_id = ?`);
     return stmt.all(...fileIds, userId).map(parseFileMeta);
@@ -1163,7 +1179,9 @@ export const dbUtils = {
    */
   updateFolder(folderId, userId, updates) {
     const folder = this.getFolderByIdAndUser(folderId, userId);
-    if (!folder) return null;
+    if (!folder) {
+      return null;
+    }
 
     const fieldMap = {
       name: "name",
@@ -1173,7 +1191,9 @@ export const dbUtils = {
     };
     const { fields, values } = buildUpdateFields(updates, fieldMap);
 
-    if (fields.length === 0) return folder;
+    if (fields.length === 0) {
+      return folder;
+    }
 
     fields.push("updated_at = ?");
     values.push(Date.now());
@@ -1206,7 +1226,9 @@ export const dbUtils = {
    */
   toggleFolderCollapse(folderId, userId) {
     const folder = this.getFolderByIdAndUser(folderId, userId);
-    if (!folder) return null;
+    if (!folder) {
+      return null;
+    }
 
     const newState = folder.is_collapsed ? 0 : 1;
     const stmt = db.prepare(`
@@ -1224,12 +1246,16 @@ export const dbUtils = {
   moveChatToFolder(chatId, userId, folderId) {
     // Verify chat belongs to user
     const chat = this.getChatByIdAndUser(chatId, userId);
-    if (!chat) return null;
+    if (!chat) {
+      return null;
+    }
 
     // If folderId is provided, verify folder belongs to user
     if (folderId) {
       const folder = this.getFolderByIdAndUser(folderId, userId);
-      if (!folder) return null;
+      if (!folder) {
+        return null;
+      }
     }
 
     const stmt = db.prepare(`
@@ -1318,7 +1344,9 @@ export const dbUtils = {
     const iv = this.getSetting("web_search_api_key_iv");
     const authTag = this.getSetting("web_search_api_key_auth_tag");
 
-    if (!encryptedKey || !iv || !authTag) return null;
+    if (!encryptedKey || !iv || !authTag) {
+      return null;
+    }
     try {
       return decryptApiKey(encryptedKey, iv, authTag);
     } catch {

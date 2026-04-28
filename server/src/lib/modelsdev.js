@@ -7,7 +7,6 @@ import {
   TIMEOUTS,
   CACHE_DURATIONS,
   categorizeProvider,
-  getProviderType,
   requiresBaseUrl as checkRequiresBaseUrl,
 } from "@faster-chat/shared";
 
@@ -167,7 +166,9 @@ export async function getAvailableProviders() {
   const order = { local: 0, official: 1, community: 2 };
   providers.sort((a, b) => {
     const catDiff = order[a.category] - order[b.category];
-    if (catDiff !== 0) return catDiff;
+    if (catDiff !== 0) {
+      return catDiff;
+    }
     return a.name.localeCompare(b.name);
   });
 
@@ -206,7 +207,9 @@ function getModelType(modelData) {
   const outputModalities = modelData.modalities?.output || ["text"];
 
   // If a model can generate images, treat it as an image model so it doesn't show in text lists
-  if (outputModalities.includes("image")) return "image";
+  if (outputModalities.includes("image")) {
+    return "image";
+  }
   return "text";
 }
 
@@ -383,7 +386,9 @@ export function getReplicateImageModels() {
 // Auto-fetch on startup with retry
 let initPromise = null;
 export function initializeModelsDevCache() {
-  if (initPromise) return initPromise;
+  if (initPromise) {
+    return initPromise;
+  }
 
   initPromise = fetchModelsDevDatabase().catch((error) => {
     console.error("Failed to initialize models.dev cache:", error.message);

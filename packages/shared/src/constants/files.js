@@ -106,6 +106,52 @@ export const FILE_CONSTANTS = {
   SIZE_UNITS: ["Bytes", "KB", "MB", "GB"],
 };
 
+// Phase 10: Frontend accept list for file upload
+// Matches backend supported categories (excluding legacy Office unless supported)
+export const ATTACHMENT_ACCEPT_EXTENSIONS = [
+  // Images
+  "jpg", "jpeg", "png", "gif", "webp",
+  // Documents
+  "pdf",
+  // Text/code files
+  "txt", "md", "markdown", "csv", "json", "jsonl", "ndjson", "html", "htm", "xml", "js", "mjs", "cjs", "css", "log", "yaml", "yml",
+  // Modern Office (Phase 5)
+  "docx", "xlsx", "pptx",
+];
+
+export const ATTACHMENT_ACCEPT_MIME_TYPES = [
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "application/pdf",
+  "text/*",
+  "application/json", "application/jsonl", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+];
+
+// Combined accept string for <input type="file"> element
+export const ATTACHMENT_INPUT_ACCEPT = [
+  // MIME types
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "application/pdf",
+  "text/*",
+  "application/json",
+  "application/jsonl",
+  "application/xml",
+  "application/javascript",
+  "text/html",
+  "text/css",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/yaml",
+  // Extensions for unsupported MIME types
+  ".txt", ".md", ".markdown", ".csv", ".json", ".jsonl", ".html", ".htm", ".xml", ".js", ".mjs", ".cjs", ".css", ".log", ".yaml", ".yml",
+  ".docx", ".xlsx", ".pptx",
+].join(",");
+
+// User-facing helper text for attachment button tooltip
+export const ATTACHMENT_TITLE_TEXT = "Attach images, PDFs, text/code files, CSV/JSON/Markdown, and modern Office documents. Text-like files are sent as text for broad model compatibility.";
+
 export function getMimeFromExtension(ext) {
   return EXTENSION_TO_MIME[ext.toLowerCase()] || null;
 }

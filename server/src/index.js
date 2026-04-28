@@ -11,7 +11,6 @@ config();
 
 // Import routes
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
-import { ensureSession } from "./middleware/auth.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
@@ -50,7 +49,9 @@ app.use(
         return origin === allowedOrigin ? origin : null;
       }
       // Dev: allow localhost origins only — no wildcard fallback
-      if (!origin) return null;
+      if (!origin) {
+        return null;
+      }
       try {
         const url = new URL(origin);
         return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;

@@ -58,7 +58,9 @@ settingsRouter.put("/", ensureSession, requireRole("admin"), async (c) => {
 // ========================================
 
 function maskApiKey(key) {
-  if (!key || key.length < 5) return null;
+  if (!key || key.length < 5) {
+    return null;
+  }
   return "••••" + key.slice(-4);
 }
 

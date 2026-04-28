@@ -10,11 +10,15 @@ export const TOOL_ERROR_MESSAGES = {
 };
 
 export function extractSources(parts) {
-  if (!parts) return [];
+  if (!parts) {
+    return [];
+  }
   const sources = [];
   const seen = new Set();
   for (const part of parts) {
-    if (part.type !== "tool-invocation" || part.state !== "result") continue;
+    if (part.type !== "tool-invocation" || part.state !== "result") {
+      continue;
+    }
     if (part.toolName === "webSearch" && part.result?.results) {
       for (const r of part.result.results) {
         if (!seen.has(r.url)) {
@@ -43,7 +47,9 @@ export function extractSources(parts) {
 }
 
 export default function SourceCitations({ sources }) {
-  if (!sources?.length) return null;
+  if (!sources?.length) {
+    return null;
+  }
 
   const [expanded, setExpanded] = useState(false);
   const visibleSources = expanded ? sources : sources.slice(0, 5);

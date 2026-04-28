@@ -32,7 +32,9 @@ export function useChatPersistence(chatId) {
       model,
       createdAt,
     };
-    if (metadata) message.metadata = metadata;
+    if (metadata) {
+      message.metadata = metadata;
+    }
 
     return createMessageMutation.mutateAsync({ chatId: currentChatId, message });
   }

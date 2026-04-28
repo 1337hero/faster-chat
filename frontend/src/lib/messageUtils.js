@@ -25,7 +25,9 @@ export function ensureTimestamp(message, timestampsRef) {
 }
 
 export function extractTextContent(message) {
-  if (!message?.parts) return "";
+  if (!message?.parts) {
+    return "";
+  }
 
   return message.parts
     .filter((part) => part.type === "text" && part.text)
@@ -47,10 +49,16 @@ export function deduplicateMessages(messages) {
     const bucket = Math.floor(timestamp / MESSAGE_CONSTANTS.DEDUPLICATION_WINDOW_MS);
     const contentKey = `${msg.role}:${content}:${bucket}`;
 
-    if (msg.id && seenIds.has(msg.id)) return false;
-    if (seenContentWindow.has(contentKey)) return false;
+    if (msg.id && seenIds.has(msg.id)) {
+      return false;
+    }
+    if (seenContentWindow.has(contentKey)) {
+      return false;
+    }
 
-    if (msg.id) seenIds.add(msg.id);
+    if (msg.id) {
+      seenIds.add(msg.id);
+    }
     seenContentWindow.set(contentKey, true);
     return true;
   });

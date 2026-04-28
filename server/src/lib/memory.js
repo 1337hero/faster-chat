@@ -20,10 +20,18 @@ export function isMemoryEnabledForRequest({
   chatId = null,
   requestEnabled = true,
 }) {
-  if (!requestEnabled || !userId) return false;
-  if (dbUtils.getMemoryGlobalEnabled() !== "true") return false;
-  if (!dbUtils.getUserMemoryEnabled(userId)) return false;
-  if (chatId && dbUtils.getChatMemoryDisabled(chatId)) return false;
+  if (!requestEnabled || !userId) {
+    return false;
+  }
+  if (dbUtils.getMemoryGlobalEnabled() !== "true") {
+    return false;
+  }
+  if (!dbUtils.getUserMemoryEnabled(userId)) {
+    return false;
+  }
+  if (chatId && dbUtils.getChatMemoryDisabled(chatId)) {
+    return false;
+  }
   return true;
 }
 
@@ -33,10 +41,14 @@ export function createMemoryMiddleware(dbUtils) {
       const userId = params.providerOptions?.memory?.userId;
       const chatId = params.providerOptions?.memory?.chatId;
       const requestEnabled = params.providerOptions?.memory?.enabled !== false;
-      if (!isMemoryEnabledForRequest({ dbUtils, userId, chatId, requestEnabled })) return params;
+      if (!isMemoryEnabledForRequest({ dbUtils, userId, chatId, requestEnabled })) {
+        return params;
+      }
 
       const memories = dbUtils.getMemoriesForUser(userId);
-      if (!memories.length) return params;
+      if (!memories.length) {
+        return params;
+      }
 
       const memoryBlock = formatMemoryContext(memories);
       const system = params.system ? `${params.system}\n\n${memoryBlock}` : memoryBlock;
@@ -95,10 +107,14 @@ export async function extractMemories({
 export function getExtractionModel(dbUtils, decryptApiKey) {
   try {
     const modelId = dbUtils.getMemoryExtractionModel();
-    if (!modelId) return null;
+    if (!modelId) {
+      return null;
+    }
 
     const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
-    if (!modelRecord) return null;
+    if (!modelRecord) {
+      return null;
+    }
 
     return getModelInstance(modelRecord, decryptApiKey);
   } catch (err) {

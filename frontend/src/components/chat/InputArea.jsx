@@ -1,5 +1,5 @@
 import { useRef, useState } from "preact/hooks";
-import { UI_CONSTANTS, FILE_CONSTANTS } from "@faster-chat/shared";
+import { UI_CONSTANTS, FILE_CONSTANTS, ATTACHMENT_INPUT_ACCEPT } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ChatMemoryButton from "./ChatMemoryButton";
@@ -17,10 +17,11 @@ const InputArea = ({
   onToggleWebSearch,
   modelSupportsTools,
   chatId,
+  onFilesCleared,
+  selectedFiles,
 }) => {
   const textareaRef = useRef(null);
   const fileUploadRef = useRef(null);
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadError, setUploadError] = useState(null);
   const imageMode = useUiState((state) => state.imageMode);
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
@@ -28,12 +29,16 @@ const InputArea = ({
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
 
   const handleToggleImageMode = () => {
-    if (webSearchEnabled) setWebSearchEnabled(false);
+    if (webSearchEnabled) {
+      setWebSearchEnabled(false);
+    }
     toggleImageMode();
   };
 
   const handleToggleWebSearch = () => {
-    if (imageMode) setImageMode(false);
+    if (imageMode) {
+      setImageMode(false);
+    }
     onToggleWebSearch();
   };
 
@@ -60,7 +65,9 @@ const InputArea = ({
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
@@ -80,8 +87,7 @@ const InputArea = ({
       textareaRef.current.style.height = "auto";
     }
 
-    // Clear selected files after submission
-    setSelectedFiles([]);
+    // Clear upload error (files will be cleared by parent on success)
     setUploadError(null);
   };
 
@@ -137,7 +143,7 @@ const InputArea = ({
             type="button"
             onClick={() => fileUploadRef.current?.handleButtonClick?.()}
             className="text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-lg p-2 transition-colors"
-            title="Add Attachment"
+            title={ATTACHMENT_TITLE_TEXT}
             aria-label="Add attachment"
             disabled={disabled}>
             <Paperclip size={18} />

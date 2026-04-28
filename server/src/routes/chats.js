@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { streamText, generateText } from "ai";
+import { streamText } from "ai";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
@@ -15,17 +15,88 @@ import {
 import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
 import { decryptApiKey } from "../lib/encryption.js";
-import { getModelInstance } from "../lib/providerFactory.js";
+import {
+  getModelInstance,
+  providerSupportsNativePdf,
+  providerSupportsImages,
+} from "../lib/providerFactory.js";
 import { readFile } from "fs/promises";
 import path from "path";
 import {
   FILE_CONFIG,
+  FILE_CATEGORIES,
+  getAttachmentCategory,
   isTextLikeAttachment,
-  decodeAttachmentText,
+  isOfficeModernAttachment,
+  isOfficeLegacyAttachment,
+  extractOfficeDocumentText,
   formatInlineAttachmentText,
   MAX_INLINE_TEXT_ATTACHMENT_CHARS,
+  collectAttachmentIdsFromRequest,
+  preflightAttachments,
 } from "../lib/fileUtils.js";
+import { validateImageDimensions } from "../lib/imageValidation.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
+
+// Map AI SDK and provider errors to user-friendly messages
+function mapAttachmentError(error) {
+  const message = error.message || String(error);
+
+  // Image dimension errors
+  if (message.includes("dimensions") || message.includes("exceeds maximum")) {
+    return {
+      code: "ATTACHMENT_IMAGE_DIMENSIONS",
+      error: "Image dimensions exceed the supported limit.",
+    };
+  }
+
+  // Unsupported media type
+  if (
+    message.includes("unsupported") ||
+    message.includes("media type") ||
+    message.includes("content type")
+  ) {
+    return {
+      code: "ATTACHMENT_UNSUPPORTED",
+      error: "One or more attachments are not supported by the selected model.",
+    };
+  }
+
+  // Invalid request with attachment details
+  if (message.includes("invalid") || message.includes("request")) {
+    return {
+      code: "ATTACHMENT_PROVIDER_UNSUPPORTED",
+      error: "The provider cannot process the request with these attachments.",
+    };
+  }
+
+  // Default mapping for attachment-related errors
+  if (message.includes("attachment") || message.includes("file")) {
+    return {
+      code: "ATTACHMENT_UNSUPPORTED",
+      error: "One or more attachments are not supported by the selected model.",
+    };
+  }
+
+  // No mapping found - return generic
+  return null;
+}
+
+// Format error details for UI display
+function formatErrorDetails(details) {
+  if (!details || details.length === 0) return "";
+
+  const lines = details.map((d) => {
+    const filename = d.filename ? `"${d.filename}"` : "Attachment";
+    return `- ${filename}: ${d.reason} ${d.suggestion ? "(" + d.suggestion + ")" : ""}`;
+  });
+
+  if (details.length === 1) {
+    return lines[0];
+  }
+
+  return "Attachment issue:\n" + lines.join("\n");
+}
 import {
   wrapModelWithMemory,
   extractMemories,
@@ -52,7 +123,9 @@ const PatchChatSchema = z.object({
 });
 
 function truncateToTitle(text) {
-  if (text.length <= UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) return text;
+  if (text.length <= UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) {
+    return text;
+  }
   return text.slice(0, UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) + UI_CONSTANTS.CHAT_TITLE_ELLIPSIS;
 }
 
@@ -372,7 +445,9 @@ chatsRouter.post("/:chatId/messages", async (c) => {
         if (validated.model) {
           try {
             const aiTitle = await generateChatTitle(validated.content, validated.model);
-            if (aiTitle && aiTitle.trim()) title = aiTitle;
+            if (aiTitle && aiTitle.trim()) {
+              title = aiTitle;
+            }
           } catch (err) {
             console.warn("AI title upgrade failed, keeping fallback:", err.message);
           }
@@ -494,7 +569,7 @@ async function generateChatTitle(userMessage, modelId) {
     title = title.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
     // Clean up any quotes or asterisks from the response
-    title = title.replace(/^["\*]+|["\*]+$/g, "").trim();
+    title = title.replace(/^["*]+|["*]+$/g, "").trim();
 
     // Ensure title is within max length
     if (title.length > UI_CONSTANTS.CHAT_TITLE_MAX_LENGTH) {
@@ -529,14 +604,39 @@ async function fileToContentPart(file) {
   });
 
   if (file.mime_type?.startsWith("image/")) {
+    validateImageDimensions(fileBuffer, file.mime_type, file.filename);
     return {
       type: "image",
       image: `data:${file.mime_type};base64,${fileBuffer.toString("base64")}`,
     };
   }
 
+  // Phase 5: Office modern documents (docx, xlsx, pptx) - extract text
+  if (isOfficeModernAttachment(file)) {
+    try {
+      const extractionResult = await extractOfficeDocumentText(file);
+
+      // Apply text budget from Phase 3
+      const displayText = extractionResult.text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
+      const isTruncated = displayText.length < extractionResult.text.length;
+
+      return {
+        type: "text",
+        text: formatInlineAttachmentText({
+          filename: file.filename,
+          mimeType: file.mime_type,
+          size: fileBuffer.length,
+          text: displayText,
+          totalCharCount: isTruncated ? extractionResult.text.length : undefined,
+        }),
+      };
+    } catch (err) {
+      throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
+    }
+  }
+
   if (isTextLikeAttachment(file)) {
-    const fullText = decodeAttachmentText(fileBuffer).text;
+    const fullText = fileBuffer.toString("utf8");
     const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
     const isTruncated = displayText.length < fullText.length;
 
@@ -587,43 +687,32 @@ function applyCacheControl(messages, modelId) {
   });
 }
 
-export async function createMultimodalContent(message, fileIds, userId) {
+export async function createMultimodalContent(message, fileIds, filesById) {
   const content = [];
-
   if (message.content.trim()) {
     content.push({ type: "text", text: message.content });
   }
-
-  const files = dbUtils.getFilesByIdsForUser(fileIds, userId);
-  if (files.length !== fileIds.length) {
-    throw new Error("One or more attachments are not accessible");
+  for (const id of fileIds) {
+    content.push(await fileToContentPart(filesById.get(id)));
   }
-
-  for (const file of files) {
-    const contentPart = await fileToContentPart(file);
-    content.push(contentPart);
-  }
-
   return content;
 }
 
-/**
- * Convert chat messages to model messages format
- */
-async function convertToModelMessages(messages, systemPrompt, fileIds = [], userId) {
+async function convertToModelMessages(messages, systemPrompt, fileIds = [], filesById = new Map()) {
   const result = systemPrompt ? [{ role: "system", content: systemPrompt }] : [];
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
-    if (msg.role === "system") continue;
+    if (msg.role === "system") {
+      continue;
+    }
 
     const isLastUser = i === messages.length - 1 && msg.role === "user";
-    // top-level fileIds is the legacy per-last-message path; messages[].fileIds takes precedence
     const msgFileIds =
       msg.fileIds && msg.fileIds.length > 0 ? msg.fileIds : isLastUser ? fileIds : [];
 
     if (msg.role === "user" && msgFileIds.length > 0) {
-      const content = await createMultimodalContent(msg, msgFileIds, userId);
+      const content = await createMultimodalContent(msg, msgFileIds, filesById);
       result.push({ role: msg.role, content });
     } else {
       result.push({ role: msg.role, content: msg.content });
@@ -653,7 +742,14 @@ chatsRouter.post(
       const validated = CompletionRequestSchema.parse(body);
 
       const modelId = validated.model;
-      const model = getModel(modelId);
+      const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
+      if (!modelRecord) {
+        return c.json(
+          { error: `Model ${modelId} is disabled or not registered` },
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
+      const model = getModelInstance(modelRecord, decryptApiKey);
       const memoryRequestEnabled = validated.memoryEnabled !== false;
       const memoryEnabledForRequest = isMemoryEnabledForRequest({
         dbUtils,
@@ -664,27 +760,50 @@ chatsRouter.post(
       const memoryModel = memoryEnabledForRequest ? wrapModelWithMemory(model, dbUtils) : model;
       const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
-      let messages;
-      try {
-        messages = await convertToModelMessages(
+      const allFileIds = [
+        ...new Set([
+          ...(validated.fileIds || []),
+          ...validated.messages.flatMap((m) => m.fileIds || []),
+        ]),
+      ];
+
+      const allFiles = allFileIds.length ? dbUtils.getFilesByIdsForUser(allFileIds, user.id) : [];
+      if (allFiles.length !== allFileIds.length) {
+        return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
+      }
+
+      const issue = preflightAttachments({
+        files: allFiles,
+        modelRecord,
+        providerName: modelRecord.provider_name,
+      });
+      if (!issue.ok) {
+        // Include code and formatted error details in response
+        return c.json(
+          {
+            code: issue.code,
+            error: issue.error,
+            details: issue.details,
+          },
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
+
+      const filesById = new Map(allFiles.map((f) => [f.id, f]));
+
+      const messages = applyCacheControl(
+        await convertToModelMessages(
           validated.messages,
           systemPrompt.content,
           validated.fileIds || [],
-          user.id
-        );
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("not accessible")) {
-          return c.json({ error: "Invalid attachments" }, HTTP_STATUS.FORBIDDEN);
-        }
-        throw err;
-      }
-
-      messages = applyCacheControl(messages, modelId);
+          filesById
+        ),
+        modelId
+      );
 
       let toolConfig = {};
       if (validated.webSearch) {
-        const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
-        const metadata = modelRecord && dbUtils.getModelMetadata(modelRecord.id);
+        const metadata = dbUtils.getModelMetadata(modelRecord.id);
         if (metadata?.supports_tools) {
           const apiKey = dbUtils.getWebSearchApiKey();
           if (apiKey) {
@@ -734,6 +853,34 @@ chatsRouter.post(
       return stream.toUIMessageStreamResponse();
     } catch (error) {
       console.error("Completion error:", error);
+
+      // Check if this is an attachment-related error
+      const mappedError = mapAttachmentError(error);
+      if (mappedError) {
+        return c.json(
+          { code: mappedError.code, error: mappedError.error },
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
+
+      // Check if the error has a response body with details
+      if (error.response && error.response.body) {
+        try {
+          const body = await error.response.text();
+          if (body) {
+            const parsed = JSON.parse(body);
+            if (parsed.error) {
+              return c.json(
+                { code: "ATTACHMENT_PROVIDER_UNSUPPORTED", error: parsed.error },
+                HTTP_STATUS.BAD_REQUEST
+              );
+            }
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+
       return c.json({ error: "Completion failed" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
   }

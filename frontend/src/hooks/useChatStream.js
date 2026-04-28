@@ -7,8 +7,12 @@ import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
 function trimMessageHistory(messages) {
   const trimmed = messages.slice(-MESSAGE_CONSTANTS.MAX_HISTORY);
   return trimmed.filter((message) => {
-    if (message.role !== "assistant") return true;
-    if (!message.parts?.length) return false;
+    if (message.role !== "assistant") {
+      return true;
+    }
+    if (!message.parts?.length) {
+      return false;
+    }
     const hasText = message.parts.some(
       (part) => part.type === "text" && part.text.trim().length > 0
     );

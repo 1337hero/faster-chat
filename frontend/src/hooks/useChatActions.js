@@ -30,14 +30,18 @@ export const useChatActions = () => {
   };
 
   const handleDelete = async (chatId) => {
-    if (!confirm("Delete this chat?")) return;
+    if (!confirm("Delete this chat?")) {
+      return;
+    }
     await deleteChatMutation.mutateAsync(chatId);
     toast.success("Chat deleted");
   };
 
   const handleRename = async (chatId, chats) => {
     const chat = chats?.find((c) => c.id === chatId);
-    if (!chat) return;
+    if (!chat) {
+      return;
+    }
 
     const newName = prompt("Rename chat:", chat.title || "");
     if (newName !== null && newName.trim() && newName.trim() !== chat.title) {

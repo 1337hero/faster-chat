@@ -8,12 +8,7 @@ import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
-import {
-  generateFileId,
-  createStoredFilename,
-  calculateFileHash,
-  FILE_CONFIG,
-} from "../lib/fileUtils.js";
+import { generateFileId, createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
 import { generateImageForProvider } from "../lib/imageProviderFactory.js";
 
 const __filename = fileURLToPath(import.meta.url);

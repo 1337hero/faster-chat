@@ -242,8 +242,12 @@ adminModelsRouter.post(
       return streamSSE(c, async (stream) => {
         try {
           const pullUrl = `${ollamaBaseUrl}/api/pull`;
-          if (debug) console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
-          if (debug) console.log(`[Ollama Pull] URL: ${pullUrl}`);
+          if (debug) {
+            console.log(`[Ollama Pull] Starting pull for model: ${modelName}`);
+          }
+          if (debug) {
+            console.log(`[Ollama Pull] URL: ${pullUrl}`);
+          }
 
           const response = await fetch(pullUrl, {
             method: "POST",
@@ -251,8 +255,9 @@ adminModelsRouter.post(
             body: JSON.stringify({ name: modelName, stream: true }),
           });
 
-          if (debug)
+          if (debug) {
             console.log(`[Ollama Pull] Response status: ${response.status} ${response.statusText}`);
+          }
 
           if (!response.ok) {
             const errorText = await response.text();
@@ -271,12 +276,16 @@ adminModelsRouter.post(
           let buffer = "";
           let chunkCount = 0;
 
-          if (debug) console.log(`[Ollama Pull] Starting to read stream...`);
+          if (debug) {
+            console.log(`[Ollama Pull] Starting to read stream...`);
+          }
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) {
-              if (debug) console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
+              if (debug) {
+                console.log(`[Ollama Pull] Stream done after ${chunkCount} chunks`);
+              }
               break;
             }
 
@@ -294,7 +303,9 @@ adminModelsRouter.post(
             buffer = lines.pop() || "";
 
             for (const line of lines) {
-              if (!line.trim()) continue;
+              if (!line.trim()) {
+                continue;
+              }
               try {
                 const data = JSON.parse(line);
 
@@ -313,7 +324,9 @@ adminModelsRouter.post(
                 await stream.writeSSE({ data: JSON.stringify(data) });
 
                 if (data.status === "success") {
-                  if (debug) console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
+                  if (debug) {
+                    console.log(`[Ollama Pull] Model ${modelName} pulled successfully!`);
+                  }
                 }
               } catch (parseError) {
                 console.error(
@@ -327,8 +340,9 @@ adminModelsRouter.post(
 
           // Process any remaining buffer content
           if (buffer.trim()) {
-            if (debug)
+            if (debug) {
               console.log(`[Ollama Pull] Processing final buffer: ${buffer.substring(0, 100)}`);
+            }
             try {
               const data = JSON.parse(buffer);
 
@@ -354,7 +368,9 @@ adminModelsRouter.post(
             }
           }
 
-          if (debug) console.log(`[Ollama Pull] Sending completed event`);
+          if (debug) {
+            console.log(`[Ollama Pull] Sending completed event`);
+          }
           await stream.writeSSE({ data: JSON.stringify({ status: "completed" }) });
         } catch (error) {
           console.error("Ollama pull error:", error);

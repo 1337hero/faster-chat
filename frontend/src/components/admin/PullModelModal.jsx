@@ -22,7 +22,9 @@ const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
   }, []);
 
   const handleClose = () => {
-    if (isPulling) return;
+    if (isPulling) {
+      return;
+    }
     resetState();
     onClose();
   };
@@ -40,7 +42,9 @@ const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!modelName.trim() || isPulling) return;
+    if (!modelName.trim() || isPulling) {
+      return;
+    }
 
     setIsPulling(true);
     setProgress({ status: "Initiating pull...", percentage: 0 });
@@ -69,7 +73,9 @@ const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n").filter((line) => line.trim());
@@ -125,7 +131,9 @@ const PullModelModal = ({ isOpen, onClose, provider, onSuccess }) => {
   };
 
   const formatBytes = (bytes) => {
-    if (bytes === 0) return "0 B";
+    if (bytes === 0) {
+      return "0 B";
+    }
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

@@ -62,7 +62,9 @@ const THEMES = {
  * Resolve language - loads on-demand if not pre-loaded.
  */
 async function resolveLanguage(highlighter, lang) {
-  if (!lang) return "plaintext";
+  if (!lang) {
+    return "plaintext";
+  }
 
   const normalizedLang = lang.toLowerCase();
   const loadedLangs = highlighter.getLoadedLanguages();
@@ -86,7 +88,9 @@ async function resolveLanguage(highlighter, lang) {
  * Pre-loads common languages; others load on-demand.
  */
 async function getHighlighter() {
-  if (highlighterFailed) return null;
+  if (highlighterFailed) {
+    return null;
+  }
 
   if (!highlighterPromise) {
     highlighterPromise = (async () => {
@@ -114,7 +118,9 @@ async function getHighlighter() {
 export async function highlightCode(code, lang = "") {
   try {
     const highlighter = await getHighlighter();
-    if (!highlighter) return null;
+    if (!highlighter) {
+      return null;
+    }
 
     const resolvedLang = await resolveLanguage(highlighter, lang);
 

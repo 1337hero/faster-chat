@@ -33,7 +33,9 @@ export function createTestApp() {
     "/api/*",
     cors({
       origin: (origin) => {
-        if (!origin) return null;
+        if (!origin) {
+          return null;
+        }
         try {
           const url = new URL(origin);
           return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;

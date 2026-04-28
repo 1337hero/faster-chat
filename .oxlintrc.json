@@ -1,0 +1,29 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "globals": {
+    "Bun": "readonly"
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-unused-vars": "warn",
+    "no-undef": "error",
+    "eqeqeq": "error",
+    "curly": "error",
+    "prefer-const": "warn",
+    "no-duplicate-imports": "error",
+    "no-empty-pattern": "error",
+    "no-implied-eval": "error"
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    ".git",
+    "frontend/dist",
+    "server/dist"
+  ]
+}

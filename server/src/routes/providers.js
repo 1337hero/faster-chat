@@ -2,14 +2,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 import net from "node:net";
 import dns from "node:dns";
-import { dbUtils } from "../lib/db.js";
-import { encryptApiKey, decryptApiKey } from "../lib/encryption.js";
+import db, { dbUtils } from "../lib/db.js";
+import { encryptApiKey } from "../lib/encryption.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { getClientIP } from "../lib/requestUtils.js";
 import {
   getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
-  getProviderInfo,
   getReplicateImageModels,
 } from "../lib/modelsdev.js";
 import {
@@ -19,7 +18,6 @@ import {
   TIMEOUTS,
 } from "@faster-chat/shared";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
-import db from "../lib/db.js";
 
 const BulkEnableSchema = z.object({
   enabled: z.boolean(),
@@ -55,25 +53,45 @@ const BLOCKED_HOSTNAMES = new Set([
 
 function isPrivateIPv4(ip) {
   const parts = ip.split(".").map((p) => parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return false;
+  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) {
+    return false;
+  }
   const [a, b] = parts;
-  if (a === 127) return true; // 127.0.0.0/8 loopback
-  if (a === 10) return true; // 10.0.0.0/8 private
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
-  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
-  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
-  if (a === 0) return true; // 0.0.0.0/8
+  if (a === 127) {
+    return true;
+  } // 127.0.0.0/8 loopback
+  if (a === 10) {
+    return true;
+  } // 10.0.0.0/8 private
+  if (a === 172 && b >= 16 && b <= 31) {
+    return true;
+  } // 172.16.0.0/12 private
+  if (a === 192 && b === 168) {
+    return true;
+  } // 192.168.0.0/16 private
+  if (a === 169 && b === 254) {
+    return true;
+  } // 169.254.0.0/16 link-local
+  if (a === 0) {
+    return true;
+  } // 0.0.0.0/8
   return false;
 }
 
 function isPrivateIPv6(ip) {
   const lower = ip.toLowerCase();
-  if (lower === "::1") return true; // loopback
-  if (lower === "::") return true; // unspecified
+  if (lower === "::1") {
+    return true;
+  } // loopback
+  if (lower === "::") {
+    return true;
+  } // unspecified
   // ::ffff:a.b.c.d IPv4-mapped
   if (lower.startsWith("::ffff:")) {
     const tail = lower.slice(7);
-    if (tail.includes(".")) return isPrivateIPv4(tail);
+    if (tail.includes(".")) {
+      return isPrivateIPv4(tail);
+    }
     // hex form ::ffff:7f00:1 etc — convert last two hextets to dotted
     const parts = tail.split(":");
     if (parts.length === 2) {
@@ -86,16 +104,24 @@ function isPrivateIPv6(ip) {
     }
   }
   // fe80::/10 link-local
-  if (/^fe[89ab][0-9a-f]?:/.test(lower)) return true;
+  if (/^fe[89ab][0-9a-f]?:/.test(lower)) {
+    return true;
+  }
   // fc00::/7 unique-local
-  if (/^f[cd][0-9a-f]{2}:/.test(lower)) return true;
+  if (/^f[cd][0-9a-f]{2}:/.test(lower)) {
+    return true;
+  }
   return false;
 }
 
 function isPrivateAddress(ip) {
   const family = net.isIP(ip);
-  if (family === 4) return isPrivateIPv4(ip);
-  if (family === 6) return isPrivateIPv6(ip);
+  if (family === 4) {
+    return isPrivateIPv4(ip);
+  }
+  if (family === 6) {
+    return isPrivateIPv6(ip);
+  }
   return false;
 }
 
@@ -111,17 +137,23 @@ async function validateProviderUrl(url) {
   } catch {
     return false;
   }
-  if (!["http:", "https:"].includes(parsed.protocol)) return false;
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    return false;
+  }
 
   // Bun's URL keeps brackets on IPv6 hostnames; strip them so net.isIP / DNS see the bare address
   let hostname = parsed.hostname;
-  if (!hostname) return false;
+  if (!hostname) {
+    return false;
+  }
   if (hostname.startsWith("[") && hostname.endsWith("]")) {
     hostname = hostname.slice(1, -1);
   }
 
   const lowerHost = hostname.toLowerCase();
-  if (BLOCKED_HOSTNAMES.has(lowerHost)) return false;
+  if (BLOCKED_HOSTNAMES.has(lowerHost)) {
+    return false;
+  }
 
   // If hostname is itself an IP literal, classify directly
   if (net.isIP(hostname)) {
@@ -135,9 +167,13 @@ async function validateProviderUrl(url) {
   } catch {
     return false;
   }
-  if (!addresses || addresses.length === 0) return false;
+  if (!addresses || addresses.length === 0) {
+    return false;
+  }
   for (const { address } of addresses) {
-    if (isPrivateAddress(address)) return false;
+    if (isPrivateAddress(address)) {
+      return false;
+    }
   }
   return true;
 }
@@ -420,11 +456,6 @@ providersRouter.post("/:id/refresh-models", async (c) => {
     if (!provider) {
       return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
     }
-
-    // Decrypt API key
-    const apiKey = provider.encrypted_key
-      ? decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag)
-      : null;
 
     // Fetch models using factory
     const normalizedBaseUrl = normalizeBaseUrl(provider.name, provider.base_url);

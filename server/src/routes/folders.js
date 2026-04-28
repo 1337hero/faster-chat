@@ -122,10 +122,18 @@ foldersRouter.put("/:id", async (c) => {
     }
 
     const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (color !== undefined) updates.color = color;
-    if (position !== undefined) updates.position = position;
-    if (is_collapsed !== undefined) updates.is_collapsed = is_collapsed ? 1 : 0;
+    if (name !== undefined) {
+      updates.name = name;
+    }
+    if (color !== undefined) {
+      updates.color = color;
+    }
+    if (position !== undefined) {
+      updates.position = position;
+    }
+    if (is_collapsed !== undefined) {
+      updates.is_collapsed = is_collapsed ? 1 : 0;
+    }
 
     const updated = dbUtils.updateFolder(folderId, user.id, updates);
     if (!updated) {
