@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import db, { dbUtils } from "../lib/db.js";
 import { hashPassword } from "../lib/security.js";
@@ -15,9 +16,26 @@ import { imagesRouter } from "../routes/images.js";
 import { versionRouter } from "../routes/version.js";
 import { memoryRouter } from "../routes/memory.js";
 import { securityHeaders } from "../middleware/securityHeaders.js";
+import { installRouteErrorHandler } from "../lib/errorHandler.js";
 
 export function createTestApp() {
   const app = new Hono();
+
+  installRouteErrorHandler(app);
+  [
+    authRouter,
+    adminRouter,
+    providersRouter,
+    modelsRouter,
+    filesRouter,
+    chatsRouter,
+    settingsRouter,
+    versionRouter,
+    imagesRouter,
+    importRouter,
+    foldersRouter,
+    memoryRouter,
+  ].forEach(installRouteErrorHandler);
 
   app.use("*", securityHeaders());
 
@@ -28,6 +46,14 @@ export function createTestApp() {
     }
     await next();
   });
+
+  app.use(
+    "/api/*",
+    bodyLimit({
+      maxSize: 50 * 1024 * 1024,
+      onError: (c) => c.json({ error: "Request body too large" }, 413),
+    })
+  );
 
   app.use(
     "/api/*",

@@ -7,8 +7,7 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
   const store = new Map();
   const resolveKey = keyFn || ((c) => c.get("user")?.id?.toString() || "anon");
 
-  // Cleanup: evict stale entries every 5 minutes
-  setInterval(
+  const cleanupHandle = setInterval(
     () => {
       const now = Date.now();
       for (const [key, timestamps] of store.entries()) {
@@ -22,8 +21,9 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
     },
     5 * 60 * 1000
   );
+  cleanupHandle.unref?.();
 
-  return async (c, next) => {
+  const middleware = async (c, next) => {
     const key = resolveKey(c);
     const now = Date.now();
     const timestamps = store.get(key) || [];
@@ -37,4 +37,6 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
     store.set(key, recent);
     await next();
   };
+  middleware.stop = () => clearInterval(cleanupHandle);
+  return middleware;
 }

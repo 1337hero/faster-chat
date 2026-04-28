@@ -163,7 +163,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="test.html"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "attachment; filename=\"test.html\"; filename*=UTF-8''test.html"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -173,7 +175,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="test.svg"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "attachment; filename=\"test.svg\"; filename*=UTF-8''test.svg"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -183,7 +187,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="test.js"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "attachment; filename=\"test.js\"; filename*=UTF-8''test.js"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -193,7 +199,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('inline; filename="test.png"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "inline; filename=\"test.png\"; filename*=UTF-8''test.png"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -203,7 +211,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('inline; filename="test.jpg"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "inline; filename=\"test.jpg\"; filename*=UTF-8''test.jpg"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -213,7 +223,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('inline; filename="test.pdf"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "inline; filename=\"test.pdf\"; filename*=UTF-8''test.pdf"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
 
@@ -223,7 +235,9 @@ describe("file routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="test.xml"');
+      expect(res.headers.get("Content-Disposition")).toBe(
+        "attachment; filename=\"test.xml\"; filename*=UTF-8''test.xml"
+      );
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
   });

@@ -1,184 +1,37 @@
+import {
+  categorizeProvider,
+  getAvailableProviders as getNativeProviders,
+  PROVIDERS,
+  TIMEOUTS,
+} from "@faster-chat/shared";
 import { Hono } from "hono";
 import { z } from "zod";
-import net from "node:net";
-import dns from "node:dns";
 import db, { dbUtils } from "../lib/db.js";
 import { encryptApiKey } from "../lib/encryption.js";
-import { ensureSession, requireRole } from "../middleware/auth.js";
-import { getClientIP } from "../lib/requestUtils.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
 import {
   getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
   getReplicateImageModels,
 } from "../lib/modelsdev.js";
-import {
-  getAvailableProviders as getNativeProviders,
-  PROVIDERS,
-  categorizeProvider,
-  TIMEOUTS,
-} from "@faster-chat/shared";
-import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { getClientIP } from "../lib/requestUtils.js";
+import { validateProviderBaseUrl } from "../lib/ssrf.js";
+import { ensureSession, requireRole } from "../middleware/auth.js";
 
-const BulkEnableSchema = z.object({
-  enabled: z.boolean(),
-});
-
+const BulkEnableSchema = z.object({ enabled: z.boolean() });
 export const providersRouter = new Hono();
-
-// All provider routes require admin role
 providersRouter.use("*", ensureSession, requireRole("admin"));
 
 function getDefaultEnabledForProvider(providerName, fallbackEnabled) {
-  if (providerName === "openrouter") {
-    return false;
-  }
-  return fallbackEnabled;
+  return providerName === "openrouter" ? false : fallbackEnabled;
 }
 
 function normalizeBaseUrl(providerName, baseUrl) {
-  if (providerName === "openrouter") {
-    return baseUrl || "https://openrouter.ai/api/v1";
-  }
-  return baseUrl || null;
+  return providerName === "openrouter"
+    ? baseUrl || "https://openrouter.ai/api/v1"
+    : baseUrl || null;
 }
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "ip6-localhost",
-  "ip6-loopback",
-  "169.254.169.254",
-  "metadata.google.internal",
-  "100.100.100.200",
-]);
-
-function isPrivateIPv4(ip) {
-  const parts = ip.split(".").map((p) => parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) {
-    return false;
-  }
-  const [a, b] = parts;
-  if (a === 127) {
-    return true;
-  } // 127.0.0.0/8 loopback
-  if (a === 10) {
-    return true;
-  } // 10.0.0.0/8 private
-  if (a === 172 && b >= 16 && b <= 31) {
-    return true;
-  } // 172.16.0.0/12 private
-  if (a === 192 && b === 168) {
-    return true;
-  } // 192.168.0.0/16 private
-  if (a === 169 && b === 254) {
-    return true;
-  } // 169.254.0.0/16 link-local
-  if (a === 0) {
-    return true;
-  } // 0.0.0.0/8
-  return false;
-}
-
-function isPrivateIPv6(ip) {
-  const lower = ip.toLowerCase();
-  if (lower === "::1") {
-    return true;
-  } // loopback
-  if (lower === "::") {
-    return true;
-  } // unspecified
-  // ::ffff:a.b.c.d IPv4-mapped
-  if (lower.startsWith("::ffff:")) {
-    const tail = lower.slice(7);
-    if (tail.includes(".")) {
-      return isPrivateIPv4(tail);
-    }
-    // hex form ::ffff:7f00:1 etc — convert last two hextets to dotted
-    const parts = tail.split(":");
-    if (parts.length === 2) {
-      const hi = parseInt(parts[0], 16);
-      const lo = parseInt(parts[1], 16);
-      if (!Number.isNaN(hi) && !Number.isNaN(lo)) {
-        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-        return isPrivateIPv4(dotted);
-      }
-    }
-  }
-  // fe80::/10 link-local
-  if (/^fe[89ab][0-9a-f]?:/.test(lower)) {
-    return true;
-  }
-  // fc00::/7 unique-local
-  if (/^f[cd][0-9a-f]{2}:/.test(lower)) {
-    return true;
-  }
-  return false;
-}
-
-function isPrivateAddress(ip) {
-  const family = net.isIP(ip);
-  if (family === 4) {
-    return isPrivateIPv4(ip);
-  }
-  if (family === 6) {
-    return isPrivateIPv6(ip);
-  }
-  return false;
-}
-
-/**
- * Validate provider base URL to prevent SSRF
- *
- * TODO: DNS rebinding is out of scope; validation + fetch is a TOCTOU race.
- */
-async function validateProviderUrl(url) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    return false;
-  }
-
-  // Bun's URL keeps brackets on IPv6 hostnames; strip them so net.isIP / DNS see the bare address
-  let hostname = parsed.hostname;
-  if (!hostname) {
-    return false;
-  }
-  if (hostname.startsWith("[") && hostname.endsWith("]")) {
-    hostname = hostname.slice(1, -1);
-  }
-
-  const lowerHost = hostname.toLowerCase();
-  if (BLOCKED_HOSTNAMES.has(lowerHost)) {
-    return false;
-  }
-
-  // If hostname is itself an IP literal, classify directly
-  if (net.isIP(hostname)) {
-    return !isPrivateAddress(hostname);
-  }
-
-  // Otherwise resolve and check every returned address
-  let addresses;
-  try {
-    addresses = await dns.promises.lookup(hostname, { all: true });
-  } catch {
-    return false;
-  }
-  if (!addresses || addresses.length === 0) {
-    return false;
-  }
-  for (const { address } of addresses) {
-    if (isPrivateAddress(address)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// Validation schemas
 const CreateProviderSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
@@ -194,348 +47,183 @@ const UpdateProviderSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-/**
- * GET /api/admin/providers/available
- * List all available providers: LOCAL first, NATIVE second, COMMUNITY last (filtered)
- */
 providersRouter.get("/available", async (c) => {
-  try {
-    // Get native providers from our curated list
-    const nativeProviders = getNativeProviders().map((provider) => ({
-      ...provider,
-      category: categorizeProvider(provider.id),
-    }));
-
-    // Get community providers from models.dev
-    const communityProviders = await getModelsDevProviders();
-
-    // Get list of native provider IDs to filter out duplicates
-    const nativeProviderIds = new Set(Object.keys(PROVIDERS));
-
-    // Filter community providers to exclude ones with native SDK support
-    const filteredCommunity = communityProviders.filter((p) => !nativeProviderIds.has(p.id));
-
-    // Split native into local, official, and community (from PROVIDERS constant)
-    const localProviders = nativeProviders.filter((p) => p.type === "openai-compatible");
-    const officialProviders = nativeProviders.filter((p) => p.type === "official");
-    const nativeCommunityProviders = nativeProviders.filter((p) => p.type === "community");
-
-    // Combine: LOCAL → OFFICIAL → NATIVE COMMUNITY → MODELS.DEV COMMUNITY
-    const allProviders = [
-      ...localProviders,
-      ...officialProviders,
-      ...nativeCommunityProviders,
-      ...filteredCommunity,
-    ];
-
-    return c.json({ providers: allProviders });
-  } catch (error) {
-    console.error("Get available providers error:", error);
-    return c.json(
-      { error: "Failed to fetch available providers" },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
-  }
+  const nativeProviders = getNativeProviders().map((provider) => ({
+    ...provider,
+    category: categorizeProvider(provider.id),
+  }));
+  const communityProviders = await getModelsDevProviders();
+  const filteredCommunity = communityProviders.filter(
+    (p) => !Object.keys(PROVIDERS).includes(p.id)
+  );
+  const allProviders = [...nativeProviders, ...filteredCommunity].sort((a, b) => {
+    const order = { "openai-compatible": 0, official: 1, community: 2 };
+    return order[a.type] - order[b.type];
+  });
+  return c.json({ providers: allProviders });
 });
 
-/**
- * GET /api/admin/providers
- * List all providers — does NOT decrypt API keys
- */
 providersRouter.get("/", async (c) => {
-  try {
-    const providers = dbUtils.getAllProviders();
-
-    // Get model counts for each provider
-    const providersWithCounts = providers.map((provider) => {
-      const models = dbUtils.getModelsByProvider(provider.id);
-      return {
-        id: provider.id,
-        name: provider.name,
-        display_name: provider.display_name,
-        provider_type: provider.provider_type,
-        base_url: provider.base_url,
-        enabled: provider.enabled === 1,
-        has_key: !!provider.encrypted_key,
-        model_count: models.length,
-        created_at: provider.created_at,
-      };
-    });
-
-    return c.json({ providers: providersWithCounts });
-  } catch (error) {
-    console.error("List providers error:", error);
-    return c.json({ error: "Failed to list providers" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const providers = dbUtils.getAllProviders();
+  const providersWithCounts = providers.map((p) => ({
+    id: p.id,
+    name: p.name,
+    display_name: p.display_name,
+    provider_type: p.provider_type,
+    base_url: p.base_url,
+    enabled: p.enabled === 1,
+    has_key: !!p.encrypted_key,
+    model_count: dbUtils.getModelsByProvider(p.id).length,
+    created_at: p.created_at,
+  }));
+  return c.json({ providers: providersWithCounts });
 });
 
-/**
- * POST /api/admin/providers
- * Create a new provider and auto-fetch models
- */
 providersRouter.post("/", async (c) => {
-  try {
-    const body = await c.req.json();
-    console.log("Creating provider with data:", {
-      name: body.name,
-      displayName: body.displayName,
-      providerType: body.providerType,
-      hasBaseUrl: !!body.baseUrl,
-      hasApiKey: !!body.apiKey,
-    });
-    const { name, displayName, providerType, baseUrl, apiKey } = CreateProviderSchema.parse(body);
-    const normalizedBaseUrl = normalizeBaseUrl(name, baseUrl);
+  const body = await c.req.json();
+  const { name, displayName, providerType, baseUrl, apiKey } = CreateProviderSchema.parse(body);
+  const normalizedBaseUrl = normalizeBaseUrl(name, baseUrl);
 
-    // SSRF validation for local provider base URLs
-    if (normalizedBaseUrl && !(await validateProviderUrl(normalizedBaseUrl))) {
-      return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Check if provider already exists
-    const existing = dbUtils.getProviderByName(name);
-    if (existing) {
-      return c.json({ error: "Provider already exists" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Encrypt API key
-    const { encryptedKey, iv, authTag } = encryptApiKey(apiKey);
-
-    // Create provider
-    const providerId = dbUtils.createProvider(
-      name,
-      displayName,
-      providerType,
-      normalizedBaseUrl,
-      encryptedKey,
-      iv,
-      authTag
-    );
-
-    dbUtils.createAuditLog(
-      c.get("user").id,
-      "provider_created",
-      "provider",
-      String(providerId),
-      name,
-      getClientIP(c)
-    );
-
-    // Auto-fetch models based on provider type
-    let models = [];
-    try {
-      models = await fetchModelsForProvider(name, normalizedBaseUrl);
-
-      for (const model of models) {
-        const modelId = dbUtils.createModel(
-          providerId,
-          model.model_id,
-          model.display_name,
-          getDefaultEnabledForProvider(name, model.enabled),
-          model.model_type || "text"
-        );
-
-        if (model.metadata) {
-          dbUtils.setModelMetadata(modelId, model.metadata);
-        }
-      }
-    } catch (modelError) {
-      console.error("Error fetching models:", modelError);
-      // Provider was created but models failed - that's okay
-    }
-
-    return c.json(
-      {
-        provider: {
-          id: providerId,
-          name,
-          display_name: displayName,
-          model_count: models.length,
-        },
-      },
-      HTTP_STATUS.CREATED
-    );
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error("Validation error:", error.errors);
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Create provider error:", error);
-    return c.json({ error: "Failed to create provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  if (normalizedBaseUrl && !validateProviderBaseUrl(normalizedBaseUrl)) {
+    return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
   }
-});
 
-/**
- * PUT /api/admin/providers/:id
- * Update provider
- */
-providersRouter.put("/:id", async (c) => {
+  if (dbUtils.getProviderByName(name))
+    return c.json({ error: "Provider already exists" }, HTTP_STATUS.BAD_REQUEST);
+
+  const providerId = dbUtils.createProvider(
+    name,
+    displayName,
+    providerType,
+    normalizedBaseUrl,
+    ...Object.values(encryptApiKey(apiKey))
+  );
+
+  dbUtils.createAuditLog(
+    c.get("user").id,
+    "provider_created",
+    "provider",
+    providerId,
+    name,
+    getClientIP(c)
+  );
+
+  let models = [];
   try {
-    const providerId = parseInt(c.req.param("id"), 10);
-    const body = await c.req.json();
-    const updates = UpdateProviderSchema.parse(body);
-
-    const provider = dbUtils.getProviderById(providerId);
-    if (!provider) {
-      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    // SSRF validation if base URL is being updated
-    if (updates.baseUrl && !(await validateProviderUrl(updates.baseUrl))) {
-      return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    const apiKeyChanged = !!updates.apiKey;
-
-    // If updating API key, encrypt it
-    if (updates.apiKey) {
-      const { encryptedKey, iv, authTag } = encryptApiKey(updates.apiKey);
-      updates.encryptedKey = encryptedKey;
-      updates.iv = iv;
-      updates.authTag = authTag;
-      delete updates.apiKey;
-    }
-
-    dbUtils.updateProvider(providerId, updates);
-
-    if (apiKeyChanged) {
-      dbUtils.createAuditLog(
-        c.get("user").id,
-        "api_key_changed",
-        "provider",
-        String(providerId),
-        provider.name,
-        getClientIP(c)
+    models = await fetchModelsForProvider(name, normalizedBaseUrl);
+    for (const model of models) {
+      const modelId = dbUtils.createModel(
+        providerId,
+        model.model_id,
+        model.display_name,
+        getDefaultEnabledForProvider(name, model.enabled),
+        model.model_type || "text"
       );
+      if (model.metadata) dbUtils.setModelMetadata(modelId, model.metadata);
     }
+  } catch {}
 
-    return c.json({ success: true });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Update provider error:", error);
-    return c.json({ error: "Failed to update provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  return c.json(
+    { provider: { id: providerId, name, display_name: displayName, model_count: models.length } },
+    HTTP_STATUS.CREATED
+  );
 });
 
-/**
- * POST /api/admin/providers/:id/models/enable
- * Enable or disable all models for a provider
- */
-providersRouter.post("/:id/models/enable", async (c) => {
-  try {
-    const providerId = parseInt(c.req.param("id"), 10);
-    const { enabled } = BulkEnableSchema.parse(await c.req.json());
+providersRouter.put("/:id", async (c) => {
+  const providerId = parseInt(c.req.param("id"), 10);
+  const body = await c.req.json();
+  const updates = UpdateProviderSchema.parse(body);
 
-    const provider = dbUtils.getProviderById(providerId);
-    if (!provider) {
-      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
-    }
+  if (!dbUtils.getProviderById(providerId))
+    return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
 
-    dbUtils.setModelsEnabledForProvider(providerId, enabled);
-
-    return c.json({ success: true });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Bulk enable models error:", error);
-    return c.json({ error: "Failed to update models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  if (updates.baseUrl && !validateProviderBaseUrl(updates.baseUrl)) {
+    return c.json({ error: "Invalid base URL" }, HTTP_STATUS.BAD_REQUEST);
   }
-});
 
-/**
- * POST /api/admin/providers/:id/refresh-models
- * Refresh models for a provider (atomic transaction)
- */
-providersRouter.post("/:id/refresh-models", async (c) => {
-  try {
-    const providerId = parseInt(c.req.param("id"), 10);
-
-    const provider = dbUtils.getProviderById(providerId);
-    if (!provider) {
-      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    // Fetch models using factory
-    const normalizedBaseUrl = normalizeBaseUrl(provider.name, provider.base_url);
-    if (normalizedBaseUrl !== provider.base_url) {
-      dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
-    }
-
-    const models = await fetchModelsForProvider(
-      provider.name,
-      normalizedBaseUrl,
-      provider.provider_type,
-      provider.display_name
-    );
-
-    // Atomic model refresh
-    const refreshModels = db.transaction(() => {
-      dbUtils.deleteModelsForProvider(providerId);
-      for (const model of models) {
-        const modelId = dbUtils.createModel(
-          providerId,
-          model.model_id,
-          model.display_name,
-          getDefaultEnabledForProvider(provider.name, model.enabled),
-          model.model_type || "text"
-        );
-        if (model.metadata) {
-          dbUtils.setModelMetadata(modelId, model.metadata);
-        }
-      }
-    });
-    refreshModels();
-
-    return c.json({
-      success: true,
-      model_count: models.length,
-    });
-  } catch (error) {
-    console.error("Refresh models error:", error);
-    return c.json({ error: "Failed to refresh models" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
-});
-
-/**
- * DELETE /api/admin/providers/:id
- * Delete provider (cascades to models)
- */
-providersRouter.delete("/:id", async (c) => {
-  try {
-    const providerId = parseInt(c.req.param("id"), 10);
-
-    const provider = dbUtils.getProviderById(providerId);
-    if (!provider) {
-      return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    dbUtils.deleteProvider(providerId);
-
+  if (updates.apiKey) {
+    const { encryptedKey, iv, authTag } = encryptApiKey(updates.apiKey);
+    Object.assign(updates, { encryptedKey, iv, authTag });
+    delete updates.apiKey;
     dbUtils.createAuditLog(
       c.get("user").id,
-      "provider_deleted",
+      "api_key_changed",
       "provider",
-      String(providerId),
-      provider.name,
+      providerId,
+      dbUtils.getProviderById(providerId).name,
       getClientIP(c)
     );
-
-    return c.json({ success: true });
-  } catch (error) {
-    console.error("Delete provider error:", error);
-    return c.json({ error: "Failed to delete provider" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
+
+  dbUtils.updateProvider(providerId, updates);
+  return c.json({ success: true });
 });
 
-// ========================================
-// MODEL FETCHING UTILITIES
-// ========================================
+providersRouter.post("/:id/models/enable", async (c) => {
+  const providerId = parseInt(c.req.param("id"), 10);
+  const { enabled } = BulkEnableSchema.parse(await c.req.json());
 
-/**
- * Model fetcher factory - maps provider names to their fetch functions
- */
+  if (!dbUtils.getProviderById(providerId))
+    return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
+
+  dbUtils.setModelsEnabledForProvider(providerId, enabled);
+  return c.json({ success: true });
+});
+
+providersRouter.post("/:id/refresh-models", async (c) => {
+  const providerId = parseInt(c.req.param("id"), 10);
+
+  if (!dbUtils.getProviderById(providerId))
+    return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
+
+  const provider = dbUtils.getProviderById(providerId);
+  const normalizedBaseUrl = normalizeBaseUrl(provider.name, provider.base_url);
+  if (normalizedBaseUrl !== provider.base_url)
+    dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
+
+  const models = await fetchModelsForProvider(
+    provider.name,
+    normalizedBaseUrl,
+    provider.provider_type,
+    provider.display_name
+  );
+
+  db.transaction(() => {
+    dbUtils.deleteModelsForProvider(providerId);
+    for (const model of models) {
+      const modelId = dbUtils.createModel(
+        providerId,
+        model.model_id,
+        model.display_name,
+        getDefaultEnabledForProvider(provider.name, model.enabled),
+        model.model_type || "text"
+      );
+      if (model.metadata) dbUtils.setModelMetadata(modelId, model.metadata);
+    }
+  })();
+
+  return c.json({ success: true, model_count: models.length });
+});
+
+providersRouter.delete("/:id", async (c) => {
+  const providerId = parseInt(c.req.param("id"), 10);
+
+  if (!dbUtils.getProviderById(providerId))
+    return c.json({ error: "Provider not found" }, HTTP_STATUS.NOT_FOUND);
+
+  const provider = dbUtils.getProviderById(providerId);
+  dbUtils.deleteProvider(providerId);
+  dbUtils.createAuditLog(
+    c.get("user").id,
+    "provider_deleted",
+    "provider",
+    providerId,
+    provider.name,
+    getClientIP(c)
+  );
+  return c.json({ success: true });
+});
+
 const MODEL_FETCHERS = {
   ollama: fetchOllamaModels,
   lmstudio: (url) => fetchOpenAICompatibleModels(url, "LM Studio"),
@@ -544,93 +232,61 @@ const MODEL_FETCHERS = {
   replicate: () => Promise.resolve(getReplicateImageModels()),
 };
 
-/**
- * Fetch models for a provider using the appropriate fetcher
- */
 async function fetchModelsForProvider(providerName, baseUrl, providerType, displayName) {
   const fetcher = MODEL_FETCHERS[providerName];
-  if (fetcher) {
-    return await fetcher(baseUrl);
-  }
-  if (providerType === "openai-compatible") {
+  if (fetcher) return await fetcher(baseUrl);
+  if (providerType === "openai-compatible")
     return await fetchOpenAICompatibleModels(baseUrl, displayName || providerName);
-  }
   return await getModelsForProvider(providerName);
 }
 
-/**
- * Fetch models from Ollama
- */
 async function fetchOllamaModels(baseUrl) {
-  if (!(await validateProviderUrl(baseUrl))) {
-    throw new Error("Invalid Ollama base URL");
-  }
+  if (!validateProviderBaseUrl(baseUrl)) throw new Error("Invalid Ollama base URL");
   try {
     const response = await fetch(`${baseUrl.replace("/v1", "")}/api/tags`, {
       signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
     });
 
-    if (!response.ok) {
-      throw new Error(`Ollama API returned ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`Ollama API returned ${response.status}`);
     const data = await response.json();
-
-    if (!data.models || !Array.isArray(data.models)) {
+    if (!data.models || !Array.isArray(data.models))
       throw new Error("Invalid response from Ollama");
-    }
 
-    return data.models.map((m) => {
-      const modelId = m.name.replace(/:latest$/, "");
-      return {
-        model_id: modelId,
-        display_name: modelId,
-        enabled: true,
-        metadata: {
-          context_window: 8192,
-          max_output_tokens: 2048,
-          supports_streaming: true,
-          supports_vision: modelId.includes("llava") || modelId.includes("vision"),
-          supports_tools: modelId.includes("qwen") || modelId.includes("llama3"),
-          input_price_per_1m: 0,
-          output_price_per_1m: 0,
-          size_bytes: m.size,
-          modified_at: m.modified_at,
-        },
-      };
-    });
+    return data.models.map((m) => ({
+      model_id: m.name.replace(/:latest$/, ""),
+      display_name: m.name.replace(/:latest$/, ""),
+      enabled: true,
+      metadata: {
+        context_window: 8192,
+        max_output_tokens: 2048,
+        supports_streaming: true,
+        supports_vision: /llava|vision/.test(m.name),
+        supports_tools: /qwen|llama3/.test(m.name),
+        input_price_per_1m: 0,
+        output_price_per_1m: 0,
+        size_bytes: m.size,
+        modified_at: m.modified_at,
+      },
+    }));
   } catch (error) {
     console.error("Failed to fetch Ollama models:", error.message);
     throw new Error(`Could not connect to Ollama at ${baseUrl}. Make sure Ollama is running.`);
   }
 }
 
-/**
- * Fetch models from an OpenAI-compatible /v1/models endpoint
- * Used by lmstudio, llama-cpp, and llamafile providers
- */
 async function fetchOpenAICompatibleModels(baseUrl, displayProvider = "OpenAI-compatible server") {
-  if (!(await validateProviderUrl(baseUrl))) {
-    throw new Error(`Invalid ${displayProvider} base URL`);
-  }
+  if (!validateProviderBaseUrl(baseUrl)) throw new Error(`Invalid ${displayProvider} base URL`);
   try {
     const modelsUrl = baseUrl.endsWith("/v1") ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
 
-    const response = await fetch(modelsUrl, {
-      signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH),
-    });
+    const response = await fetch(modelsUrl, { signal: AbortSignal.timeout(TIMEOUTS.OLLAMA_FETCH) });
 
-    if (!response.ok) {
-      throw new Error(`${displayProvider} API returned ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`${displayProvider} API returned ${response.status}`);
     const data = await response.json();
-
-    if (!data.data || !Array.isArray(data.data)) {
+    if (!data.data || !Array.isArray(data.data))
       throw new Error(`Invalid response from ${displayProvider}`);
-    }
 
-    const chatModels = data.data.filter((m) => !m.id.toLowerCase().includes("embedding"));
+    const chatModels = data.data.filter((m) => !/embedding/.test(m.id.toLowerCase()));
 
     return chatModels.map((m) => ({
       model_id: m.id,
@@ -640,9 +296,8 @@ async function fetchOpenAICompatibleModels(baseUrl, displayProvider = "OpenAI-co
         context_window: 8192,
         max_output_tokens: 2048,
         supports_streaming: true,
-        supports_vision:
-          m.id.toLowerCase().includes("vision") || m.id.toLowerCase().includes("llava"),
-        supports_tools: m.id.toLowerCase().includes("qwen") || m.id.toLowerCase().includes("llama"),
+        supports_vision: /vision|llava/.test(m.id.toLowerCase()),
+        supports_tools: /qwen|llama/.test(m.id.toLowerCase()),
         input_price_per_1m: 0,
         output_price_per_1m: 0,
         owned_by: m.owned_by || "local",

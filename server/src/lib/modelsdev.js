@@ -383,8 +383,13 @@ export function getReplicateImageModels() {
   ];
 }
 
-// Auto-fetch on startup with retry
 let initPromise = null;
+let retryCount = 0;
+let retryHandle = null;
+let refreshHandle = null;
+const MAX_INIT_RETRIES = 5;
+const INITIAL_RETRY_DELAY_MS = 30000;
+
 export function initializeModelsDevCache() {
   if (initPromise) {
     return initPromise;
@@ -392,19 +397,36 @@ export function initializeModelsDevCache() {
 
   initPromise = fetchModelsDevDatabase().catch((error) => {
     console.error("Failed to initialize models.dev cache:", error.message);
-    // Retry after 30 seconds
-    setTimeout(() => {
+    if (retryCount >= MAX_INIT_RETRIES) {
+      return null;
+    }
+    const delay = INITIAL_RETRY_DELAY_MS * 2 ** retryCount;
+    retryCount++;
+    retryHandle = setTimeout(() => {
       initPromise = null;
       initializeModelsDevCache();
-    }, 30000);
+    }, delay);
+    retryHandle.unref?.();
+    return null;
   });
 
   return initPromise;
 }
 
-// Auto-refresh every hour
-setInterval(() => {
+refreshHandle = setInterval(() => {
   fetchModelsDevDatabase().catch((error) => {
     console.error("Failed to refresh models.dev cache:", error.message);
   });
 }, CACHE_DURATION);
+refreshHandle.unref?.();
+
+export function stopModelsDevTimers() {
+  if (retryHandle) {
+    clearTimeout(retryHandle);
+    retryHandle = null;
+  }
+  if (refreshHandle) {
+    clearInterval(refreshHandle);
+    refreshHandle = null;
+  }
+}

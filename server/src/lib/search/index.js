@@ -2,8 +2,23 @@ import { WEB_SEARCH_CONSTANTS } from "@faster-chat/shared";
 import { searchBrave } from "./providers/brave.js";
 
 const cache = new Map();
+const MAX_CACHE_ENTRIES = 100;
+
+function pruneCache() {
+  const now = Date.now();
+  for (const [key, value] of cache.entries()) {
+    if (now - value.timestamp >= WEB_SEARCH_CONSTANTS.CACHE_TTL_MS) {
+      cache.delete(key);
+    }
+  }
+
+  while (cache.size > MAX_CACHE_ENTRIES) {
+    cache.delete(cache.keys().next().value);
+  }
+}
 
 export async function searchWeb(query, { apiKey }) {
+  pruneCache();
   const cacheKey = query;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < WEB_SEARCH_CONSTANTS.CACHE_TTL_MS) {
@@ -17,5 +32,6 @@ export async function searchWeb(query, { apiKey }) {
   }
 
   cache.set(cacheKey, { results, timestamp: Date.now() });
+  pruneCache();
   return results;
 }
