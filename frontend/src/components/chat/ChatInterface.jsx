@@ -69,7 +69,8 @@ const ChatInterface = ({ chatId }) => {
     messages,
     input,
     inputFiles,
-    setInputFiles,
+    appendFiles,
+    removeFile,
     handleInputChange,
     handleSubmit,
     submitMessage,
@@ -231,7 +232,8 @@ const ChatInterface = ({ chatId }) => {
                 modelSupportsTools={modelSupportsTools}
                 chatId={chatId}
                 selectedFiles={inputFiles}
-                setSelectedFiles={setInputFiles}
+                onFilesUploaded={appendFiles}
+                onRemoveFile={removeFile}
               />
             </div>
           </div>

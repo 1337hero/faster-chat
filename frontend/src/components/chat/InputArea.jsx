@@ -8,7 +8,8 @@ import {
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import ChatMemoryButton from "./ChatMemoryButton";
-import { useFileUploader, FilePreviewList } from "./FileUpload";
+import { useFileUploader } from "@/hooks/useFileUploader";
+import { FilePreviewList } from "./FilePreviewList";
 import { useUiState } from "@/state/useUiState";
 
 const FILE_INPUT_ID = "chat-input-file-upload";
@@ -25,13 +26,14 @@ const InputArea = ({
   modelSupportsTools,
   chatId,
   selectedFiles,
-  setSelectedFiles,
+  onFilesUploaded,
+  onRemoveFile,
 }) => {
   const textareaRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
     onFilesUploaded: (files) => {
-      setSelectedFiles((prev) => [...prev, ...files]);
+      onFilesUploaded(files);
       setUploadError(null);
     },
     onError: (msg) => {
@@ -107,10 +109,6 @@ const InputArea = ({
     setUploadError(null);
   };
 
-  const removeFile = (fileId) => {
-    setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
-  };
-
   const handleFileChange = (e) => {
     uploadFiles(e.target.files);
     e.target.value = "";
@@ -136,7 +134,7 @@ const InputArea = ({
 
       <ErrorBanner message={uploadError} className="mb-2" />
 
-      {!imageMode && <FilePreviewList files={selectedFiles} onRemove={removeFile} />}
+      {!imageMode && <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />}
 
       {/* Textarea - Top */}
       <textarea
