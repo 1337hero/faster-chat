@@ -26,6 +26,9 @@ export function _resetRateLimits() {
 }
 
 function checkRateLimit(bucketKey) {
+  if (process.env.DISABLE_RATE_LIMIT === "true") {
+    return true;
+  }
   return dbUtils.checkRateLimit(bucketKey, RATE_LIMIT.WINDOW_MS, RATE_LIMIT.MAX_ATTEMPTS);
 }
 

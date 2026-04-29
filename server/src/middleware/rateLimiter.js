@@ -24,6 +24,11 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
   cleanupHandle.unref?.();
 
   const middleware = async (c, next) => {
+    if (process.env.DISABLE_RATE_LIMIT === "true") {
+      await next();
+      return;
+    }
+
     const key = resolveKey(c);
     const now = Date.now();
     const timestamps = store.get(key) || [];
