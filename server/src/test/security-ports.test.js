@@ -137,7 +137,10 @@ describe("security: data isolation", () => {
     });
 
     const memberFd = new FormData();
-    memberFd.append("file", new File(["member content"], "member_file.txt", { type: "text/plain" }));
+    memberFd.append(
+      "file",
+      new File(["member content"], "member_file.txt", { type: "text/plain" })
+    );
     await app.request("/api/files", {
       method: "POST",
       headers: { Cookie: memberCookie },
@@ -427,7 +430,11 @@ describe("file security: dangerous file types", () => {
   }
 
   test("SVG upload is rejected (XSS risk)", async () => {
-    const res = await uploadFile("icon.svg", "image/svg+xml", '<svg><script>alert("xss")</script></svg>');
+    const res = await uploadFile(
+      "icon.svg",
+      "image/svg+xml",
+      '<svg><script>alert("xss")</script></svg>'
+    );
     expect(res.status).toBe(400);
   });
 

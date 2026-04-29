@@ -22,7 +22,9 @@
     "format:check": "prettier --check \"frontend/src/**/*.{js,jsx,ts,tsx,css,json}\" \"server/src/**/*.{js,jsx,ts,tsx,json}\"",
     "lint": "oxlint -c .oxlintrc.json --deny-warnings .",
     "lint:fix": "oxlint -c .oxlintrc.json --fix .",
-    "test": "cd server && bun test"
+    "test": "cd server && bun test",
+    "test:frontend": "cd frontend && bun run test",
+    "test:all": "bun run test && bun run test:frontend"
   },
   "repository": {
     "type": "git",
