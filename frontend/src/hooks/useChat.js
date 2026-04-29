@@ -1,5 +1,5 @@
 import { extractTextContent } from "@/lib/messageUtils";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
