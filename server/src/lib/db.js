@@ -66,14 +66,7 @@ function parseFileMeta(file) {
   return file;
 }
 
-function parseMessageFileIds(message) {
-  if (message?.file_ids) {
-    try {
-      message.file_ids = JSON.parse(message.file_ids);
-    } catch {
-      message.file_ids = null;
-    }
-  }
+function parseMessageMetadata(message) {
   if (message?.metadata) {
     try {
       message.metadata = JSON.parse(message.metadata);
@@ -107,7 +100,7 @@ Object.assign(
   createProviderUtils({ db, buildUpdateFields }),
   createModelUtils({ db, buildUpdateFields }),
   createFileUtils({ db, parseFileMeta }),
-  createChatUtils({ db, parseMessageFileIds }),
+  createChatUtils({ db, parseMessageMetadata, crypto }),
   createFolderUtils({ db, buildUpdateFields }),
   createSettingUtils({ db, encryptApiKey, decryptApiKey }),
   createAuditUtils({ db }),

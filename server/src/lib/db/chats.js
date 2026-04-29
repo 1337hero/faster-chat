@@ -1,4 +1,40 @@
-export function createChatUtils({ db, parseMessageFileIds }) {
+export function createChatUtils({ db, parseMessageMetadata, crypto }) {
+  // Batch fetch file IDs for messages, ordered by created_at ASC
+  function getMessageFileIds(messageIds) {
+    if (!messageIds || messageIds.length === 0) {
+      return {};
+    }
+    const placeholders = messageIds.map(() => "?").join(",");
+    const stmt = db.prepare(
+      `SELECT message_id, file_id FROM message_files WHERE message_id IN (${placeholders}) ORDER BY created_at ASC`
+    );
+    const rows = stmt.all(...messageIds);
+
+    // Group file_ids by message_id
+    const result = {};
+    for (const row of rows) {
+      if (!result[row.message_id]) {
+        result[row.message_id] = [];
+      }
+      result[row.message_id].push(row.file_id);
+    }
+    return result;
+  }
+
+  // Attach file_ids to messages in memory
+  function attachFileIds(messages) {
+    if (!messages || messages.length === 0) {
+      return messages;
+    }
+    const messageIds = messages.map((m) => m.id);
+    const fileIdMap = getMessageFileIds(messageIds);
+    for (const msg of messages) {
+      // Use empty array when there are no associations
+      msg.file_ids = fileIdMap[msg.id] ?? null;
+    }
+    return messages;
+  }
+
   return {
     createChat(id, userId, title = null, folderId = null, createdAt = Date.now()) {
       const now = createdAt;
@@ -150,13 +186,28 @@ export function createChatUtils({ db, parseMessageFileIds }) {
       metadata = null
     ) {
       const now = Date.now();
-      const fileIdsJson = fileIds ? JSON.stringify(fileIds) : null;
       const metadataJson = metadata ? JSON.stringify(metadata) : null;
-      const stmt = db.prepare(`
-      INSERT INTO messages (id, chat_id, user_id, role, content, model, file_ids, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-      stmt.run(id, chatId, userId, role, content, model, fileIdsJson, metadataJson, now);
+
+      // Start transaction for atomicity
+      db.transaction(() => {
+        // Insert message row (no file_ids column)
+        const stmt = db.prepare(`
+        INSERT INTO messages (id, chat_id, user_id, role, content, model, metadata, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+        stmt.run(id, chatId, userId, role, content, model, metadataJson, now);
+
+        // Insert junction rows for file associations - one per fileId
+        if (fileIds && fileIds.length > 0) {
+          const insertStmt = db.prepare(
+            "INSERT INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
+          );
+          for (const fileId of fileIds) {
+            insertStmt.run(id, fileId, now);
+          }
+        }
+      })();
+
       return {
         id,
         chat_id: chatId,
@@ -164,7 +215,8 @@ export function createChatUtils({ db, parseMessageFileIds }) {
         role,
         content,
         model,
-        file_ids: fileIds,
+        // Return empty array for empty fileIds, null for no associations
+        file_ids: fileIds ?? null,
         metadata,
         created_at: now,
       };
@@ -173,7 +225,10 @@ export function createChatUtils({ db, parseMessageFileIds }) {
     getMessageById(messageId) {
       const stmt = db.prepare("SELECT * FROM messages WHERE id = ?");
       const msg = stmt.get(messageId);
-      return parseMessageFileIds(msg);
+      if (!msg) return null;
+      parseMessageMetadata(msg);
+      attachFileIds([msg]);
+      return msg;
     },
 
     getMessagesByChat(chatId) {
@@ -182,7 +237,11 @@ export function createChatUtils({ db, parseMessageFileIds }) {
       WHERE chat_id = ?
       ORDER BY created_at ASC
     `);
-      return stmt.all(chatId).map(parseMessageFileIds);
+      const messages = stmt.all(chatId);
+      for (const msg of messages) {
+        parseMessageMetadata(msg);
+      }
+      return attachFileIds(messages);
     },
 
     getMessagesByChatAndUser(chatId, userId) {
@@ -191,7 +250,11 @@ export function createChatUtils({ db, parseMessageFileIds }) {
       WHERE chat_id = ? AND user_id = ?
       ORDER BY created_at ASC
     `);
-      return stmt.all(chatId, userId).map(parseMessageFileIds);
+      const messages = stmt.all(chatId, userId);
+      for (const msg of messages) {
+        parseMessageMetadata(msg);
+      }
+      return attachFileIds(messages);
     },
 
     deleteMessage(messageId) {
@@ -238,7 +301,11 @@ export function createChatUtils({ db, parseMessageFileIds }) {
       ORDER BY created_at ASC
       LIMIT ? OFFSET ?
     `);
-      return stmt.all(chatId, userId, limit, offset).map(parseMessageFileIds);
+      const messages = stmt.all(chatId, userId, limit, offset);
+      for (const msg of messages) {
+        parseMessageMetadata(msg);
+      }
+      return attachFileIds(messages);
     },
 
     purgeSoftDeletedChats(olderThanMs) {
