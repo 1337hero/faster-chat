@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import db, { dbUtils } from "../lib/db.js";
+
+// Re-export db for tests that need direct database access
+export { db };
 import { hashPassword } from "../lib/security.js";
 import { authRouter, _resetRateLimits } from "../routes/auth.js";
 import { chatsRouter } from "../routes/chats.js";
@@ -95,6 +98,7 @@ export function resetDatabase() {
   db.exec("DELETE FROM model_metadata");
   db.exec("DELETE FROM user_memories");
   db.exec("DELETE FROM messages");
+  db.exec("DELETE FROM message_files");
   db.exec("DELETE FROM files");
   db.exec("DELETE FROM chats");
   db.exec("DELETE FROM folders");
