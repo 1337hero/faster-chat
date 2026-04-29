@@ -1,20 +1,14 @@
 import { Hono } from "hono";
-import { z } from "zod";
 import { streamSSE } from "hono/streaming";
+import { z } from "zod";
+import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import { dbUtils } from "../lib/db.js";
+import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { validateProviderBaseUrl } from "../lib/ssrf.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
-import { HTTP_STATUS } from "../lib/httpStatus.js";
-import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
-import { validateProviderBaseUrl } from "../lib/ssrf.js";
 
 const debug = process.env.NODE_ENV !== "production";
-
-function debugLog(...args) {
-  if (debug) {
-    console.log("[Ollama Pull]", ...args);
-  }
-}
 
 async function processOllamaPullLine(line, stream) {
   if (!line.trim()) {
@@ -35,9 +29,6 @@ async function processOllamaPullLine(line, stream) {
     }
 
     await stream.writeSSE({ data: JSON.stringify(data) });
-    if (data.status === "success") {
-      debugLog("Model pulled successfully");
-    }
     return true;
   } catch (parseError) {
     console.error(
