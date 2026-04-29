@@ -201,28 +201,23 @@ const ChatInterface = ({ chatId }) => {
               className="mb-3"
             />
 
-            <div
-              className={`bg-theme-surface relative rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
-                isLoading || isGenerating
-                  ? "border-theme-primary/30"
-                  : "border-theme-border hover:border-theme-primary/50"
-              }`}>
-              <InputArea
-                input={input}
-                handleInputChange={handleInputChange}
-                handleSubmit={handleSubmit}
-                voiceControls={voice}
-                disabled={isLoading || isGenerating}
-                onImageSubmit={handleImageSubmit}
-                webSearchEnabled={webSearchEnabled}
-                onToggleWebSearch={toggleWebSearch}
-                modelSupportsTools={modelSupportsTools}
-                chatId={chatId}
-                selectedFiles={inputFiles}
-                onFilesUploaded={appendFiles}
-                onRemoveFile={removeFile}
-              />
-            </div>
+            <InputArea
+              input={input}
+              handleInputChange={handleInputChange}
+              handleSubmit={handleSubmit}
+              voiceControls={voice}
+              disabled={isLoading || isGenerating}
+              onImageSubmit={handleImageSubmit}
+              webSearchEnabled={webSearchEnabled}
+              onToggleWebSearch={toggleWebSearch}
+              modelSupportsTools={modelSupportsTools}
+              chatId={chatId}
+              selectedFiles={inputFiles}
+              onFilesUploaded={appendFiles}
+              onRemoveFile={removeFile}
+              isLoading={isLoading}
+              isGenerating={isGenerating}
+            />
           </div>
         </div>
       </div>

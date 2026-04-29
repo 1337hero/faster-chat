@@ -144,7 +144,8 @@ const Import = () => {
   });
 
   // File selection handler
-  const handleFileSelect = async (file) => {
+  const handleFileSelect = async (files) => {
+    const file = files[0];
     setSelectedFile(file);
     validationMutation.reset();
     importMutation.reset();

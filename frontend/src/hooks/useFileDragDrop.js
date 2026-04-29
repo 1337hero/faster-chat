@@ -11,6 +11,7 @@ export const useFileDragDrop = (onFileSelect) => {
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!e.dataTransfer?.types?.includes("Files")) return;
     setDragActive(e.type === "dragenter" || e.type === "dragover");
   };
 
@@ -19,9 +20,9 @@ export const useFileDragDrop = (onFileSelect) => {
     e.stopPropagation();
     setDragActive(false);
 
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      await onFileSelect(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await onFileSelect(files);
     }
   };
 
