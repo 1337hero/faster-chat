@@ -26,7 +26,7 @@ export const authClient = {
       return await apiFetch("/api/auth/session", {
         method: "GET",
       });
-    } catch (error) {
+    } catch {
       return { user: null };
     }
   },

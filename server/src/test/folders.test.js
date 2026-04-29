@@ -10,7 +10,7 @@ import {
 import { dbUtils } from "../lib/db.js";
 
 describe("folder routes", () => {
-  let app, adminCookie, adminUser, memberCookie, memberUser;
+  let app, adminCookie, adminUser, memberCookie;
 
   beforeAll(async () => {
     resetDatabase();
@@ -20,7 +20,6 @@ describe("folder routes", () => {
     adminUser = admin.user;
     const member = await seedMemberUser(app, adminCookie);
     memberCookie = member.cookie;
-    memberUser = member.user;
   });
 
   describe("access control", () => {

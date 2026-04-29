@@ -26,235 +26,176 @@ const ResetPasswordSchema = z.object({
   password: z.string().min(8).max(100),
 });
 
-/**
- * GET /api/admin/users
- * List all users
- */
 adminRouter.get("/users", async (c) => {
-  try {
-    const users = dbUtils.getAllUsers();
-    return c.json({ users });
-  } catch (error) {
-    console.error("List users error:", error);
-    return c.json({ error: "Failed to list users" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const users = dbUtils.getAllUsers();
+  return c.json({ users });
 });
 
-/**
- * POST /api/admin/users
- * Create a new user
- */
 adminRouter.post("/users", async (c) => {
-  try {
-    const currentUser = c.get("user");
-    const body = await c.req.json();
-    const { username, password, role } = CreateUserSchema.parse(body);
+  const currentUser = c.get("user");
+  const body = await c.req.json();
+  const { username, password, role } = CreateUserSchema.parse(body);
 
-    // Check if username already exists
-    const existingUser = dbUtils.getUserByUsername(username);
-    if (existingUser) {
-      return c.json({ error: "Username already exists" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Hash password
-    const passwordHash = await hashPassword(password);
-
-    // Create user
-    const userId = dbUtils.createUser(username, passwordHash, role, currentUser.id);
-
-    dbUtils.createAuditLog(
-      currentUser.id,
-      "user_created",
-      "user",
-      String(userId),
-      username,
-      getClientIP(c)
-    );
-
-    return c.json(
-      {
-        user: {
-          id: userId,
-          username,
-          role,
-        },
-      },
-      201
-    );
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Create user error:", error);
-    return c.json({ error: "Failed to create user" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  // Check if username already exists
+  const existingUser = dbUtils.getUserByUsername(username);
+  if (existingUser) {
+    return c.json({ error: "Username already exists" }, HTTP_STATUS.BAD_REQUEST);
   }
-});
 
-/**
- * PUT /api/admin/users/:id/role
- * Update user role
- */
-adminRouter.put("/users/:id/role", async (c) => {
-  try {
-    const userId = parseInt(c.req.param("id"), 10);
-    const currentUser = c.get("user");
+  // Hash password
+  const passwordHash = await hashPassword(password);
 
-    // Prevent self-demotion
-    if (userId === currentUser.id) {
-      return c.json({ error: "Cannot change your own role" }, HTTP_STATUS.BAD_REQUEST);
-    }
+  // Create user
+  const userId = dbUtils.createUser(username, passwordHash, role, currentUser.id);
 
-    const body = await c.req.json();
-    const { role } = UpdateRoleSchema.parse(body);
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "user_created",
+    "user",
+    String(userId),
+    username,
+    getClientIP(c)
+  );
 
-    // Check if user exists
-    const user = dbUtils.getUserById(userId);
-    if (!user) {
-      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    // Update role
-    dbUtils.updateUserRole(userId, role);
-
-    // Invalidate all sessions for this user (force re-login to get new role)
-    dbUtils.deleteUserSessions(userId);
-
-    dbUtils.createAuditLog(
-      currentUser.id,
-      "role_changed",
-      "user",
-      String(userId),
-      `${user.username} → ${role}`,
-      getClientIP(c)
-    );
-
-    return c.json({
+  return c.json(
+    {
       user: {
         id: userId,
-        username: user.username,
+        username,
         role,
       },
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Update role error:", error);
-    return c.json({ error: "Failed to update role" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+    },
+    201
+  );
 });
 
-/**
- * PUT /api/admin/users/:id/password
- * Reset user password
- */
+adminRouter.put("/users/:id/role", async (c) => {
+  const userId = parseInt(c.req.param("id"), 10);
+  const currentUser = c.get("user");
+
+  // Prevent self-demotion
+  if (userId === currentUser.id) {
+    return c.json({ error: "Cannot change your own role" }, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const body = await c.req.json();
+  const { role } = UpdateRoleSchema.parse(body);
+
+  // Check if user exists
+  const user = dbUtils.getUserById(userId);
+  if (!user) {
+    return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Update role
+  dbUtils.updateUserRole(userId, role);
+
+  // Invalidate all sessions for this user (force re-login to get new role)
+  dbUtils.deleteUserSessions(userId);
+
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "role_changed",
+    "user",
+    String(userId),
+    `${user.username} → ${role}`,
+    getClientIP(c)
+  );
+
+  return c.json({
+    user: {
+      id: userId,
+      username: user.username,
+      role,
+    },
+  });
+});
+
 adminRouter.put("/users/:id/password", async (c) => {
-  try {
-    const userId = parseInt(c.req.param("id"), 10);
-    const currentUser = c.get("user");
-    const body = await c.req.json();
-    const { password } = ResetPasswordSchema.parse(body);
+  const userId = parseInt(c.req.param("id"), 10);
+  const currentUser = c.get("user");
+  const body = await c.req.json();
+  const { password } = ResetPasswordSchema.parse(body);
 
-    // Check if user exists
-    const user = dbUtils.getUserById(userId);
-    if (!user) {
-      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    // Hash new password
-    const passwordHash = await hashPassword(password);
-
-    // Update password
-    dbUtils.updateUserPassword(userId, passwordHash);
-
-    // Invalidate all sessions for this user (force re-login)
-    dbUtils.deleteUserSessions(userId);
-
-    dbUtils.createAuditLog(
-      currentUser.id,
-      "password_reset",
-      "user",
-      String(userId),
-      user.username,
-      getClientIP(c)
-    );
-
-    return c.json({ success: true });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({ error: "Invalid input", details: error.errors }, HTTP_STATUS.BAD_REQUEST);
-    }
-    console.error("Reset password error:", error);
-    return c.json({ error: "Failed to reset password" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  // Check if user exists
+  const user = dbUtils.getUserById(userId);
+  if (!user) {
+    return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
   }
+
+  // Hash new password
+  const passwordHash = await hashPassword(password);
+
+  // Update password
+  dbUtils.updateUserPassword(userId, passwordHash);
+
+  // Invalidate all sessions for this user (force re-login)
+  dbUtils.deleteUserSessions(userId);
+
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "password_reset",
+    "user",
+    String(userId),
+    user.username,
+    getClientIP(c)
+  );
+
+  return c.json({ success: true });
 });
 
-/**
- * DELETE /api/admin/users/:id
- * Delete a user
- */
 adminRouter.delete("/users/:id", async (c) => {
-  try {
-    const userId = parseInt(c.req.param("id"), 10);
-    const currentUser = c.get("user");
+  const userId = parseInt(c.req.param("id"), 10);
+  const currentUser = c.get("user");
 
-    // Prevent self-deletion
-    if (userId === currentUser.id) {
-      return c.json({ error: "Cannot delete your own account" }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Check if user exists
-    const user = dbUtils.getUserById(userId);
-    if (!user) {
-      return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
-    }
-
-    // Delete user (sessions will cascade delete)
-    dbUtils.deleteUser(userId);
-
-    dbUtils.createAuditLog(
-      currentUser.id,
-      "user_deleted",
-      "user",
-      String(userId),
-      user.username,
-      getClientIP(c)
-    );
-
-    return c.json({ success: true });
-  } catch (error) {
-    console.error("Delete user error:", error);
-    return c.json({ error: "Failed to delete user" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  // Prevent self-deletion
+  if (userId === currentUser.id) {
+    return c.json({ error: "Cannot delete your own account" }, HTTP_STATUS.BAD_REQUEST);
   }
+
+  // Check if user exists
+  const user = dbUtils.getUserById(userId);
+  if (!user) {
+    return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Delete user (sessions will cascade delete)
+  dbUtils.deleteUser(userId);
+
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "user_deleted",
+    "user",
+    String(userId),
+    user.username,
+    getClientIP(c)
+  );
+
+  return c.json({ success: true });
 });
 
-/**
- * GET /api/admin/audit-log
- * View recent audit log entries
- */
 adminRouter.get("/audit-log", async (c) => {
-  try {
-    const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
-    const offset = parseInt(c.req.query("offset") || "0", 10);
-    const logs = dbUtils.getAuditLogs(limit, offset);
-    return c.json({ logs, limit, offset });
-  } catch (error) {
-    console.error("Audit log error:", error);
-    return c.json({ error: "Failed to fetch audit log" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
-  }
+  const limit = Math.min(parseInt(c.req.query("limit") || "50", 10), 200);
+  const offset = parseInt(c.req.query("offset") || "0", 10);
+  const logs = dbUtils.getAuditLogs(limit, offset);
+  return c.json({ logs, limit, offset });
 });
 
-/**
- * DELETE /api/admin/chats/purge
- * Hard-delete soft-deleted chats older than N days
- */
 adminRouter.delete("/chats/purge", async (c) => {
-  try {
-    const olderThanDays = parseInt(c.req.query("days") || "30", 10);
-    const purged = dbUtils.purgeSoftDeletedChats(olderThanDays * 24 * 60 * 60 * 1000);
-    return c.json({ purged });
-  } catch (error) {
-    console.error("Purge chats error:", error);
-    return c.json({ error: "Failed to purge chats" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  const daysParam = c.req.query("days") || "30";
+  const olderThanDays = Number(daysParam);
+  if (!Number.isInteger(olderThanDays) || olderThanDays < 1 || olderThanDays > 3650) {
+    return c.json({ error: "days must be an integer between 1 and 3650" }, HTTP_STATUS.BAD_REQUEST);
   }
+
+  const purged = dbUtils.purgeSoftDeletedChats(olderThanDays * 24 * 60 * 60 * 1000);
+  dbUtils.createAuditLog(
+    c.get("user").id,
+    "chats_purged",
+    "chat",
+    null,
+    `days: ${olderThanDays}, purged: ${purged}`,
+    getClientIP(c)
+  );
+  return c.json({ purged });
 });

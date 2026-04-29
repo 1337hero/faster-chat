@@ -45,7 +45,6 @@ const ChatInterface = ({ chatId }) => {
   const currentModelData = (modelsData?.models || []).find((m) => m.model_id === preferredModel);
   const modelSupportsTools = !!currentModelData?.metadata?.supports_tools;
 
-  // Wrap model change to auto-disable webSearch when new model lacks tool support
   const handleModelChange = (modelId) => {
     setPreferredModel(modelId);
     const newModel = (modelsData?.models || []).find((m) => m.model_id === modelId);
@@ -68,10 +67,14 @@ const ChatInterface = ({ chatId }) => {
   const {
     messages,
     input,
+    inputFiles,
+    appendFiles,
+    removeFile,
     handleInputChange,
     handleSubmit,
     submitMessage,
     error: chatError,
+    clearError,
     isLoading,
     status,
     stop,
@@ -91,7 +94,6 @@ const ChatInterface = ({ chatId }) => {
     submitMessage,
   });
 
-  // Image generation
   const createMessageMutation = useCreateMessageMutation();
   const { generate: generateImage, isGenerating } = useImageGeneration({
     onError: (error) => {
@@ -102,7 +104,6 @@ const ChatInterface = ({ chatId }) => {
   async function handleImageSubmit(prompt) {
     if (!prompt || !chatId) return;
 
-    // Save user message with the prompt
     const userMessageId = crypto.randomUUID();
     const userCreatedAt = Date.now();
     await createMessageMutation.mutateAsync({
@@ -115,15 +116,12 @@ const ChatInterface = ({ chatId }) => {
       },
     });
 
-    // Clear input
     setInput("");
 
-    // Generate image
     generateImage(
       { prompt, chatId, model: preferredImageModel },
       {
         onSuccess: async (data) => {
-          // Save assistant message with the generated image
           const assistantMessageId = crypto.randomUUID();
           await createMessageMutation.mutateAsync({
             chatId,
@@ -149,19 +147,14 @@ const ChatInterface = ({ chatId }) => {
 
   return (
     <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">
-      {/* Sonner Toast Container */}
       <Toaster position="top-center" theme="dark" richColors expand visibleToasts={3} />
 
-      {/* Main Content Area - Absolute positioning for scroll-behind effect */}
       <div className="relative flex-1">
-        {/* Navbar - Elevated Layer */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-2 py-3 md:px-8 md:py-6">
-          {/* Left: Toolbar */}
           <div className="flex items-center gap-3">
             <SidebarToolbar onNewChat={handleNewChat} onSearch={() => {}} />
           </div>
 
-          {/* Center: Model Selector */}
           {imageMode ? (
             <ModelSelector
               type="image"
@@ -172,7 +165,6 @@ const ChatInterface = ({ chatId }) => {
             <ModelSelector currentModel={preferredModel} onModelChange={handleModelChange} />
           )}
 
-          {/* Right: Controls */}
           <ToolbarGroup>
             <VoiceStatusIndicator
               voiceControls={voice}
@@ -182,7 +174,7 @@ const ChatInterface = ({ chatId }) => {
             <UserMenu />
           </ToolbarGroup>
         </div>
-        {/* Messages Area - Scrolls behind input and navbar */}
+
         <div
           ref={scrollContainerRef}
           style={{ scrollbarGutter: "stable both-edges" }}
@@ -199,38 +191,37 @@ const ChatInterface = ({ chatId }) => {
           </div>
         </div>
 
-        {/* Bottom Gradient Fade Overlay - Content scrolls behind input */}
         <div className="from-theme-canvas via-theme-canvas/80 pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t to-transparent" />
 
-        {/* Input Area - Floating on top */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6">
           <div className="pointer-events-auto relative mx-auto max-w-4xl">
-            <ErrorBanner message={chatError?.message || chatError} className="mb-3" />
+            <ErrorBanner
+              message={chatError?.message || chatError}
+              onDismiss={clearError}
+              className="mb-3"
+            />
 
-            <div
-              className={`bg-theme-surface relative rounded-2xl border p-2 shadow-lg transition-all duration-300 ${
-                isLoading || isGenerating
-                  ? "border-theme-primary/30"
-                  : "border-theme-border hover:border-theme-primary/50"
-              }`}>
-              <InputArea
-                input={input}
-                handleInputChange={handleInputChange}
-                handleSubmit={handleSubmit}
-                voiceControls={voice}
-                disabled={isLoading || isGenerating}
-                onImageSubmit={handleImageSubmit}
-                webSearchEnabled={webSearchEnabled}
-                onToggleWebSearch={toggleWebSearch}
-                modelSupportsTools={modelSupportsTools}
-                chatId={chatId}
-              />
-            </div>
+            <InputArea
+              input={input}
+              handleInputChange={handleInputChange}
+              handleSubmit={handleSubmit}
+              voiceControls={voice}
+              disabled={isLoading || isGenerating}
+              onImageSubmit={handleImageSubmit}
+              webSearchEnabled={webSearchEnabled}
+              onToggleWebSearch={toggleWebSearch}
+              modelSupportsTools={modelSupportsTools}
+              chatId={chatId}
+              selectedFiles={inputFiles}
+              onFilesUploaded={appendFiles}
+              onRemoveFile={removeFile}
+              isLoading={isLoading}
+              isGenerating={isGenerating}
+            />
           </div>
         </div>
       </div>
 
-      {/* Voice Settings Modal */}
       {showVoiceSettings && (
         <VoiceSettings voiceControls={voice} onClose={() => setShowVoiceSettings(false)} />
       )}

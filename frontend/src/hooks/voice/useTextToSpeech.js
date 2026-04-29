@@ -6,7 +6,9 @@ const splitIntoSentences = (text) => text.match(VOICE_CONSTANTS.SENTENCE_SPLIT_P
 const enqueueCleanedSentences = (sentences, queueRef) => {
   sentences.forEach((sentence) => {
     const trimmed = sentence.trim();
-    if (trimmed) queueRef.current.push(trimmed);
+    if (trimmed) {
+      queueRef.current.push(trimmed);
+    }
   });
 };
 
@@ -17,7 +19,9 @@ export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, curre
   const cooldownTimerRef = useRef(null);
 
   const speak = (text) => {
-    if (!text?.trim()) return;
+    if (!text?.trim()) {
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(text);
 
@@ -27,7 +31,9 @@ export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, curre
     }
 
     utterance.onstart = () => {
-      if (onSpeakStart) onSpeakStart();
+      if (onSpeakStart) {
+        onSpeakStart();
+      }
     };
 
     utterance.onend = () => {
@@ -37,7 +43,9 @@ export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, curre
         return;
       }
 
-      if (onSpeakEnd) onSpeakEnd();
+      if (onSpeakEnd) {
+        onSpeakEnd();
+      }
 
       if (cooldownTimerRef.current) {
         clearTimeout(cooldownTimerRef.current);
@@ -54,7 +62,9 @@ export function useTextToSpeech({ selectedVoice, onSpeakStart, onSpeakEnd, curre
   };
 
   const speakStream = (text) => {
-    if (!text) return;
+    if (!text) {
+      return;
+    }
 
     const sentences = splitIntoSentences(text);
     enqueueCleanedSentences(sentences, ttsQueueRef);

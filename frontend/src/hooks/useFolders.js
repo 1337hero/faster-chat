@@ -42,7 +42,9 @@ export function useFolders() {
       };
 
       queryClient.setQueryData(folderKeys.list(userId), (old) => {
-        if (!old) return { folders: [optimisticFolder] };
+        if (!old) {
+          return { folders: [optimisticFolder] };
+        }
         return { folders: [...old.folders, optimisticFolder] };
       });
 
@@ -51,7 +53,9 @@ export function useFolders() {
     onSuccess: (response, _, context) => {
       // Replace optimistic folder with server response
       queryClient.setQueryData(folderKeys.list(userId), (old) => {
-        if (!old) return { folders: [response.folder] };
+        if (!old) {
+          return { folders: [response.folder] };
+        }
         return {
           folders: old.folders.map((f) =>
             f.id === context.optimisticFolder.id ? response.folder : f
@@ -81,7 +85,9 @@ export function useFolders() {
 
       // Optimistically update the folder
       queryClient.setQueryData(folderKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return {
           folders: old.folders.map((f) =>
             f.id === id ? { ...f, ...updates, updated_at: Date.now() } : f
@@ -110,7 +116,9 @@ export function useFolders() {
 
       // Optimistically remove the folder
       queryClient.setQueryData(folderKeys.list(userId), (old) => {
-        if (!old) return old;
+        if (!old) {
+          return old;
+        }
         return { folders: old.folders.filter((f) => f.id !== id) };
       });
 

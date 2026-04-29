@@ -1,6 +1,5 @@
 import { Hono } from "hono";
-import { dbUtils } from "../lib/db.js";
-import db from "../lib/db.js";
+import db, { dbUtils } from "../lib/db.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { IMPORT_CONSTANTS } from "@faster-chat/shared";
@@ -18,9 +17,6 @@ importRouter.use("/*", ensureSession);
 // Helper Functions
 // ============================================================================
 
-/**
- * Validate that request body contains the required 'data' field
- */
 function validateRequestBody(body) {
   if (!body?.data) {
     return { valid: false, error: "Missing 'data' field in request body" };
@@ -28,10 +24,6 @@ function validateRequestBody(body) {
   return { valid: true };
 }
 
-/**
- * Validate and parse ChatGPT export data
- * Returns either parsed conversations or validation errors
- */
 function validateAndParseExport(data) {
   const validation = validateChatGPTExport(data);
   if (!validation.valid) {
@@ -56,13 +48,15 @@ function validateAndParseExport(data) {
   };
 }
 
-/**
- * Import a single conversation into the database
- * Returns the chat ID on success, throws on failure
- */
 function importConversation(conversation, userId) {
   const chatId = crypto.randomUUID();
-  dbUtils.createChat(chatId, userId, conversation.title);
+  dbUtils.createChat(
+    chatId,
+    userId,
+    conversation.title,
+    null,
+    conversation.createdAt || Date.now()
+  );
 
   let messageCount = 0;
   for (const message of conversation.messages) {
@@ -79,7 +73,6 @@ function importConversation(conversation, userId) {
     messageCount++;
   }
 
-  // Preserve original timestamp
   if (conversation.updatedAt) {
     dbUtils.updateChatTimestampTo(chatId, conversation.updatedAt);
   }
@@ -87,9 +80,6 @@ function importConversation(conversation, userId) {
   return { chatId, messageCount };
 }
 
-/**
- * Build preview data for validation response
- */
 function buildPreview(conversations) {
   return conversations.map((conv) => ({
     title: conv.title,
@@ -106,10 +96,6 @@ function buildPreview(conversations) {
 // Routes
 // ============================================================================
 
-/**
- * POST /api/import/chatgpt
- * Import conversations from ChatGPT export JSON
- */
 importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
   try {
     const user = c.get("user");
@@ -176,10 +162,6 @@ importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
   }
 });
 
-/**
- * POST /api/import/validate
- * Validate a ChatGPT export file without importing
- */
 importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
   try {
     const body = await c.req.json();
@@ -214,10 +196,6 @@ importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
   }
 });
 
-/**
- * GET /api/import/formats
- * List supported import formats
- */
 importRouter.get("/formats", async (c) => {
   return c.json({
     formats: [

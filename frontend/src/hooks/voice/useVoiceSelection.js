@@ -3,12 +3,16 @@ import { VOICE_CONSTANTS } from "@faster-chat/shared";
 
 const selectDefaultVoice = (voices, savedVoiceName) => {
   const savedVoice = voices.find((v) => v.name === savedVoiceName);
-  if (savedVoice) return savedVoice;
+  if (savedVoice) {
+    return savedVoice;
+  }
 
   const englishVoice = voices.find((v) =>
     v.lang.startsWith(VOICE_CONSTANTS.DEFAULT_LANGUAGE_PREFIX)
   );
-  if (englishVoice) return englishVoice;
+  if (englishVoice) {
+    return englishVoice;
+  }
 
   return voices[0]; // First available as fallback
 };
@@ -20,7 +24,9 @@ export function useVoiceSelection() {
   useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) return;
+      if (voices.length === 0) {
+        return;
+      }
 
       setAvailableVoices(voices);
 

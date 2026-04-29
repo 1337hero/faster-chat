@@ -26,7 +26,9 @@ const MODEL_PREFIX_TO_PROVIDER = [
 ];
 
 function inferProvider(modelId) {
-  if (!modelId) return null;
+  if (!modelId) {
+    return null;
+  }
   const lower = modelId.toLowerCase();
 
   // Handle "provider/model" format (e.g. "openai/gpt-5.1" from OpenRouter)
@@ -35,7 +37,9 @@ function inferProvider(modelId) {
   }
 
   for (const [prefix, provider] of MODEL_PREFIX_TO_PROVIDER) {
-    if (lower.startsWith(prefix)) return provider;
+    if (lower.startsWith(prefix)) {
+      return provider;
+    }
   }
   return null;
 }
