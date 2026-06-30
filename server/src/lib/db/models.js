@@ -159,17 +159,6 @@ export function createModelUtils({ db, buildUpdateFields }) {
       stmt.run(enabled ? 1 : 0, Date.now(), providerId);
     },
 
-    getDefaultModel() {
-      const stmt = db.prepare(`
-      SELECT m.*, p.name as provider_name
-      FROM models m
-      JOIN providers p ON m.provider_id = p.id
-      WHERE m.is_default = 1 AND m.enabled = 1 AND p.enabled = 1
-      LIMIT 1
-    `);
-      return stmt.get();
-    },
-
     setModelMetadata(modelId, metadata) {
       const stmt = db.prepare(`
       INSERT INTO model_metadata (

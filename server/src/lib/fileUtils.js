@@ -13,7 +13,7 @@ import {
   getMimeFromExtension,
   formatFileSize,
 } from "@faster-chat/shared";
-import { extractOfficeText, isOfficeModernFile, isOfficeLegacyFile } from "./officeExtraction.js";
+import { extractOfficeText, isOfficeModernFile } from "./officeExtraction.js";
 import { providerSupportsImages, providerSupportsNativePdf } from "./providerFactory.js";
 import { validateImageDimensions, MAX_IMAGE_DIMENSION_PX } from "./imageValidation.js";
 
@@ -234,10 +234,6 @@ export function isOfficeModernAttachment(file) {
   return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_MODERN;
 }
 
-export function isOfficeLegacyAttachment(file) {
-  return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_LEGACY;
-}
-
 export function getStrategyForCategory(category) {
   const catDef = FILE_CATEGORY_DEFINITIONS[category];
   return catDef?.defaultStrategy || FILE_STRATEGIES.REJECT;
@@ -370,8 +366,6 @@ export async function extractOfficeDocumentText(file) {
     mimeType: file.mime_type,
   });
 }
-
-export { extractOfficeText, isOfficeModernFile, isOfficeLegacyFile };
 
 const FENCE_LANGUAGE_MAP = {
   markdown: "markdown",

@@ -35,6 +35,14 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
     return messages;
   }
 
+  // Set/clear a timestamp flag column (pinned_at, archived_at) for an owned, non-deleted chat
+  function setChatFlag(col, value, chatId, userId) {
+    const stmt = db.prepare(
+      `UPDATE chats SET ${col} = ?, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
+    );
+    return stmt.run(value, Date.now(), chatId, userId).changes > 0;
+  }
+
   return {
     createChat(id, userId, title = null, folderId = null, createdAt = Date.now()) {
       const now = createdAt;
@@ -66,27 +74,6 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
       return stmt.get(chatId, userId);
     },
 
-    getChatsByUserId(userId, includeArchived = false) {
-      const stmt = db.prepare(`
-      SELECT * FROM chats
-      WHERE user_id = ? AND deleted_at IS NULL AND folder_id IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
-      ORDER BY
-        CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
-        pinned_at DESC,
-        updated_at DESC
-    `);
-      return stmt.all(userId);
-    },
-
-    getArchivedChatsByUserId(userId) {
-      const stmt = db.prepare(`
-      SELECT * FROM chats
-      WHERE user_id = ? AND deleted_at IS NULL AND archived_at IS NOT NULL
-      ORDER BY archived_at DESC
-    `);
-      return stmt.all(userId);
-    },
-
     updateChatTitle(chatId, title) {
       const now = Date.now();
       const stmt = db.prepare("UPDATE chats SET title = ?, updated_at = ? WHERE id = ?");
@@ -113,13 +100,6 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
       stmt.run(timestamp, chatId);
     },
 
-    softDeleteChat(chatId) {
-      const now = Date.now();
-      const stmt = db.prepare("UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ?");
-      const result = stmt.run(now, now, chatId);
-      return result.changes > 0;
-    },
-
     softDeleteChatByUser(chatId, userId) {
       const now = Date.now();
       const stmt = db.prepare(
@@ -130,45 +110,19 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
     },
 
     pinChat(chatId, userId) {
-      const now = Date.now();
-      const stmt = db.prepare(
-        "UPDATE chats SET pinned_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
-      );
-      const result = stmt.run(now, now, chatId, userId);
-      return result.changes > 0;
+      return setChatFlag("pinned_at", Date.now(), chatId, userId);
     },
 
     unpinChat(chatId, userId) {
-      const now = Date.now();
-      const stmt = db.prepare(
-        "UPDATE chats SET pinned_at = NULL, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
-      );
-      const result = stmt.run(now, chatId, userId);
-      return result.changes > 0;
+      return setChatFlag("pinned_at", null, chatId, userId);
     },
 
     archiveChat(chatId, userId) {
-      const now = Date.now();
-      const stmt = db.prepare(
-        "UPDATE chats SET archived_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
-      );
-      const result = stmt.run(now, now, chatId, userId);
-      return result.changes > 0;
+      return setChatFlag("archived_at", Date.now(), chatId, userId);
     },
 
     unarchiveChat(chatId, userId) {
-      const now = Date.now();
-      const stmt = db.prepare(
-        "UPDATE chats SET archived_at = NULL, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
-      );
-      const result = stmt.run(now, chatId, userId);
-      return result.changes > 0;
-    },
-
-    hardDeleteChat(chatId) {
-      const stmt = db.prepare("DELETE FROM chats WHERE id = ?");
-      const result = stmt.run(chatId);
-      return result.changes > 0;
+      return setChatFlag("archived_at", null, chatId, userId);
     },
 
     // ========================================
@@ -251,17 +205,9 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
     },
 
     deleteMessageByUser(messageId, userId, chatId) {
-      const stmt = db.prepare(
-        "DELETE FROM messages WHERE id = ? AND user_id = ? AND chat_id = ?"
-      );
+      const stmt = db.prepare("DELETE FROM messages WHERE id = ? AND user_id = ? AND chat_id = ?");
       const result = stmt.run(messageId, userId, chatId);
       return result.changes > 0;
-    },
-
-    deleteMessagesByChat(chatId) {
-      const stmt = db.prepare("DELETE FROM messages WHERE chat_id = ?");
-      const result = stmt.run(chatId);
-      return result.changes;
     },
 
     getMessageCountByChat(chatId) {

@@ -57,13 +57,6 @@ export async function fetchModelsDevDatabase() {
 }
 
 /**
- * Get cached database without fetching
- */
-export function getCachedDatabase() {
-  return cachedDatabase;
-}
-
-/**
  * Get information about a specific provider
  */
 export async function getProviderInfo(providerName) {
@@ -236,34 +229,36 @@ export async function getModelsForProvider(providerName) {
     return [];
   }
 
-  return Object.entries(providerInfo.models).map(([id, model]) => ({
-    model_id: id,
-    display_name: model.name || id,
-    model_type: coerceModelForProvider(providerName, id)?.model_type || getModelType(model),
-    output_modalities: coerceModelForProvider(providerName, id)?.output_modalities ||
-      model.modalities?.output || ["text"],
-    enabled: !model.experimental && model.status !== "deprecated",
-    metadata: {
-      context_window: model.limit?.context || 0,
-      max_output_tokens: model.limit?.output || 0,
-      input_price_per_1m: model.cost?.input || 0,
-      output_price_per_1m: model.cost?.output || 0,
-      cache_read_price_per_1m: model.cost?.cache_read || 0,
-      cache_write_price_per_1m: model.cost?.cache_write || 0,
-      supports_streaming:
-        coerceModelForProvider(providerName, id)?.metadataOverrides?.supports_streaming ??
-        (model.modalities?.output || ["text"]).includes("text"),
-      supports_vision:
-        coerceModelForProvider(providerName, id)?.metadataOverrides?.supports_vision ??
-        (model.modalities?.input?.includes("image") || model.attachment),
-      supports_tools: model.tool_call !== false,
-      supports_reasoning: model.reasoning || false,
-      release_date: model.release_date,
-      knowledge_cutoff: model.knowledge,
-      experimental: model.experimental || false,
-      status: model.status,
-    },
-  }));
+  return Object.entries(providerInfo.models).map(([id, model]) => {
+    const override = coerceModelForProvider(providerName, id);
+    return {
+      model_id: id,
+      display_name: model.name || id,
+      model_type: override?.model_type || getModelType(model),
+      output_modalities: override?.output_modalities || model.modalities?.output || ["text"],
+      enabled: !model.experimental && model.status !== "deprecated",
+      metadata: {
+        context_window: model.limit?.context || 0,
+        max_output_tokens: model.limit?.output || 0,
+        input_price_per_1m: model.cost?.input || 0,
+        output_price_per_1m: model.cost?.output || 0,
+        cache_read_price_per_1m: model.cost?.cache_read || 0,
+        cache_write_price_per_1m: model.cost?.cache_write || 0,
+        supports_streaming:
+          override?.metadataOverrides?.supports_streaming ??
+          (model.modalities?.output || ["text"]).includes("text"),
+        supports_vision:
+          override?.metadataOverrides?.supports_vision ??
+          (model.modalities?.input?.includes("image") || model.attachment),
+        supports_tools: model.tool_call !== false,
+        supports_reasoning: model.reasoning || false,
+        release_date: model.release_date,
+        knowledge_cutoff: model.knowledge,
+        experimental: model.experimental || false,
+        status: model.status,
+      },
+    };
+  });
 }
 
 export function getReplicateImageModels() {
@@ -419,14 +414,3 @@ refreshHandle = setInterval(() => {
   });
 }, CACHE_DURATION);
 refreshHandle.unref?.();
-
-export function stopModelsDevTimers() {
-  if (retryHandle) {
-    clearTimeout(retryHandle);
-    retryHandle = null;
-  }
-  if (refreshHandle) {
-    clearInterval(refreshHandle);
-    refreshHandle = null;
-  }
-}

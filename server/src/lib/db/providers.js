@@ -35,11 +35,6 @@ export function createProviderUtils({ db, buildUpdateFields }) {
       return stmt.all();
     },
 
-    getEnabledProviders() {
-      const stmt = db.prepare("SELECT * FROM providers WHERE enabled = 1 ORDER BY created_at ASC");
-      return stmt.all();
-    },
-
     updateProvider(providerId, updates) {
       const fieldMap = {
         displayName: "display_name",

@@ -82,7 +82,7 @@ function chatStateHandler(action, message) {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
 
-    const updated = action().call(dbUtils, chatId, user.id);
+    const updated = action.call(dbUtils, chatId, user.id);
     if (!updated) {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
@@ -195,21 +195,18 @@ chatsRouter.delete("/:chatId", async (c) => {
   return c.json({ message: "Chat deleted successfully" });
 });
 
-chatsRouter.post(
-  "/:chatId/pin",
-  chatStateHandler(() => dbUtils.pinChat, "Chat pinned successfully")
-);
+chatsRouter.post("/:chatId/pin", chatStateHandler(dbUtils.pinChat, "Chat pinned successfully"));
 chatsRouter.delete(
   "/:chatId/pin",
-  chatStateHandler(() => dbUtils.unpinChat, "Chat unpinned successfully")
+  chatStateHandler(dbUtils.unpinChat, "Chat unpinned successfully")
 );
 chatsRouter.post(
   "/:chatId/archive",
-  chatStateHandler(() => dbUtils.archiveChat, "Chat archived successfully")
+  chatStateHandler(dbUtils.archiveChat, "Chat archived successfully")
 );
 chatsRouter.delete(
   "/:chatId/archive",
-  chatStateHandler(() => dbUtils.unarchiveChat, "Chat unarchived successfully")
+  chatStateHandler(dbUtils.unarchiveChat, "Chat unarchived successfully")
 );
 
 chatsRouter.get("/:chatId/messages", async (c) => {
@@ -669,10 +666,6 @@ chatsRouter.post(
     }
   }
 );
-
-chatsRouter.get("/:chatId/stream", async (c) => {
-  return c.body(null, 204);
-});
 
 chatsRouter.put("/:chatId/memory", async (c) => {
   const user = c.get("user");

@@ -50,14 +50,6 @@ app.use("*", securityHeaders());
 app.use("*", logger());
 
 // Body size limit — reject oversized requests before hitting route handlers
-app.use("/api/*", async (c, next) => {
-  const contentLength = parseInt(c.req.header("content-length") || "0", 10);
-  if (contentLength > 50 * 1024 * 1024) {
-    return c.json({ error: "Request body too large" }, 413);
-  }
-  await next();
-});
-
 app.use(
   "/api/*",
   bodyLimit({

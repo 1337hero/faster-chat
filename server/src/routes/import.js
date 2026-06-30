@@ -128,15 +128,7 @@ importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
       }
     });
 
-    try {
-      importAll();
-    } catch (error) {
-      console.error("[Import] Transaction failed:", error.message);
-      return c.json(
-        { error: "Failed to import conversations", details: error.message },
-        HTTP_STATUS.INTERNAL_SERVER_ERROR
-      );
-    }
+    importAll();
 
     return c.json(
       {

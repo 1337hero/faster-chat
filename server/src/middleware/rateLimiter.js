@@ -42,6 +42,5 @@ export function createRateLimiter({ windowMs, maxRequests, keyFn }) {
     store.set(key, recent);
     await next();
   };
-  middleware.stop = () => clearInterval(cleanupHandle);
   return middleware;
 }

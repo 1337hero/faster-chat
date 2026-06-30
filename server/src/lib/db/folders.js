@@ -121,11 +121,5 @@ export function createFolderUtils({ db, buildUpdateFields }) {
     `);
       return stmt.all(folderId, userId);
     },
-
-    getFolderCount(userId) {
-      const stmt = db.prepare("SELECT COUNT(*) as count FROM folders WHERE user_id = ?");
-      const result = stmt.get(userId);
-      return result.count;
-    },
   };
 }

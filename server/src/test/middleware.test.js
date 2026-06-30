@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Hono } from "hono";
 import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser } from "./helpers.js";
-import { ensureSession, requireRole, optionalAuth } from "../middleware/auth.js";
+import { ensureSession, requireRole } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { getClientIP } from "../lib/requestUtils.js";
 
@@ -87,48 +87,6 @@ describe("middleware", () => {
     test("no session returns 401", async () => {
       const res = await app.request("/admin/dashboard");
       expect(res.status).toBe(401);
-    });
-  });
-
-  describe("optionalAuth", () => {
-    let app, adminCookie;
-
-    beforeAll(async () => {
-      resetDatabase();
-
-      app = new Hono();
-      app.use("/public/*", optionalAuth);
-      app.get("/public/info", (c) => c.json({ user: c.get("user") }));
-
-      const fullApp = createTestApp();
-      const admin = await seedAdminUser(fullApp);
-      adminCookie = admin.cookie;
-    });
-
-    test("sets user when cookie present", async () => {
-      const res = await app.request("/public/info", {
-        headers: { Cookie: adminCookie },
-      });
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.user).not.toBeNull();
-      expect(data.user.username).toBe("admin");
-    });
-
-    test("sets user to null when no cookie", async () => {
-      const res = await app.request("/public/info");
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.user).toBeNull();
-    });
-
-    test("sets user to null with invalid cookie", async () => {
-      const res = await app.request("/public/info", {
-        headers: { Cookie: "session=invalid-garbage" },
-      });
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.user).toBeNull();
     });
   });
 

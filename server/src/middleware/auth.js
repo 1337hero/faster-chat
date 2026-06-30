@@ -50,30 +50,3 @@ export function requireRole(...allowedRoles) {
     await next();
   };
 }
-
-/**
- * Optional auth middleware - doesn't fail if no session, just sets user to null
- * Useful for routes that work both authenticated and unauthenticated
- */
-export async function optionalAuth(c, next) {
-  const sessionId = getCookie(c, COOKIE_NAME);
-
-  if (sessionId) {
-    const session = dbUtils.getSession(sessionId);
-
-    if (session) {
-      c.set("user", {
-        id: session.user_id,
-        username: session.username,
-        role: session.role,
-      });
-    }
-  }
-
-  // Set user to null if not authenticated
-  if (!c.get("user")) {
-    c.set("user", null);
-  }
-
-  await next();
-}

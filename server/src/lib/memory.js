@@ -2,14 +2,14 @@ import { wrapLanguageModel, generateText } from "ai";
 import { MEMORY_EXTRACTION_MAX_FACTS_PER_TURN } from "@faster-chat/shared";
 import { getModelInstance } from "./providerFactory.js";
 
-export const MEMORY_EXTRACTION_PROMPT = `Extract factual information about the user from this conversation. Return ONLY a JSON array of short factual strings. Focus on: preferences, personal details, projects, technical stack, communication style, and stated goals. If nothing worth remembering, return an empty array []. Do not include conversation-specific details that won't be relevant in future conversations. Examples: ["prefers Python over JavaScript", "works on a project called FasterChat", "uses Arch Linux", "name is Mike"]. Return ONLY the JSON array, no other text.`;
+const MEMORY_EXTRACTION_PROMPT = `Extract factual information about the user from this conversation. Return ONLY a JSON array of short factual strings. Focus on: preferences, personal details, projects, technical stack, communication style, and stated goals. If nothing worth remembering, return an empty array []. Do not include conversation-specific details that won't be relevant in future conversations. Examples: ["prefers Python over JavaScript", "works on a project called FasterChat", "uses Arch Linux", "name is Mike"]. Return ONLY the JSON array, no other text.`;
 
-export const MEMORY_CONTEXT_TEMPLATE = `[Memory - What you remember about this user from previous conversations]
+const MEMORY_CONTEXT_TEMPLATE = `[Memory - What you remember about this user from previous conversations]
 {memories}
 [End Memory]
 Do not explicitly mention that you have a memory system unless the user asks. Use these memories naturally to personalize your responses.`;
 
-export function formatMemoryContext(memories) {
+function formatMemoryContext(memories) {
   const bullets = memories.map((m) => `- ${m.fact}`).join("\n");
   return MEMORY_CONTEXT_TEMPLATE.replace("{memories}", bullets);
 }

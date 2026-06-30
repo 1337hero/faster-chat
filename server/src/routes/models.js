@@ -8,13 +8,6 @@ import { validateProviderBaseUrl } from "../lib/ssrf.js";
 import { ensureSession, requireRole } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 
-const debug = process.env.NODE_ENV !== "production";
-const debugLog = (...args) => {
-  if (debug) {
-    console.log(...args);
-  }
-};
-
 async function processOllamaPullLine(line, stream) {
   if (!line.trim()) {
     return true;
@@ -217,16 +210,12 @@ adminModelsRouter.post(
     return streamSSE(c, async (stream) => {
       try {
         const pullUrl = `${ollamaBaseUrl}/api/pull`;
-        debugLog(`Starting pull for model: ${modelName}`);
-        debugLog(`URL: ${pullUrl}`);
 
         const response = await fetch(pullUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: modelName, stream: true }),
         });
-
-        debugLog(`Response status: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -243,24 +232,14 @@ adminModelsRouter.post(
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
-        let chunkCount = 0;
-
-        debugLog("Starting to read stream...");
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            debugLog(`Stream done after ${chunkCount} chunks`);
             break;
           }
 
-          chunkCount++;
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
-
-          if (chunkCount <= 3) {
-            debugLog(`Chunk ${chunkCount}: ${chunk.substring(0, 200)}`);
-          }
+          buffer += decoder.decode(value, { stream: true });
 
           const lines = buffer.split("\n");
 
@@ -275,13 +254,11 @@ adminModelsRouter.post(
         }
 
         if (buffer.trim()) {
-          debugLog(`Processing final buffer: ${buffer.substring(0, 100)}`);
           if (!(await processOllamaPullLine(buffer, stream))) {
             return;
           }
         }
 
-        debugLog("Sending completed event");
         await stream.writeSSE({ data: JSON.stringify({ status: "completed" }) });
       } catch (error) {
         console.error("Ollama pull error:", error);

@@ -254,17 +254,3 @@ export function getAvailableProviders() {
 export function getProvider(id) {
   return PROVIDERS[id];
 }
-
-/**
- * Get official (native SDK) providers
- */
-export function getOfficialProviders() {
-  return Object.values(PROVIDERS).filter((p) => p.type === "official");
-}
-
-/**
- * Get OpenAI-compatible providers
- */
-export function getOpenAICompatibleProviders() {
-  return Object.values(PROVIDERS).filter((p) => p.type === "openai-compatible");
-}
