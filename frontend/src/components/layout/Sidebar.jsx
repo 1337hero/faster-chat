@@ -162,7 +162,11 @@ const ChatItem = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              isPinned ? onUnpin(chat.id) : onPin(chat.id);
+              if (isPinned) {
+                onUnpin(chat.id);
+              } else {
+                onPin(chat.id);
+              }
             }}
             className={`ease-snappy translate-x-2 transform-gpu rounded-md p-1 opacity-0 transition-all duration-75 group-hover:translate-x-0 group-hover:opacity-100 ${
               isActive
@@ -224,11 +228,17 @@ const NewFolderInput = ({ onCreate, onCancel, isCreating }) => {
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
-          if (e.key === "Escape") onCancel();
+          if (e.key === "Enter") {
+            handleSubmit();
+          }
+          if (e.key === "Escape") {
+            onCancel();
+          }
         }}
         onBlur={() => {
-          if (!name.trim()) onCancel();
+          if (!name.trim()) {
+            onCancel();
+          }
         }}
         placeholder="Folder name..."
         autoFocus
@@ -405,7 +415,9 @@ const Sidebar = () => {
   };
 
   const handleDeleteConfirm = () => {
-    if (!deleteConfirm) return;
+    if (!deleteConfirm) {
+      return;
+    }
     handleDeleteChat({ preventDefault: () => {}, stopPropagation: () => {} }, deleteConfirm);
     setDeleteConfirm(null);
   };
@@ -426,7 +438,9 @@ const Sidebar = () => {
   };
 
   const handleRenameSubmit = async (chatId) => {
-    if (!renaming) return;
+    if (!renaming) {
+      return;
+    }
 
     const trimmedValue = renaming.value.trim();
     const originalChat = chats?.find((c) => c.id === chatId);
@@ -439,7 +453,7 @@ const Sidebar = () => {
     }
   };
 
-  const handleRenameKeyDown = (e, chatId) => {
+  const handleRenameKeyDown = (e) => {
     if (e.key === "Enter") {
       e.target.blur();
     } else if (e.key === "Escape") {
@@ -460,7 +474,9 @@ const Sidebar = () => {
 
   const handleFolderClick = (folderId) => {
     navigate({ to: `/folder/${folderId}` });
-    if (isMobile) setIsSidebarOpen(false);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
   };
 
   // On desktop: slide off-screen when collapsed

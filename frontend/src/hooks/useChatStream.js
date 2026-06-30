@@ -5,14 +5,10 @@ import { deduplicateMessages, ensureTimestamp, getMessageTimestamp } from "@/lib
 import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
 
 function trimMessageHistory(messages) {
-  const trimmed = messages.slice(-MESSAGE_CONSTANTS.MAX_HISTORY);
-  return trimmed.filter((message) => {
+  return messages.slice(-MESSAGE_CONSTANTS.MAX_HISTORY).filter((message) => {
     if (message.role !== "assistant") return true;
     if (!message.parts?.length) return false;
-    const hasText = message.parts.some(
-      (part) => part.type === "text" && part.text.trim().length > 0
-    );
-    return hasText;
+    return message.parts.some((part) => part.type === "text" && part.text.trim().length > 0);
   });
 }
 
@@ -48,7 +44,6 @@ export function useChatStream({
 
   const messageTimestampsRef = useRef(new Map());
 
-  // Messages are pre-formatted by TanStack Query select, just ensure stable timestamps
   const formattedMessages = (persistedMessages ?? []).map((msg) =>
     ensureTimestamp(msg, messageTimestampsRef)
   );
@@ -58,7 +53,6 @@ export function useChatStream({
       new DefaultChatTransport({
         api: `/api/chats/${chatId}/completion`,
         prepareSendMessagesRequest: ({ messages: outgoingMessages }) => {
-          // Convert persisted messages to transport format
           const persistedForTransport = (persistedMessagesRef.current ?? []).map((msg) => ({
             id: msg.id,
             role: msg.role,
@@ -66,15 +60,9 @@ export function useChatStream({
             fileIds: msg.fileIds || [],
           }));
 
-          // Merge persisted history with new messages from SDK
-          // SDK messages that aren't in persisted are the new ones being sent
           const persistedIds = new Set(persistedForTransport.map((m) => m.id));
           const newMessages = (outgoingMessages ?? []).filter((m) => !persistedIds.has(m.id));
-          const allMessages = [...persistedForTransport, ...newMessages];
-
-          const normalized = formatMessagesForTransport(allMessages);
-
-          // Extract fileIds from the last message (user message)
+          const normalized = formatMessagesForTransport([...persistedForTransport, ...newMessages]);
           const lastMessage = outgoingMessages?.[outgoingMessages.length - 1];
           const fileIds = lastMessage?.fileIds || [];
 
@@ -96,12 +84,14 @@ export function useChatStream({
   const {
     messages: streamingMessages,
     sendMessage,
+    regenerate,
     status,
     error,
     stop,
+    clearError,
   } = useAIChat({
     id: chatId,
-    messages: [], // SDK state starts empty; persisted messages are merged in prepareSendMessagesRequest
+    messages: [],
     transport,
     onFinish: async ({ message }) => {
       const content = message.parts
@@ -109,7 +99,6 @@ export function useChatStream({
         .map((part) => part.text)
         .join("");
 
-      // Extract tool results for persistence (sources, errors)
       const toolParts =
         message.parts?.filter((p) => p.type === "tool-invocation" && p.state === "result") || [];
       const metadata = toolParts.length > 0 ? { toolParts } : null;
@@ -127,32 +116,23 @@ export function useChatStream({
 
   const isStreaming = status === "streaming" || status === "submitted";
 
-  // Attach current model to streaming assistant messages
   const streamingMessagesWithModel = streamingMessages.map((msg) => ({
     ...ensureTimestamp(msg, messageTimestampsRef),
     model: msg.role === "assistant" ? modelRef.current : msg.model,
   }));
 
-  // Merge persisted messages from server with any actively streaming message
   const messages = isStreaming
     ? deduplicateMessages([...formattedMessages, ...streamingMessagesWithModel])
     : formattedMessages;
 
   async function send({ id, content, fileIds = [], createdAt }) {
-    const messageId = id || crypto.randomUUID();
-    const timestamp = createdAt ?? Date.now();
-
     const message = {
-      id: messageId,
+      id: id || crypto.randomUUID(),
       role: "user",
       parts: [{ type: "text", text: content }],
-      createdAt: timestamp,
+      createdAt: createdAt ?? Date.now(),
     };
-
-    if (fileIds.length > 0) {
-      message.fileIds = fileIds;
-    }
-
+    if (fileIds.length > 0) message.fileIds = fileIds;
     messageTimestampsRef.current.set(message.id, message.createdAt);
     await sendMessage(message);
   }
@@ -160,9 +140,11 @@ export function useChatStream({
   return {
     messages,
     send,
+    reload: regenerate,
     stop,
     status,
     error,
+    clearError,
     isStreaming,
   };
 }

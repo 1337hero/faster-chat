@@ -1,12 +1,6 @@
 import { describe, test, expect, beforeAll } from "bun:test";
 import { Hono } from "hono";
-import {
-  createTestApp,
-  resetDatabase,
-  seedAdminUser,
-  seedMemberUser,
-  makeRequest,
-} from "./helpers.js";
+import { createTestApp, resetDatabase, seedAdminUser, seedMemberUser } from "./helpers.js";
 import { ensureSession, requireRole, optionalAuth } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { getClientIP } from "../lib/requestUtils.js";

@@ -21,7 +21,9 @@ const TOOL_STATUS = {
 
 export default function SearchStatus({ toolName, args }) {
   const config = TOOL_STATUS[toolName];
-  if (!config) return null;
+  if (!config) {
+    return null;
+  }
 
   const Icon = config.Icon;
   const label = config.getLabel ? config.getLabel(args) : config.label;

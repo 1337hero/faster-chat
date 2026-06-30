@@ -10,6 +10,8 @@ export default function MessageAttachment({ fileId }) {
   } = useQuery({
     queryKey: ["file", fileId],
     queryFn: () => apiFetch(`/api/files/${fileId}`),
+    staleTime: Infinity,
+    gcTime: Infinity,
   });
 
   const handleDownload = () => {

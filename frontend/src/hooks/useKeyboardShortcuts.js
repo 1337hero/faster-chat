@@ -24,7 +24,11 @@ export function useKeyboardShortcuts() {
       // Toggle sidebar - Ctrl+B
       if (getShortcut("toggleSidebar").check(e)) {
         e.preventDefault();
-        isMobile ? toggleSidebar() : toggleSidebarCollapse();
+        if (isMobile) {
+          toggleSidebar();
+        } else {
+          toggleSidebarCollapse();
+        }
         return;
       }
 

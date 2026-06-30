@@ -36,13 +36,17 @@ export function useSpeechRecognition({ onResult, onError, language, currentState
   const recognitionRef = useRef(null);
 
   const initRecognition = () => {
-    if (recognitionRef.current) return recognitionRef.current;
+    if (recognitionRef.current) {
+      return recognitionRef.current;
+    }
 
     const recognition = createRecognitionInstance(language);
 
     recognition.onresult = (event) => {
       const transcripts = parseRecognitionResults(event);
-      if (onResult) onResult(transcripts);
+      if (onResult) {
+        onResult(transcripts);
+      }
     };
 
     recognition.onerror = (event) => {
@@ -73,7 +77,9 @@ export function useSpeechRecognition({ onResult, onError, language, currentState
       recognition.start();
     } catch (err) {
       console.error("[useSpeechRecognition] Failed to start:", err);
-      if (onError) onError(ERROR_MESSAGES.MICROPHONE_START_FAILED);
+      if (onError) {
+        onError(ERROR_MESSAGES.MICROPHONE_START_FAILED);
+      }
     }
   };
 

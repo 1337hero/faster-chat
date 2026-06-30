@@ -17,7 +17,9 @@ export function IndexRouteGuard() {
   const hasStartedNavigation = useRef(false);
 
   useEffect(() => {
-    if (!user || isLoading || hasStartedNavigation.current) return;
+    if (!user || isLoading || hasStartedNavigation.current) {
+      return;
+    }
     hasStartedNavigation.current = true;
 
     const hasSeenOnboarding = hasSeenAdminConnectionsOnboarding(user.id);

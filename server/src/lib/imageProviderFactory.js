@@ -31,7 +31,9 @@ async function generateWithReplicate(apiKey, options) {
 
 function parseDataUrl(url) {
   const match = /^data:(?<mime>image\/[\w.+-]+)?;base64,(?<data>.+)$/i.exec(url || "");
-  if (!match || !match.groups?.data) return null;
+  if (!match || !match.groups?.data) {
+    return null;
+  }
   return {
     buffer: Buffer.from(match.groups.data, "base64"),
     mimeType: match.groups.mime || "image/png",
@@ -42,7 +44,9 @@ async function imageUrlToBuffer(url) {
   // Data URL
   if (url?.startsWith("data:")) {
     const parsed = parseDataUrl(url);
-    if (!parsed) throw new Error("Invalid data URL from OpenRouter");
+    if (!parsed) {
+      throw new Error("Invalid data URL from OpenRouter");
+    }
     return { buffer: parsed.buffer, mimeType: parsed.mimeType, sourceUrl: url };
   }
 
@@ -73,7 +77,9 @@ async function generateWithOpenRouter(apiKey, options) {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || "OpenRouter generation failed");
+  if (!response.ok) {
+    throw new Error(data.error?.message || "OpenRouter generation failed");
+  }
 
   const message = data.choices?.[0]?.message;
   let imageCandidate = message?.images?.[0];
@@ -144,10 +150,14 @@ async function generateWithOpenAI(apiKey, options) {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || "OpenAI generation failed");
+  if (!response.ok) {
+    throw new Error(data.error?.message || "OpenAI generation failed");
+  }
 
   const base64Data = data.data[0]?.b64_json;
-  if (!base64Data) throw new Error("No image in response");
+  if (!base64Data) {
+    throw new Error("No image in response");
+  }
 
   const buffer = Buffer.from(base64Data, "base64");
   return { buffer, mimeType: "image/png" };

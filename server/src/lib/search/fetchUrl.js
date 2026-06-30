@@ -1,6 +1,7 @@
-import dns from "node:dns/promises";
+import net from "node:net";
 import { parse } from "node-html-parser";
 import { WEB_SEARCH_CONSTANTS, SEARCH_ERROR_CODES } from "@faster-chat/shared";
+import { validatePublicFetchUrl } from "../ssrf.js";
 
 const { MAX_CONTENT_LENGTH, FETCH_TIMEOUT_MS } = WEB_SEARCH_CONSTANTS;
 const { SSRF_BLOCKED, FETCH_FAILED } = SEARCH_ERROR_CODES;
@@ -24,67 +25,6 @@ const STRIP_SELECTORS = [
 
 const CONTENT_SELECTORS = ["article", "main", "[role='main']", "body"];
 
-// --- SSRF protection ---
-
-function isPrivateIPv4(ip) {
-  const parts = ip.split(".").map(Number);
-  if (parts.length !== 4) return true;
-  const [a, b] = parts;
-  return (
-    a === 127 || // 127.0.0.0/8
-    a === 10 || // 10.0.0.0/8
-    (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
-    (a === 192 && b === 168) || // 192.168.0.0/16
-    (a === 169 && b === 254) || // 169.254.0.0/16
-    a === 0 // 0.0.0.0/8
-  );
-}
-
-function isPrivateIPv6(ip) {
-  const lower = ip.toLowerCase();
-  return (
-    lower === "::1" || lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80")
-  );
-}
-
-function isPrivateIP(ip) {
-  return ip.includes(":") ? isPrivateIPv6(ip) : isPrivateIPv4(ip);
-}
-
-async function validateUrl(urlString) {
-  let parsed;
-  try {
-    parsed = new URL(urlString);
-  } catch {
-    return { error: "Invalid URL", code: SSRF_BLOCKED };
-  }
-
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return { error: "URL blocked for security reasons", code: SSRF_BLOCKED };
-  }
-
-  const hostname = parsed.hostname;
-
-  try {
-    const results = await Promise.allSettled([dns.resolve4(hostname), dns.resolve6(hostname)]);
-
-    const ips = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
-
-    if (ips.length === 0) {
-      return { error: "Could not resolve hostname", code: FETCH_FAILED };
-    }
-
-    const blocked = ips.find(isPrivateIP);
-    if (blocked) {
-      return { error: "URL blocked for security reasons", code: SSRF_BLOCKED };
-    }
-  } catch {
-    return { error: "DNS resolution failed", code: FETCH_FAILED };
-  }
-
-  return { valid: true, url: parsed.href };
-}
-
 // --- HTML extraction ---
 
 function extractContent(html) {
@@ -100,7 +40,9 @@ function extractContent(html) {
   let contentNode;
   for (const sel of CONTENT_SELECTORS) {
     contentNode = root.querySelector(sel);
-    if (contentNode) break;
+    if (contentNode) {
+      break;
+    }
   }
 
   const rawText = (contentNode || root).textContent;
@@ -117,21 +59,32 @@ function extractContent(html) {
   };
 }
 
+// Connect to the IP the SSRF guard validated (not a fresh DNS lookup), while
+// keeping the original host for SNI and the Host header so TLS/vhosts still work.
+function pinnedFetch(validated) {
+  const u = new URL(validated.url);
+  const ipHost = net.isIP(validated.address) === 6 ? `[${validated.address}]` : validated.address;
+  const port = u.port ? `:${u.port}` : "";
+  const pinnedUrl = `${u.protocol}//${ipHost}${port}${u.pathname}${u.search}`;
+  return fetch(pinnedUrl, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    headers: { "User-Agent": USER_AGENT, Host: u.host },
+    tls: { serverName: u.hostname },
+  });
+}
+
 // --- Main export ---
 
 export async function fetchAndExtract(url) {
-  const validation = await validateUrl(url);
-  if (!validation.valid) return validation;
-
-  let currentUrl = validation.url;
+  let validated = await validatePublicFetchUrl(url, { SSRF_BLOCKED, FETCH_FAILED });
+  if (!validated.valid) {
+    return validated;
+  }
 
   try {
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const res = await fetch(currentUrl, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { "User-Agent": USER_AGENT },
-      });
+      const res = await pinnedFetch(validated);
 
       if (res.status >= 300 && res.status < 400) {
         const location = res.headers.get("location");
@@ -139,11 +92,11 @@ export async function fetchAndExtract(url) {
           return { error: "Redirect with no Location header", code: FETCH_FAILED };
         }
 
-        const next = new URL(location, currentUrl).href;
-        const redirectCheck = await validateUrl(next);
-        if (!redirectCheck.valid) return redirectCheck;
-
-        currentUrl = redirectCheck.url;
+        const next = new URL(location, validated.url).href;
+        validated = await validatePublicFetchUrl(next, { SSRF_BLOCKED, FETCH_FAILED });
+        if (!validated.valid) {
+          return validated;
+        }
         continue;
       }
 
@@ -153,7 +106,7 @@ export async function fetchAndExtract(url) {
 
       const html = await res.text();
       const extracted = extractContent(html);
-      return { ...extracted, url: currentUrl };
+      return { ...extracted, url: validated.url };
     }
 
     return { error: "Too many redirects", code: FETCH_FAILED };

@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, GitBranch } from "lucide-preact";
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 
 /**
  * Branch navigation UI showing current branch and allowing switching between branches
@@ -10,20 +10,13 @@ import { useEffect, useState } from "preact/hooks";
  * @param {number} props.currentBranchIndex - Current active branch index
  * @param {function} props.onBranchChange - Callback when user switches branch (branchId) => void
  */
-export function BranchNavigator({
-  chatId,
-  messageId,
-  branches = [],
-  currentBranchIndex = 0,
-  onBranchChange,
-}) {
+export function BranchNavigator({ branches = [], currentBranchIndex = 0, onBranchChange }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!branches || branches.length <= 1) {
     return null; // Don't show if there's only one branch
   }
 
-  const currentBranch = branches[currentBranchIndex];
   const totalBranches = branches.length;
 
   const handlePrevious = () => {

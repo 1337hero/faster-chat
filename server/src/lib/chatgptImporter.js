@@ -32,7 +32,9 @@ function parseConversation(conv) {
   const { id, title, create_time, update_time, mapping } = conv;
   const messages = extractMessagesFromMapping(mapping);
 
-  if (messages.length === 0) return null;
+  if (messages.length === 0) {
+    return null;
+  }
 
   return {
     originalId: id,
@@ -48,11 +50,15 @@ function parseConversation(conv) {
  * Follows the main conversation thread (first child at each branch).
  */
 function extractMessagesFromMapping(mapping) {
-  if (!mapping) return [];
+  if (!mapping) {
+    return [];
+  }
 
   const nodes = Object.values(mapping);
   const rootNode = nodes.find((node) => !node.parent);
-  if (!rootNode) return [];
+  if (!rootNode) {
+    return [];
+  }
 
   const messages = [];
   const visited = new Set();
@@ -63,7 +69,9 @@ function extractMessagesFromMapping(mapping) {
 
     if (currentNode.message) {
       const message = extractMessage(currentNode.message);
-      if (message) messages.push(message);
+      if (message) {
+        messages.push(message);
+      }
     }
 
     // Follow first child (main thread)
@@ -75,7 +83,9 @@ function extractMessagesFromMapping(mapping) {
 }
 
 function extractMessage(messageObj) {
-  if (!messageObj?.content) return null;
+  if (!messageObj?.content) {
+    return null;
+  }
 
   const { author, create_time, content, metadata } = messageObj;
 
@@ -89,7 +99,9 @@ function extractMessage(messageObj) {
       ? content
       : "";
 
-  if (!text.trim()) return null;
+  if (!text.trim()) {
+    return null;
+  }
 
   return {
     role,
@@ -135,9 +147,13 @@ export function getImportStats(parsedConversations) {
     (stats, conv) => {
       stats.totalMessages += conv.messages.length;
       for (const msg of conv.messages) {
-        if (msg.role === "user") stats.userMessages++;
-        else if (msg.role === "assistant") stats.assistantMessages++;
-        else if (msg.role === "system") stats.systemMessages++;
+        if (msg.role === "user") {
+          stats.userMessages++;
+        } else if (msg.role === "assistant") {
+          stats.assistantMessages++;
+        } else if (msg.role === "system") {
+          stats.systemMessages++;
+        }
       }
       return stats;
     },
