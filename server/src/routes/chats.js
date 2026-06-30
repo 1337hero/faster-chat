@@ -82,7 +82,7 @@ function chatStateHandler(action, message) {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
 
-    const updated = action()(chatId, user.id);
+    const updated = action().call(dbUtils, chatId, user.id);
     if (!updated) {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
@@ -267,7 +267,7 @@ chatsRouter.post("/:chatId/messages", async (c) => {
     validated.role,
     validated.content,
     validated.model || null,
-    validated.fileIds || null,
+    validated.fileIds?.length ? validated.fileIds : null,
     validated.metadata || null
   );
 
@@ -316,7 +316,7 @@ chatsRouter.delete("/:chatId/messages/:messageId", async (c) => {
     return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
 
-  const deleted = dbUtils.deleteMessageByUser(messageId, user.id);
+  const deleted = dbUtils.deleteMessageByUser(messageId, user.id, chatId);
   if (!deleted) {
     return c.json({ error: "Message not found" }, HTTP_STATUS.NOT_FOUND);
   }

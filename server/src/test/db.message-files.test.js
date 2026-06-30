@@ -94,7 +94,8 @@ describe("message_files junction table", () => {
 
     expect(res.status).toBe(201);
     const msg = await res.json();
-    expect(msg.fileIds).toEqual([]);
+    // No associations is null on both create and read (consistent contract)
+    expect(msg.fileIds).toBeNull();
 
     // Verify no junction table entries for this message
     const stmt = db.prepare("SELECT COUNT(*) as count FROM message_files WHERE message_id = ?");
@@ -142,7 +143,7 @@ describe("message_files junction table", () => {
     const msg2 = await msg2Res.json();
 
     // Get all messages for chat
-    const dbMessages = dbUtils.getMessagesByChat(chatId);
+    const dbMessages = dbUtils.getMessagesByChatAndUser(chatId, adminUserId);
 
     const msgById = {};
     for (const m of dbMessages) {

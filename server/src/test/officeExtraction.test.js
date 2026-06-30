@@ -291,4 +291,19 @@ describe("officeExtraction", () => {
       expect(result.text).not.toContain("&amp;");
     });
   });
+
+  describe("decompression-bomb guard", () => {
+    test("rejects a high-ratio zip entry instead of inflating it", () => {
+      // 8MB of a single byte compresses to a few KB → ratio far above the cap.
+      const zip = new AdmZip();
+      zip.addFile("word/document.xml", Buffer.alloc(8 * 1024 * 1024, 65));
+      const result = extractOfficeText({
+        buffer: zip.toBuffer(),
+        filename: "bomb.docx",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      expect(result.text).toBe("");
+      expect(result.warnings.some((w) => /compression ratio/.test(w))).toBe(true);
+    });
+  });
 });

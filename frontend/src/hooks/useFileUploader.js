@@ -37,6 +37,14 @@ export function useFileUploader({ onFilesUploaded, onError } = {}) {
       return true;
     });
 
+    if (uploadable.length === 0) {
+      if (errors.length > 0) {
+        onError?.(errors.join("\n"));
+        toast.error("Upload failed", { description: errors[0] });
+      }
+      return;
+    }
+
     setUploading(true);
     setCurrentFile(uploadable.length === 1 ? uploadable[0].name : `${uploadable.length} files`);
 

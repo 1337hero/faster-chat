@@ -47,6 +47,7 @@ const ChatInterface = ({ chatId }) => {
 
   const handleModelChange = (modelId) => {
     setPreferredModel(modelId);
+    clearError();
     const newModel = (modelsData?.models || []).find((m) => m.model_id === modelId);
     if (!newModel?.metadata?.supports_tools) {
       setWebSearchEnabled(false);

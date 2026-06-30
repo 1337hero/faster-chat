@@ -33,16 +33,24 @@ const InputArea = ({
   isGenerating,
 }) => {
   const textareaRef = useRef(null);
+  const errorTimerRef = useRef(null);
   const [uploadError, setUploadError] = useState(null);
+  const showUploadError = (msg) => {
+    clearTimeout(errorTimerRef.current);
+    setUploadError(msg);
+    if (msg) {
+      errorTimerRef.current = setTimeout(
+        () => setUploadError(null),
+        FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS
+      );
+    }
+  };
   const { uploadFiles, uploading, currentFile } = useFileUploader({
     onFilesUploaded: (files) => {
       onFilesUploaded(files);
-      setUploadError(null);
+      showUploadError(null);
     },
-    onError: (msg) => {
-      setUploadError(msg);
-      setTimeout(() => setUploadError(null), FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS);
-    },
+    onError: showUploadError,
   });
   const { dragActive, handleDrag, handleDrop } = useFileDragDrop((files) => uploadFiles(files));
   const imageMode = useUiState((state) => state.imageMode);
@@ -125,7 +133,7 @@ const InputArea = ({
     }
 
     // Clear upload error (files will be cleared by parent on success)
-    setUploadError(null);
+    showUploadError(null);
   };
 
   const handleFileChange = (e) => {
@@ -148,7 +156,7 @@ const InputArea = ({
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
-      onDrop={handleDrop}>
+      onDrop={disabled || uploading ? undefined : handleDrop}>
       {dragActive && (
         <div className="bg-theme-surface/80 pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl backdrop-blur-sm">
           <div className="text-theme-primary flex items-center gap-2">

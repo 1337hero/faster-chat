@@ -11,6 +11,22 @@ const OFFICE_EXTENSIONS = { docx: "docx", xlsx: "xlsx", pptx: "pptx" };
 
 const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
+// ponytail: zip-bomb caps — per-entry size + ratio. Raise if real office files trip them.
+const MAX_ENTRY_BYTES = 50 * 1024 * 1024;
+const MAX_COMPRESSION_RATIO = 100;
+
+// Reject decompression bombs before inflating the entry into memory.
+function safeGetData(entry) {
+  const { size, compressedSize } = entry.header;
+  if (size > MAX_ENTRY_BYTES) {
+    throw new Error(`zip entry ${entry.entryName} exceeds size limit`);
+  }
+  if (compressedSize > 0 && size / compressedSize > MAX_COMPRESSION_RATIO) {
+    throw new Error(`zip entry ${entry.entryName} exceeds compression ratio limit`);
+  }
+  return entry.getData();
+}
+
 export function decodeXmlEntities(text) {
   return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (match, body) => {
     if (body[0] === "#") {
@@ -39,11 +55,11 @@ function extractDocxText(buffer) {
     const entries = new AdmZip(buffer).getEntries();
     for (const entry of entries) {
       if (entry.entryName === "word/document.xml") {
-        for (const t of extractTagText(entry.getData().toString("utf8"), "w:t")) {
+        for (const t of extractTagText(safeGetData(entry).toString("utf8"), "w:t")) {
           if (t.trim()) texts.push(t.trim());
         }
       } else if (entry.entryName.startsWith("word/header") && entry.entryName.endsWith(".xml")) {
-        for (const t of extractTagText(entry.getData().toString("utf8"), "w:t")) {
+        for (const t of extractTagText(safeGetData(entry).toString("utf8"), "w:t")) {
           if (t.trim()) texts.push(`[Header: ${t.trim()}]`);
         }
       }
@@ -68,7 +84,7 @@ function extractXlsxText(buffer) {
     let sharedStrings = [];
     const sharedStringsEntry = entries.find((e) => e.entryName === "xl/sharedStrings.xml");
     if (sharedStringsEntry) {
-      sharedStrings = extractTagText(sharedStringsEntry.getData().toString("utf8"), "t");
+      sharedStrings = extractTagText(safeGetData(sharedStringsEntry).toString("utf8"), "t");
     }
 
     // Extract from each worksheet
@@ -77,7 +93,7 @@ function extractXlsxText(buffer) {
     );
 
     for (const entry of worksheetEntries) {
-      const xmlContent = entry.getData().toString("utf8");
+      const xmlContent = safeGetData(entry).toString("utf8");
 
       // Find sheet name from the entry
       const sheetNumMatch = entry.entryName.match(/sheet(\d+)\.xml$/);
@@ -86,7 +102,7 @@ function extractXlsxText(buffer) {
       // Try to get actual sheet name from workbook
       const workbookEntry = entries.find((e) => e.entryName === "xl/workbook.xml");
       if (workbookEntry) {
-        const workbookXml = workbookEntry.getData().toString("utf8");
+        const workbookXml = safeGetData(workbookEntry).toString("utf8");
         const sheetNameRegex = new RegExp(
           `<sheet\\s+name="([^"]+)"\\s+sheetId="${sheetNumMatch ? sheetNumMatch[1] : ""}"`
         );
@@ -157,7 +173,7 @@ function extractPptxText(buffer) {
     );
 
     for (const entry of slideEntries) {
-      const xmlContent = entry.getData().toString("utf8");
+      const xmlContent = safeGetData(entry).toString("utf8");
       const slideNumMatch = entry.entryName.match(/slide(\d+)\.xml$/);
       const slideLabel = `Slide ${slideNumMatch ? slideNumMatch[1] : ""}`;
 

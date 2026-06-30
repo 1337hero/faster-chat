@@ -9,6 +9,11 @@ import { ensureSession, requireRole } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 
 const debug = process.env.NODE_ENV !== "production";
+const debugLog = (...args) => {
+  if (debug) {
+    console.log(...args);
+  }
+};
 
 async function processOllamaPullLine(line, stream) {
   if (!line.trim()) {

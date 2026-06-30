@@ -1,5 +1,5 @@
 import { extractTextContent } from "@/lib/messageUtils";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { useChatPersistence } from "./useChatPersistence";
 import { useChatStream } from "./useChatStream";
 
@@ -28,15 +28,6 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
       }
     },
   });
-
-  // Clear error when model changes
-  const modelRef = useRef(model);
-  useEffect(() => {
-    if (modelRef.current !== model) {
-      modelRef.current = model;
-      stream.clearError?.();
-    }
-  }, [model]);
 
   async function submitMessage({ content, fileIds = [] }) {
     const trimmedContent = content.trim();

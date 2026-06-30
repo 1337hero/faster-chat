@@ -196,8 +196,8 @@ filesRouter.delete("/:id", async (c) => {
   const filePath = path.join(PROJECT_ROOT, file.path);
   await deleteFileFromDisk(filePath);
 
-  // Delete from database
-  const deleted = dbUtils.deleteFile(fileId);
+  // Delete from database (scoped to owner as defense-in-depth)
+  const deleted = dbUtils.deleteFileByUser(fileId, user.id);
 
   if (!deleted) {
     return c.json(

@@ -1,3 +1,4 @@
+import net from "node:net";
 import { parse } from "node-html-parser";
 import { WEB_SEARCH_CONSTANTS, SEARCH_ERROR_CODES } from "@faster-chat/shared";
 import { validatePublicFetchUrl } from "../ssrf.js";
@@ -58,23 +59,32 @@ function extractContent(html) {
   };
 }
 
+// Connect to the IP the SSRF guard validated (not a fresh DNS lookup), while
+// keeping the original host for SNI and the Host header so TLS/vhosts still work.
+function pinnedFetch(validated) {
+  const u = new URL(validated.url);
+  const ipHost = net.isIP(validated.address) === 6 ? `[${validated.address}]` : validated.address;
+  const port = u.port ? `:${u.port}` : "";
+  const pinnedUrl = `${u.protocol}//${ipHost}${port}${u.pathname}${u.search}`;
+  return fetch(pinnedUrl, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    headers: { "User-Agent": USER_AGENT, Host: u.host },
+    tls: { serverName: u.hostname },
+  });
+}
+
 // --- Main export ---
 
 export async function fetchAndExtract(url) {
-  const validation = await validatePublicFetchUrl(url, { SSRF_BLOCKED, FETCH_FAILED });
-  if (!validation.valid) {
-    return validation;
+  let validated = await validatePublicFetchUrl(url, { SSRF_BLOCKED, FETCH_FAILED });
+  if (!validated.valid) {
+    return validated;
   }
-
-  let currentUrl = validation.url;
 
   try {
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const res = await fetch(currentUrl, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { "User-Agent": USER_AGENT },
-      });
+      const res = await pinnedFetch(validated);
 
       if (res.status >= 300 && res.status < 400) {
         const location = res.headers.get("location");
@@ -82,13 +92,11 @@ export async function fetchAndExtract(url) {
           return { error: "Redirect with no Location header", code: FETCH_FAILED };
         }
 
-        const next = new URL(location, currentUrl).href;
-        const redirectCheck = await validatePublicFetchUrl(next, { SSRF_BLOCKED, FETCH_FAILED });
-        if (!redirectCheck.valid) {
-          return redirectCheck;
+        const next = new URL(location, validated.url).href;
+        validated = await validatePublicFetchUrl(next, { SSRF_BLOCKED, FETCH_FAILED });
+        if (!validated.valid) {
+          return validated;
         }
-
-        currentUrl = redirectCheck.url;
         continue;
       }
 
@@ -98,7 +106,7 @@ export async function fetchAndExtract(url) {
 
       const html = await res.text();
       const extracted = extractContent(html);
-      return { ...extracted, url: currentUrl };
+      return { ...extracted, url: validated.url };
     }
 
     return { error: "Too many redirects", code: FETCH_FAILED };

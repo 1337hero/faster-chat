@@ -101,7 +101,7 @@ export async function validatePublicFetchUrl(url, errorCodes) {
     if (isMetadataAddress(hostname) || isPrivateAddress(hostname)) {
       return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
     }
-    return { valid: true, url: parsed.href };
+    return { valid: true, url: parsed.href, address: hostname };
   }
 
   let addresses;
@@ -122,5 +122,7 @@ export async function validatePublicFetchUrl(url, errorCodes) {
     return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
   }
 
-  return { valid: true, url: parsed.href };
+  // Return the validated address so the caller can pin the connection to it,
+  // closing the DNS-rebinding/TOCTOU gap between this check and the fetch.
+  return { valid: true, url: parsed.href, address: addresses[0].address };
 }

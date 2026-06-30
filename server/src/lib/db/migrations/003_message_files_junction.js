@@ -66,7 +66,7 @@ export const migration = {
     // Batch insert all valid junction rows
     const now = Date.now();
     const insertStmt = database.prepare(
-      "INSERT INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
+      "INSERT OR IGNORE INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
     );
 
     database.transaction(() => {

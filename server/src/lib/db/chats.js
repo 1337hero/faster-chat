@@ -197,13 +197,13 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
       `);
         stmt.run(id, chatId, userId, role, content, model, metadataJson, now);
 
-        // Insert junction rows for file associations - one per fileId
+        // Insert junction rows for file associations - one per unique fileId
         if (fileIds && fileIds.length > 0) {
           const insertStmt = db.prepare(
-            "INSERT INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
+            "INSERT INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
           );
-          for (const fileId of fileIds) {
-            insertStmt.run(id, fileId, now);
+          for (const fileId of new Set(fileIds)) {
+            insertStmt.run(crypto.randomUUID(), id, fileId, now);
           }
         }
       })();
@@ -215,8 +215,8 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
         role,
         content,
         model,
-        // Return empty array for empty fileIds, null for no associations
-        file_ids: fileIds ?? null,
+        // null when there are no associations, matching how reads return them
+        file_ids: fileIds?.length ? fileIds : null,
         metadata,
         created_at: now,
       };
@@ -229,19 +229,6 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
       parseMessageMetadata(msg);
       attachFileIds([msg]);
       return msg;
-    },
-
-    getMessagesByChat(chatId) {
-      const stmt = db.prepare(`
-      SELECT * FROM messages
-      WHERE chat_id = ?
-      ORDER BY created_at ASC
-    `);
-      const messages = stmt.all(chatId);
-      for (const msg of messages) {
-        parseMessageMetadata(msg);
-      }
-      return attachFileIds(messages);
     },
 
     getMessagesByChatAndUser(chatId, userId) {
@@ -263,9 +250,11 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
       return result.changes > 0;
     },
 
-    deleteMessageByUser(messageId, userId) {
-      const stmt = db.prepare("DELETE FROM messages WHERE id = ? AND user_id = ?");
-      const result = stmt.run(messageId, userId);
+    deleteMessageByUser(messageId, userId, chatId) {
+      const stmt = db.prepare(
+        "DELETE FROM messages WHERE id = ? AND user_id = ? AND chat_id = ?"
+      );
+      const result = stmt.run(messageId, userId, chatId);
       return result.changes > 0;
     },
 
