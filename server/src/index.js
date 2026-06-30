@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { config } from "dotenv";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { resolve } from "node:path";
@@ -11,7 +12,7 @@ config();
 
 // Import routes
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
-import { ensureSession } from "./middleware/auth.js";
+import { installRouteErrorHandler } from "./lib/errorHandler.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
@@ -28,6 +29,22 @@ import { memoryRouter } from "./routes/memory.js";
 
 const app = new Hono();
 
+installRouteErrorHandler(app);
+[
+  authRouter,
+  adminRouter,
+  providersRouter,
+  modelsRouter,
+  filesRouter,
+  chatsRouter,
+  settingsRouter,
+  versionRouter,
+  imagesRouter,
+  importRouter,
+  foldersRouter,
+  memoryRouter,
+].forEach(installRouteErrorHandler);
+
 // Security headers on all responses (before logger so they're always set)
 app.use("*", securityHeaders());
 app.use("*", logger());
@@ -43,6 +60,14 @@ app.use("/api/*", async (c, next) => {
 
 app.use(
   "/api/*",
+  bodyLimit({
+    maxSize: 50 * 1024 * 1024,
+    onError: (c) => c.json({ error: "Request body too large" }, 413),
+  })
+);
+
+app.use(
+  "/api/*",
   cors({
     origin: (origin) => {
       if (process.env.NODE_ENV === "production") {
@@ -50,7 +75,9 @@ app.use(
         return origin === allowedOrigin ? origin : null;
       }
       // Dev: allow localhost origins only — no wildcard fallback
-      if (!origin) return null;
+      if (!origin) {
+        return null;
+      }
       try {
         const url = new URL(origin);
         return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;

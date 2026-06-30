@@ -24,7 +24,7 @@ function seedProvider() {
 
 describe("model routes", () => {
   let app, adminCookie, memberCookie;
-  let providerId, enabledModelId, disabledModelId, imageModelId;
+  let providerId, enabledModelId;
 
   beforeAll(async () => {
     resetDatabase();
@@ -36,8 +36,8 @@ describe("model routes", () => {
 
     providerId = seedProvider();
     enabledModelId = dbUtils.createModel(providerId, "gpt-4", "GPT-4", true, "text");
-    disabledModelId = dbUtils.createModel(providerId, "gpt-3.5", "GPT-3.5", false, "text");
-    imageModelId = dbUtils.createModel(providerId, "dall-e-3", "DALL-E 3", true, "image");
+    dbUtils.createModel(providerId, "gpt-3.5", "GPT-3.5", false, "text");
+    dbUtils.createModel(providerId, "dall-e-3", "DALL-E 3", true, "image");
 
     dbUtils.setModelMetadata(enabledModelId, {
       context_window: 128000,

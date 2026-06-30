@@ -5,7 +5,9 @@ import { Check, Moon, Sun } from "lucide-preact";
 // Mini color swatches showing the theme's personality
 const ThemeSwatch = ({ colors, mode }) => {
   const modeColors = colors?.[mode];
-  if (!modeColors) return null;
+  if (!modeColors) {
+    return null;
+  }
 
   return (
     <div className="flex gap-0.5">
@@ -13,53 +15,6 @@ const ThemeSwatch = ({ colors, mode }) => {
       <div className="h-4 w-4" style={{ backgroundColor: modeColors.accent }} />
       <div className="h-4 w-4 rounded-r-sm" style={{ backgroundColor: modeColors.blue }} />
     </div>
-  );
-};
-
-// Theme card component
-const ThemeCard = ({ theme, isSelected, onSelect, mode }) => {
-  const colors = theme.colors?.[mode];
-
-  return (
-    <button
-      onClick={() => onSelect(theme.id)}
-      className={`group relative flex flex-col gap-2 rounded-lg border p-3 text-left transition-all duration-200 ${
-        isSelected
-          ? "border-theme-primary bg-theme-primary/10 ring-theme-primary/30 ring-2"
-          : "border-theme-surface-stronger bg-theme-surface hover:border-theme-primary/50 hover:bg-theme-surface-strong"
-      }`}>
-      {/* Theme Preview */}
-      <div
-        className="flex h-16 w-full items-end justify-between overflow-hidden rounded-md p-2"
-        style={{ backgroundColor: colors?.background }}>
-        {/* Mini chat preview */}
-        <div className="flex w-full flex-col gap-1">
-          <div
-            className="h-2 w-3/4 rounded"
-            style={{ backgroundColor: colors?.["surface-strong"] }}
-          />
-          <div className="h-2 w-1/2 rounded" style={{ backgroundColor: colors?.primary }} />
-        </div>
-      </div>
-
-      {/* Theme name and swatches */}
-      <div className="flex items-center justify-between">
-        <span
-          className={`text-sm font-medium ${
-            isSelected ? "text-theme-primary" : "text-theme-text"
-          }`}>
-          {theme.name}
-        </span>
-        <ThemeSwatch colors={theme.colors} mode={mode} />
-      </div>
-
-      {/* Selected indicator */}
-      {isSelected && (
-        <div className="bg-theme-primary absolute -top-1 -right-1 rounded-full p-0.5">
-          <Check size={12} className="text-theme-canvas-strong" />
-        </div>
-      )}
-    </button>
   );
 };
 

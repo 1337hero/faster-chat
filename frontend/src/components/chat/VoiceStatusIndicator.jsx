@@ -8,10 +8,14 @@ import { VOICE_STATE_CONFIG } from "@/constants/voiceStateConfig";
  * Clickable to open voice settings modal.
  */
 const VoiceStatusIndicator = ({ voiceControls, onOpenSettings }) => {
-  if (!voiceControls.isActive) return null;
+  if (!voiceControls.isActive) {
+    return null;
+  }
 
   const stateInfo = VOICE_STATE_CONFIG[voiceControls.currentState];
-  if (!stateInfo) return null;
+  if (!stateInfo) {
+    return null;
+  }
 
   const Icon = stateInfo.icon;
 

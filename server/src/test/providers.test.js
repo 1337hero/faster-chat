@@ -124,17 +124,10 @@ describe("provider routes", () => {
       expect(res.status).toBe(400);
     });
 
-    // Comprehensive SSRF rejection cases — POST creation
+    // openai-compatible is local-first by design; only cloud metadata services and
+    // bad schemes are hard-blocked. Loopback/private addresses are intentionally allowed.
     const REJECT_CASES = [
-      ["loopback IPv4", "http://127.0.0.1:11434"],
-      ["localhost hostname", "http://localhost:8080"],
-      ["10.0.0.0/8 private", "http://10.0.0.5/"],
-      ["192.168.0.0/16 private", "http://192.168.1.1/"],
-      ["172.16.0.0/12 private", "http://172.16.0.1/"],
       ["AWS metadata service", "http://169.254.169.254/"],
-      ["unspecified 0.0.0.0", "http://0.0.0.0/"],
-      ["IPv6 loopback ::1", "http://[::1]/"],
-      ["IPv4-mapped IPv6 loopback", "http://[::ffff:127.0.0.1]/"],
       ["non-http(s) ftp scheme", "ftp://example.com/"],
     ];
 
@@ -720,6 +713,18 @@ describe("provider routes", () => {
         expect(res.status).toBe(400);
         const data = await res.json();
         expect(data.error).toContain("Invalid base URL");
+      });
+    });
+
+    // --- Cycle 8: non-existent provider on refresh-models ---
+    describe("refresh-models", () => {
+      test("returns 404 for non-existent provider", async () => {
+        const res = await makeRequest(app, "POST", "/api/admin/providers/99999/refresh-models", {
+          cookie: adminCookie,
+        });
+        expect(res.status).toBe(404);
+        const data = await res.json();
+        expect(data.error).toBe("Provider not found");
       });
     });
   });

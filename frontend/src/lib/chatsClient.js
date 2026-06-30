@@ -12,8 +12,12 @@ const SNAKE_TO_CAMEL = {
 };
 
 function toCamelCase(obj) {
-  if (!obj || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (!obj || typeof obj !== "object") {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(toCamelCase);
+  }
 
   const transformed = {};
   for (const [key, value] of Object.entries(obj)) {

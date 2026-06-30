@@ -13,8 +13,12 @@ function sortMessagesWithUserFirst(messages) {
       bTime > 0 &&
       Math.abs(aTime - bTime) < MESSAGE_CONSTANTS.TIMESTAMP_SIMILARITY_MS
     ) {
-      if (a.role === "user" && b.role === "assistant") return -1;
-      if (a.role === "assistant" && b.role === "user") return 1;
+      if (a.role === "user" && b.role === "assistant") {
+        return -1;
+      }
+      if (a.role === "assistant" && b.role === "user") {
+        return 1;
+      }
     }
 
     return aTime - bTime;
@@ -66,7 +70,9 @@ const MessageList = ({ messages, isLoading, isGeneratingImage, status, onStop, o
   const lastAssistantId = sortedMessages.findLast((msg) => msg.role === "assistant")?.id;
   const isEmpty = messages.length === 0 && !isLoading && !isGeneratingImage;
 
-  if (isEmpty) return <EmptyState />;
+  if (isEmpty) {
+    return <EmptyState />;
+  }
 
   return (
     <div className="space-y-4" aria-live="polite">

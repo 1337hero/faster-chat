@@ -12,7 +12,9 @@ import SourceCitations, { extractSources, TOOL_ERROR_MESSAGES } from "./SourceCi
  * Returns { thinking: string[], content: string }
  */
 const parseThinkingBlocks = (text) => {
-  if (!text) return { thinking: [], content: "" };
+  if (!text) {
+    return { thinking: [], content: "" };
+  }
 
   // Handle incomplete closing tag during streaming
   let processedText = text;

@@ -2,14 +2,16 @@ import { describe, test, expect } from "bun:test";
 import {
   sanitizeFilename,
   createStoredFilename,
-  validateFileType,
   validateFileSize,
   calculateFileHash,
   validateFileAccess,
   validateFile,
-  getMimeTypeFromExtension,
   getFileExtension,
+  normalizeMimeType,
+  isGenericMimeType,
+  classifyAttachment,
 } from "../lib/fileUtils.js";
+import { FILE_CATEGORIES, FILE_STRATEGIES, FILE_DOWNLOAD_POLICIES } from "@faster-chat/shared";
 
 describe("fileUtils", () => {
   describe("sanitizeFilename", () => {
@@ -51,35 +53,6 @@ describe("fileUtils", () => {
       const id = "abc-123";
       const result = createStoredFilename(id, "photo.png");
       expect(result).toBe("abc-123_photo.png");
-    });
-  });
-
-  describe("validateFileType", () => {
-    test("accepts allowed MIME type (image/png)", () => {
-      expect(validateFileType("image/png")).toBe(true);
-    });
-
-    test("accepts allowed MIME type (application/pdf)", () => {
-      expect(validateFileType("application/pdf")).toBe(true);
-    });
-
-    test("rejects disallowed type (application/exe)", () => {
-      expect(validateFileType("application/exe")).toBe(false);
-    });
-
-    test("rejects image/svg+xml (not in allowed list)", () => {
-      expect(validateFileType("image/svg+xml")).toBe(false);
-    });
-
-    test("rejects null/undefined mimeType", () => {
-      expect(validateFileType(null)).toBe(false);
-      expect(validateFileType(undefined)).toBe(false);
-    });
-
-    test("supports wildcard patterns (image/*)", () => {
-      expect(validateFileType("image/png", ["image/*"])).toBe(true);
-      expect(validateFileType("image/jpeg", ["image/*"])).toBe(true);
-      expect(validateFileType("text/plain", ["image/*"])).toBe(false);
     });
   });
 
@@ -152,34 +125,56 @@ describe("fileUtils", () => {
   });
 
   describe("validateFile", () => {
-    test("returns { valid: true } for good file", () => {
-      expect(validateFile("image/png", 1024)).toEqual({ valid: true });
+    test("accepts valid image file", () => {
+      const result = validateFile({ mimeType: "image/png", size: 1024, filename: "photo.png" });
+      expect(result.valid).toBe(true);
+      expect(result.classification.category).toBe(FILE_CATEGORIES.IMAGE);
     });
 
-    test("returns error for bad type", () => {
-      const result = validateFile("application/exe", 1024);
+    test("rejects legacy .doc file", () => {
+      const result = validateFile({
+        mimeType: "application/msword",
+        size: 1024,
+        filename: "report.doc",
+      });
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("not allowed");
+      expect(result.classification.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
+      expect(result.classification.uploadAllowed).toBe(false);
     });
 
-    test("returns error for bad size", () => {
-      const result = validateFile("image/png", 0);
+    test("rejects unknown binary file", () => {
+      const result = validateFile({
+        mimeType: "application/octet-stream",
+        size: 1024,
+        filename: "file.bin",
+      });
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("exceeds");
-    });
-  });
-
-  describe("getMimeTypeFromExtension", () => {
-    test("maps .jpg to image/jpeg", () => {
-      expect(getMimeTypeFromExtension("photo.jpg")).toBe("image/jpeg");
+      expect(result.classification.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
     });
 
-    test("maps .pdf to application/pdf", () => {
-      expect(getMimeTypeFromExtension("doc.pdf")).toBe("application/pdf");
+    test("rejects SVG as unsafe active image content", () => {
+      const result = validateFile({ mimeType: "image/svg+xml", size: 1024, filename: "icon.svg" });
+      expect(result.valid).toBe(false);
+      expect(result.classification.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
+      expect(result.classification.overlays).toContain("unsafeActiveContent");
     });
 
-    test("returns null for unknown extension (.xyz)", () => {
-      expect(getMimeTypeFromExtension("file.xyz")).toBeNull();
+    test("accepts valid text file with parameterized MIME", () => {
+      const result = validateFile({
+        mimeType: "text/plain;charset=utf-8",
+        size: 1024,
+        filename: "data.txt",
+      });
+      expect(result.valid).toBe(true);
+      expect(result.classification.effectiveMimeType).toBe("text/plain");
+      expect(result.classification.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+    });
+
+    test("rejects when filename is missing", () => {
+      const result = validateFile({ mimeType: "application/exe", size: 1024 });
+      expect(result.valid).toBe(false);
+      expect(result.classification).toBeNull();
+      expect(result.error).toContain("Filename is required");
     });
   });
 
@@ -190,6 +185,173 @@ describe("fileUtils", () => {
 
     test("returns empty string for no extension", () => {
       expect(getFileExtension("README")).toBe("");
+    });
+  });
+
+  describe("normalizeMimeType", () => {
+    test("handles text/html with charset parameter", () => {
+      expect(normalizeMimeType("text/html;charset=utf-8")).toBe("text/html");
+    });
+
+    test("handles Text/CSV with mixed case and charset", () => {
+      expect(normalizeMimeType("Text/CSV ; Charset=UTF-8")).toBe("text/csv");
+    });
+
+    test("handles application/json with leading space", () => {
+      expect(normalizeMimeType(" application/json ")).toBe("application/json");
+    });
+
+    test("returns empty string for null", () => {
+      expect(normalizeMimeType(null)).toBe("");
+    });
+
+    test("returns empty string for undefined", () => {
+      expect(normalizeMimeType(undefined)).toBe("");
+    });
+
+    test("returns empty string for empty string", () => {
+      expect(normalizeMimeType("")).toBe("");
+    });
+
+    test("returns base MIME without parameters", () => {
+      expect(normalizeMimeType("application/pdf; length=12345")).toBe("application/pdf");
+    });
+  });
+
+  describe("isGenericMimeType", () => {
+    test("identifies empty string as generic", () => {
+      expect(isGenericMimeType("")).toBe(true);
+    });
+
+    test("identifies application/octet-stream as generic", () => {
+      expect(isGenericMimeType("application/octet-stream")).toBe(true);
+    });
+
+    test("identifies binary/octet-stream as generic", () => {
+      expect(isGenericMimeType("binary/octet-stream")).toBe(true);
+    });
+
+    test("does not identify image/png as generic", () => {
+      expect(isGenericMimeType("image/png")).toBe(false);
+    });
+
+    test("does not identify text/plain as generic", () => {
+      expect(isGenericMimeType("text/plain")).toBe(false);
+    });
+  });
+
+  describe("classifyAttachment", () => {
+    test("classifies text/html with charset as textLike + unsafe overlay", () => {
+      const result = classifyAttachment({
+        filename: "fleet.html",
+        mimeType: "text/html;charset=utf-8",
+      });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.effectiveMimeType).toBe("text/html");
+      expect(result.overlays).toContain("unsafeActiveContent");
+      expect(result.uploadAllowed).toBe(true);
+      expect(result.downloadPolicy).toBe(FILE_DOWNLOAD_POLICIES.TEXT_ATTACHMENT_ONLY);
+    });
+
+    test("classifies .csv with application/octet-stream as textLike", () => {
+      const result = classifyAttachment({
+        filename: "data.csv",
+        mimeType: "application/octet-stream",
+      });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.extension).toBe("csv");
+      expect(result.uploadAllowed).toBe(true);
+      expect(result.overlays).not.toContain("unsafeActiveContent");
+    });
+
+    test("classifies .doc with application/msword as officeLegacy", () => {
+      const result = classifyAttachment({ filename: "report.doc", mimeType: "application/msword" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
+      expect(result.uploadAllowed).toBe(false);
+      expect(result.defaultStrategy).toBe(FILE_STRATEGIES.REJECT);
+    });
+
+    test("classifies unknown binary file as unknownBinary", () => {
+      const result = classifyAttachment({
+        filename: "file.bin",
+        mimeType: "application/octet-stream",
+      });
+      expect(result.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
+      expect(result.uploadAllowed).toBe(false);
+    });
+
+    test("classifies image/jpeg correctly", () => {
+      const result = classifyAttachment({ filename: "photo.jpg", mimeType: "image/jpeg" });
+      expect(result.category).toBe(FILE_CATEGORIES.IMAGE);
+      expect(result.uploadAllowed).toBe(true);
+      expect(result.defaultStrategy).toBe(FILE_STRATEGIES.NATIVE_IMAGE);
+    });
+
+    test("classifies application/pdf correctly", () => {
+      const result = classifyAttachment({ filename: "document.pdf", mimeType: "application/pdf" });
+      expect(result.category).toBe(FILE_CATEGORIES.PDF);
+      expect(result.uploadAllowed).toBe(true);
+      expect(result.defaultStrategy).toBe(FILE_STRATEGIES.NATIVE_PDF);
+    });
+
+    test("classifies .md as textLike", () => {
+      const result = classifyAttachment({ filename: "readme.md", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.extension).toBe("md");
+    });
+
+    test("classifies .jsonl as textLike", () => {
+      const result = classifyAttachment({ filename: "data.jsonl", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.extension).toBe("jsonl");
+    });
+
+    test("classifies .log as textLike", () => {
+      const result = classifyAttachment({ filename: "app.log", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+    });
+
+    test("classifies .yaml as textLike", () => {
+      const result = classifyAttachment({ filename: "config.yaml", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+    });
+
+    test("classifies .htm as unsafeActiveContent", () => {
+      const result = classifyAttachment({ filename: "page.htm", mimeType: "text/html" });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.overlays).toContain("unsafeActiveContent");
+    });
+
+    test("classifies .js as unsafeActiveContent", () => {
+      const result = classifyAttachment({
+        filename: "script.js",
+        mimeType: "application/javascript",
+      });
+      expect(result.category).toBe(FILE_CATEGORIES.TEXT_LIKE);
+      expect(result.overlays).toContain("unsafeActiveContent");
+    });
+
+    test("classifies .svg as unknown binary + unsafeActiveContent overlay", () => {
+      const result = classifyAttachment({ filename: "icon.svg", mimeType: "image/svg+xml" });
+      expect(result.category).toBe(FILE_CATEGORIES.UNKNOWN_BINARY);
+      expect(result.effectiveMimeType).toBe("image/svg+xml");
+      expect(result.overlays).toContain("unsafeActiveContent");
+    });
+
+    test("classifies .docx as officeModern", () => {
+      const result = classifyAttachment({ filename: "report.docx", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+      expect(result.uploadAllowed).toBe(true);
+    });
+
+    test("classifies .xlsx as officeModern", () => {
+      const result = classifyAttachment({ filename: "sheet.xlsx", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies .pptx as officeModern", () => {
+      const result = classifyAttachment({ filename: "slides.pptx", mimeType: "" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
     });
   });
 });

@@ -46,7 +46,9 @@
       "Bash(git:*)",
       "Skill(plan_w_team)",
       "WebFetch(domain:ai-sdk.dev)",
-      "Bash(do:*)"
+      "Bash(do:*)",
+      "Bash(git bundle *)",
+      "Bash(git tag *)"
     ],
     "deny": [],
     "ask": []
