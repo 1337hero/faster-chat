@@ -1,8 +1,9 @@
 import { useState } from "preact/hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminClient } from "@/lib/adminClient";
-import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/Modal";
+import ModalActions from "@/components/ui/ModalActions";
+import FormError from "@/components/ui/FormError";
 
 const DeleteUserModal = ({ user, isOpen, onClose }) => {
   const [error, setError] = useState("");
@@ -43,22 +44,17 @@ const DeleteUserModal = ({ user, isOpen, onClose }) => {
           </ul>
         </div>
 
-        {error && (
-          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
-        )}
+        <FormError error={error} />
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" plain onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            color="red"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}>
-            {deleteMutation.isPending ? "Deleting..." : "Delete User"}
-          </Button>
-        </div>
+        <ModalActions
+          onCancel={onClose}
+          onSubmit={handleDelete}
+          submitType="button"
+          color="red"
+          pending={deleteMutation.isPending}
+          label="Delete User"
+          pendingLabel="Deleting..."
+        />
       </div>
     </Modal>
   );

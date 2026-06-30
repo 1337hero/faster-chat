@@ -1,8 +1,9 @@
 import { useState } from "preact/hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { providersClient } from "@/lib/providersClient";
-import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/Modal";
+import ModalActions from "@/components/ui/ModalActions";
+import FormError from "@/components/ui/FormError";
 
 const EditProviderModal = ({ provider, onClose }) => {
   const queryClient = useQueryClient();
@@ -78,18 +79,14 @@ const EditProviderModal = ({ provider, onClose }) => {
           />
         </div>
 
-        {error && (
-          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
-        )}
+        <FormError error={error} />
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" plain onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" color="blue" disabled={updateMutation.isPending}>
-            {updateMutation.isPending ? "Saving..." : "Save"}
-          </Button>
-        </div>
+        <ModalActions
+          onCancel={onClose}
+          pending={updateMutation.isPending}
+          label="Save"
+          pendingLabel="Saving..."
+        />
       </form>
     </Modal>
   );

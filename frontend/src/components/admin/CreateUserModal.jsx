@@ -1,8 +1,10 @@
 import { useState } from "preact/hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminClient } from "@/lib/adminClient";
-import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/Modal";
+import ModalActions from "@/components/ui/ModalActions";
+import FormError from "@/components/ui/FormError";
+import RoleSelect from "@/components/admin/RoleSelect";
 
 const CreateUserModal = ({ isOpen, onClose }) => {
   const [username, setUsername] = useState("");
@@ -83,29 +85,17 @@ const CreateUserModal = ({ isOpen, onClose }) => {
           <label htmlFor="create-user-role" className="text-theme-text block text-sm font-medium">
             Role
           </label>
-          <select
-            id="create-user-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="border-theme-surface-strong bg-theme-canvas text-theme-text focus:border-theme-blue mt-1 w-full rounded-lg border px-4 py-2 focus:outline-none">
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
-            <option value="readonly">Read Only</option>
-          </select>
+          <RoleSelect id="create-user-role" value={role} onChange={setRole} />
         </div>
 
-        {error && (
-          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
-        )}
+        <FormError error={error} />
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" plain onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" color="blue" disabled={createMutation.isPending}>
-            {createMutation.isPending ? "Creating..." : "Create User"}
-          </Button>
-        </div>
+        <ModalActions
+          onCancel={onClose}
+          pending={createMutation.isPending}
+          label="Create User"
+          pendingLabel="Creating..."
+        />
       </form>
     </Modal>
   );

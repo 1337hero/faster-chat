@@ -1,5 +1,5 @@
 import { IMAGE_GENERATION } from "@faster-chat/shared";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 
 async function generateImage({
@@ -12,10 +12,6 @@ async function generateImage({
     method: "POST",
     body: JSON.stringify({ prompt, aspectRatio, chatId, modelId: model }),
   });
-}
-
-async function fetchImageStatus() {
-  return apiFetch("/api/images/status");
 }
 
 export function useImageGeneration({ onSuccess, onError } = {}) {
@@ -33,12 +29,4 @@ export function useImageGeneration({ onSuccess, onError } = {}) {
     data: mutation.data,
     reset: mutation.reset,
   };
-}
-
-export function useImageStatus() {
-  return useQuery({
-    queryKey: ["image-status"],
-    queryFn: fetchImageStatus,
-    staleTime: 5 * 60 * 1000,
-  });
 }

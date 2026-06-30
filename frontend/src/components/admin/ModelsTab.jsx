@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Server,
@@ -26,7 +26,6 @@ const ModelsTab = () => {
   const [expandedProviders, setExpandedProviders] = useState({});
   const [editingModelId, setEditingModelId] = useState(null);
   const [editingName, setEditingName] = useState("");
-  const inputRef = useRef(null);
   const [bulkPendingProviderId, setBulkPendingProviderId] = useState(null);
   const [pullModalOpen, setPullModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -110,14 +109,6 @@ const ModelsTab = () => {
       setEditingName("");
     },
   });
-
-  // Focus input when editing starts
-  useEffect(() => {
-    if (editingModelId && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editingModelId]);
 
   const startEditing = (model) => {
     setEditingModelId(model.id);
@@ -315,7 +306,10 @@ const ModelsTab = () => {
                               {editingModelId === model.id ? (
                                 <div className="flex items-center gap-2">
                                   <input
-                                    ref={inputRef}
+                                    ref={(el) => {
+                                      el?.focus();
+                                      el?.select();
+                                    }}
                                     type="text"
                                     value={editingName}
                                     onChange={(e) => setEditingName(e.target.value)}

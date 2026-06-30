@@ -1,8 +1,9 @@
 import { useState } from "preact/hooks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminClient } from "@/lib/adminClient";
-import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/Modal";
+import ModalActions from "@/components/ui/ModalActions";
+import FormError from "@/components/ui/FormError";
 
 const ResetPasswordModal = ({ user, isOpen, onClose }) => {
   const [password, setPassword] = useState("");
@@ -83,18 +84,15 @@ const ResetPasswordModal = ({ user, isOpen, onClose }) => {
           </p>
         </div>
 
-        {error && (
-          <div className="bg-theme-red/10 text-theme-red rounded-lg px-4 py-3 text-sm">{error}</div>
-        )}
+        <FormError error={error} />
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" plain onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" color="orange" disabled={resetMutation.isPending}>
-            {resetMutation.isPending ? "Resetting..." : "Reset Password"}
-          </Button>
-        </div>
+        <ModalActions
+          onCancel={onClose}
+          color="orange"
+          pending={resetMutation.isPending}
+          label="Reset Password"
+          pendingLabel="Resetting..."
+        />
       </form>
     </Modal>
   );

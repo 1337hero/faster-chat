@@ -192,23 +192,6 @@ export function useCreateMessageMutation() {
   });
 }
 
-export function useDeleteMessageMutation() {
-  const queryClient = useQueryClient();
-  const userId = useAuthState((state) => state.user?.id ?? null);
-
-  return useMutation({
-    mutationFn: ({ chatId, messageId }) => chatsClient.deleteMessage(chatId, messageId),
-    onSuccess: (_, { chatId, messageId }) => {
-      queryClient.setQueryData(chatKeys.messages(userId, chatId), (old) => {
-        if (!old) {
-          return old;
-        }
-        return old.filter((msg) => msg.id !== messageId);
-      });
-    },
-  });
-}
-
 export function usePinChatMutation() {
   const queryClient = useQueryClient();
   const userId = useAuthState((state) => state.user?.id ?? null);
@@ -294,18 +277,6 @@ export function useArchiveChatMutation() {
         queryClient.setQueryData(chatKeys.list(userId), context.previousChats);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
-    },
-  });
-}
-
-export function useUnarchiveChatMutation() {
-  const queryClient = useQueryClient();
-  const userId = useAuthState((state) => state.user?.id ?? null);
-
-  return useMutation({
-    mutationFn: (chatId) => chatsClient.unarchiveChat(chatId),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: chatKeys.list(userId) });
     },

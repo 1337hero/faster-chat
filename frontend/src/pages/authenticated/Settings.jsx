@@ -105,22 +105,6 @@ const Settings = () => {
               ))}
             </div>
           </div>
-
-          {/* Notifications (Placeholder) */}
-          <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
-            <h2 className="text-theme-text text-lg font-semibold">Notifications</h2>
-            <p className="text-theme-text-muted mt-2 text-sm">
-              Notification preferences - Coming soon
-            </p>
-          </div>
-
-          {/* Privacy (Placeholder) */}
-          <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
-            <h2 className="text-theme-text text-lg font-semibold">Privacy & Security</h2>
-            <p className="text-theme-text-muted mt-2 text-sm">
-              Security settings and privacy controls - Coming soon
-            </p>
-          </div>
         </div>
       </div>
     </div>

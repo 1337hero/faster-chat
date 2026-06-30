@@ -30,7 +30,6 @@ const ChatInterface = ({ chatId }) => {
   const imageMode = useUiState((state) => state.imageMode);
   const preferredImageModel = useUiState((state) => state.preferredImageModel);
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
-  const autoScroll = useUiState((state) => state.autoScroll);
   const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
   const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
@@ -142,9 +141,9 @@ const ChatInterface = ({ chatId }) => {
   }
 
   useLayoutEffect(() => {
-    if (!scrollContainerRef.current || !autoScroll) return;
+    if (!scrollContainerRef.current) return;
     scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-  }, [messages.length, autoScroll]);
+  }, [messages.length]);
 
   return (
     <div className="bg-theme-canvas relative z-0 flex h-full flex-1 flex-col">

@@ -1,4 +1,3 @@
-import { createPortal } from "preact/compat";
 import { useFolders } from "@/hooks/useFolders";
 import { toast } from "sonner";
 import { Folder, FolderMinus, Loader2 } from "lucide-preact";
@@ -21,7 +20,7 @@ const MoveToFolderModal = ({ chat, onClose }) => {
   const currentFolderId = chat.folder_id || chat.folderId;
   const currentFolder = currentFolderId ? folders.find((f) => f.id === currentFolderId) : null;
 
-  return createPortal(
+  return (
     <Modal isOpen={true} onClose={onClose} title="Move to Folder">
       <p className="text-theme-text-muted mb-3 truncate text-sm">{chat.title || "Untitled Chat"}</p>
 
@@ -88,8 +87,7 @@ const MoveToFolderModal = ({ chat, onClose }) => {
           <span className="text-theme-text-muted">Moving...</span>
         </div>
       )}
-    </Modal>,
-    document.body
+    </Modal>
   );
 };
 

@@ -8,7 +8,7 @@ import {
 } from "@faster-chat/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { providersClient } from "@/lib/providersClient";
-import { Button } from "@/components/ui/button";
+import ModalActions from "@/components/ui/ModalActions";
 import Modal from "@/components/ui/Modal";
 import ProviderBadge from "@/components/ui/ProviderBadge";
 
@@ -36,7 +36,6 @@ const AddProviderModal = ({ isOpen, onClose }) => {
     ? availableProviders.filter(
         (p) =>
           (p.name || p.displayName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (p.displayName || p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (p.description || "").toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -349,14 +348,12 @@ const AddProviderModal = ({ isOpen, onClose }) => {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" plain onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" color="blue" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Adding..." : "Add & Fetch Models"}
-              </Button>
-            </div>
+            <ModalActions
+              onCancel={onClose}
+              pending={createMutation.isPending}
+              label="Add & Fetch Models"
+              pendingLabel="Adding..."
+            />
           </>
         )}
       </form>

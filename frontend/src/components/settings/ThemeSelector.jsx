@@ -2,22 +2,6 @@ import { useThemeStore } from "@/state/useThemeStore";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Moon, Sun } from "lucide-preact";
 
-// Mini color swatches showing the theme's personality
-const ThemeSwatch = ({ colors, mode }) => {
-  const modeColors = colors?.[mode];
-  if (!modeColors) {
-    return null;
-  }
-
-  return (
-    <div className="flex gap-0.5">
-      <div className="h-4 w-4 rounded-l-sm" style={{ backgroundColor: modeColors.primary }} />
-      <div className="h-4 w-4" style={{ backgroundColor: modeColors.accent }} />
-      <div className="h-4 w-4 rounded-r-sm" style={{ backgroundColor: modeColors.blue }} />
-    </div>
-  );
-};
-
 // Mode toggle button
 const ModeToggle = ({ mode, setMode }) => {
   const modes = [
@@ -45,13 +29,7 @@ const ModeToggle = ({ mode, setMode }) => {
 };
 
 export const ThemeSelector = () => {
-  const { themeId, mode, availableThemes, currentTheme, setTheme, setMode } = useThemeStore();
-
-  // Build theme objects with their data for display
-  const themesWithData = availableThemes.map((t) => ({
-    ...t,
-    colors: currentTheme?.id === t.id ? currentTheme.colors : null,
-  }));
+  const { themeId, mode, availableThemes, setTheme, setMode } = useThemeStore();
 
   return (
     <div className="space-y-6">
@@ -65,7 +43,7 @@ export const ThemeSelector = () => {
       <div>
         <label className="text-theme-text-muted mb-3 block text-sm font-medium">Color Theme</label>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {themesWithData.map((theme) => (
+          {availableThemes.map((theme) => (
             <ThemeCardWithData
               key={theme.id}
               themeId={theme.id}

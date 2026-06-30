@@ -7,8 +7,6 @@ export const useAuthState = create((set) => ({
   isLoading: true,
   error: null,
 
-  setUser: (user) => set({ user, error: null }),
-  setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
 
   checkSession: async () => {

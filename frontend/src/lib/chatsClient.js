@@ -71,12 +71,6 @@ export const chatsClient = {
     });
   },
 
-  async deleteMessage(chatId, messageId) {
-    return chatsFetch(`/${chatId}/messages/${messageId}`, {
-      method: "DELETE",
-    });
-  },
-
   async pinChat(chatId) {
     return chatsFetch(`/${chatId}/pin`, {
       method: "POST",
@@ -92,12 +86,6 @@ export const chatsClient = {
   async archiveChat(chatId) {
     return chatsFetch(`/${chatId}/archive`, {
       method: "POST",
-    });
-  },
-
-  async unarchiveChat(chatId) {
-    return chatsFetch(`/${chatId}/archive`, {
-      method: "DELETE",
     });
   },
 };

@@ -145,7 +145,7 @@ const CustomizeTab = () => {
             </Button>
 
             {hasUnsavedChanges && (
-              <Button onClick={handleReset} color="plain">
+              <Button onClick={handleReset} plain>
                 <RotateCcw size={ICON_SIZE.MD} className="mr-1" />
                 Reset
               </Button>

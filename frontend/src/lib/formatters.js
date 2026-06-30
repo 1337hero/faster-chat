@@ -1,13 +1,3 @@
-export function formatDate(date) {
-  const normalized = date instanceof Date ? date : new Date(date);
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  }).format(normalized);
-}
-
 export function formatDateLong(date) {
   if (!date) {
     return "Never";
