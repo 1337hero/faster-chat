@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { randomUUID } from "crypto";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,7 +9,7 @@ import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
-import { generateFileId, createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
+import { createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
 import { generateImageForProvider } from "../lib/imageProviderFactory.js";
 import { decryptApiKey } from "../lib/encryption.js";
 
@@ -90,7 +91,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     });
 
     // Generate file metadata
-    const fileId = generateFileId();
+    const fileId = randomUUID();
     const extension = mimeType === "image/webp" ? "webp" : mimeType.split("/")[1] || "png";
     const filename = `generated_${Date.now()}.${extension}`;
     const storedFilename = createStoredFilename(fileId, filename);

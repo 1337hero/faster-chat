@@ -22,17 +22,36 @@ export const FILE_DOWNLOAD_POLICIES = {
 };
 
 const EXTENSION_TO_MIME = {
-  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
   pdf: "application/pdf",
-  txt: "text/plain", md: "text/markdown", markdown: "text/markdown", csv: "text/csv",
-  json: "application/json", jsonl: "application/json", ndjson: "application/json",
-  html: "text/html", htm: "text/html", xml: "application/xml", css: "text/css",
-  js: "application/javascript", mjs: "application/javascript", cjs: "application/javascript",
-  log: "text/plain", yaml: "application/yaml", yml: "application/yaml",
+  txt: "text/plain",
+  md: "text/markdown",
+  markdown: "text/markdown",
+  csv: "text/csv",
+  json: "application/json",
+  jsonl: "application/json",
+  ndjson: "application/json",
+  html: "text/html",
+  htm: "text/html",
+  xml: "application/xml",
+  css: "text/css",
+  js: "application/javascript",
+  mjs: "application/javascript",
+  cjs: "application/javascript",
+  log: "text/plain",
+  yaml: "application/yaml",
+  yml: "application/yaml",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  doc: "application/msword", xls: "application/vnd.ms-excel", ppt: "application/vnd.ms-powerpoint",
+  doc: "application/msword",
+  xls: "application/vnd.ms-excel",
+  ppt: "application/vnd.ms-powerpoint",
 };
 
 function mimesForExtensions(exts) {
@@ -55,8 +74,44 @@ export const FILE_CATEGORY_DEFINITIONS = {
     downloadPolicy: FILE_DOWNLOAD_POLICIES.INLINE_SAFE,
   },
   [FILE_CATEGORIES.TEXT_LIKE]: {
-    extensions: ["txt", "md", "markdown", "csv", "json", "jsonl", "ndjson", "html", "htm", "xml", "js", "mjs", "cjs", "css", "log", "yaml", "yml"],
-    mimeTypes: mimesForExtensions(["txt", "md", "markdown", "csv", "json", "jsonl", "ndjson", "html", "htm", "xml", "js", "mjs", "cjs", "css", "log", "yaml", "yml"]),
+    extensions: [
+      "txt",
+      "md",
+      "markdown",
+      "csv",
+      "json",
+      "jsonl",
+      "ndjson",
+      "html",
+      "htm",
+      "xml",
+      "js",
+      "mjs",
+      "cjs",
+      "css",
+      "log",
+      "yaml",
+      "yml",
+    ],
+    mimeTypes: mimesForExtensions([
+      "txt",
+      "md",
+      "markdown",
+      "csv",
+      "json",
+      "jsonl",
+      "ndjson",
+      "html",
+      "htm",
+      "xml",
+      "js",
+      "mjs",
+      "cjs",
+      "css",
+      "log",
+      "yaml",
+      "yml",
+    ]),
     uploadAllowed: true,
     defaultStrategy: FILE_STRATEGIES.INLINE_TEXT,
     downloadPolicy: FILE_DOWNLOAD_POLICIES.INLINE_SAFE,
@@ -78,7 +133,14 @@ export const FILE_CATEGORY_DEFINITIONS = {
 };
 
 export const UNSAFE_INLINE_EXTENSIONS = ["html", "htm", "svg", "js", "mjs", "cjs", "xml"];
-export const UNSAFE_INLINE_MIME_TYPES = ["text/html", "image/svg+xml", "application/javascript", "text/javascript", "application/xml", "text/xml"];
+export const UNSAFE_INLINE_MIME_TYPES = [
+  "text/html",
+  "image/svg+xml",
+  "application/javascript",
+  "text/javascript",
+  "application/xml",
+  "text/xml",
+];
 
 export const FILE_CONSTANTS = {
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024,
@@ -98,15 +160,19 @@ const UPLOADABLE_CATEGORIES = [
 
 const acceptExtensions = UPLOADABLE_CATEGORIES.flatMap(
   (cat) => FILE_CATEGORY_DEFINITIONS[cat].extensions
-).filter((ext) => ext !== "svg");
+);
 
 const acceptMimes = [
   ...new Set(UPLOADABLE_CATEGORIES.flatMap((cat) => FILE_CATEGORY_DEFINITIONS[cat].mimeTypes)),
-].filter((mt) => mt !== "image/svg+xml");
+];
 
-export const ATTACHMENT_INPUT_ACCEPT = [...acceptMimes, ...acceptExtensions.map((e) => `.${e}`)].join(",");
+export const ATTACHMENT_INPUT_ACCEPT = [
+  ...acceptMimes,
+  ...acceptExtensions.map((e) => `.${e}`),
+].join(",");
 
-export const ATTACHMENT_TITLE_TEXT = "Attach images, PDFs, text/code files, CSV/JSON/Markdown, and modern Office documents. Text-like files are sent as text for broad model compatibility.";
+export const ATTACHMENT_TITLE_TEXT =
+  "Attach images, PDFs, text/code files, CSV/JSON/Markdown, and modern Office documents. Text-like files are sent as text for broad model compatibility.";
 
 export function getMimeFromExtension(ext) {
   return EXTENSION_TO_MIME[ext.toLowerCase()] || null;

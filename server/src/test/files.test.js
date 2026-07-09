@@ -5,6 +5,11 @@ import { createTestApp, seedAdminUser, seedMemberUser, makeRequest, db } from ".
 import { encryptApiKey } from "../lib/encryption.js";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
 
+const PNG_BYTES = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=",
+  "base64"
+);
+
 describe("file routes", () => {
   let app, adminCookie, adminUserId, memberCookie, memberUserId;
 
@@ -301,12 +306,29 @@ describe("file routes", () => {
       const res = await uploadFile(app, adminCookie, {
         name: "photo.png",
         type: "image/png",
-        content: Buffer.from("fake png data"),
+        content: PNG_BYTES,
       });
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.id).toBeTruthy();
       expect(body.filename).toBe("photo.png");
+      const metaRes = await makeRequest(app, "GET", `/api/files/${body.id}`, {
+        cookie: adminCookie,
+      });
+      const metadata = await metaRes.json();
+      expect(metadata.meta.width).toBe(1);
+      expect(metadata.meta.height).toBe(1);
+    });
+
+    it("rejects a corrupt image upload", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "corrupt.png",
+        type: "image/png",
+        content: Buffer.from("not a png"),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("PNG");
     });
 
     it("accepts a CSV with application/octet-stream MIME (extension fallback)", async () => {
@@ -365,7 +387,7 @@ describe("file routes", () => {
       const metaRes = await makeRequest(app, "GET", `/api/files/${id}`, { cookie: adminCookie });
       const body = await metaRes.json();
       expect(body.meta.attachmentCategory).toBe("textLike");
-      expect(body.meta.normalizedMimeType).toBe("text/csv");
+      expect(body.meta.normalizedMimeType).toBeUndefined();
       expect(body.meta.downloadPolicy).toBe("inlineSafe");
     });
 

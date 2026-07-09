@@ -47,11 +47,17 @@ const { encryptApiKey } = await import("../lib/encryption.js");
 const { writeFile, mkdir } = await import("fs/promises");
 const { FILE_CONFIG } = await import("../lib/fileUtils.js");
 
+const PNG_BYTES = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=",
+  "base64"
+);
+
 async function createFileFixture(ctx, { name, content, mimeType, userMessage }) {
   const { app, chatId, cookie, userId } = ctx;
   await mkdir(FILE_CONFIG.UPLOAD_DIR, { recursive: true });
   const fileId = `test-${crypto.randomUUID()}`;
-  const ext = name.slice(name.lastIndexOf("."));
+  const extIndex = name.lastIndexOf(".");
+  const ext = extIndex === -1 ? "" : name.slice(extIndex);
   const storedFilename = `${fileId}${ext}`;
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
   const buf = Buffer.isBuffer(content) ? content : Buffer.from(content);
@@ -353,14 +359,10 @@ describe("chat completion - Phase 3 text-like attachment inlining", () => {
   });
 
   test("Image attachment still creates native image part (not text)", async () => {
-    const pngBytes = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=",
-      "base64"
-    );
     const ctx = { app, chatId, cookie: adminCookie, userId: adminUserId };
     const { fileId, msgId } = await createFileFixture(ctx, {
       name: "image.png",
-      content: pngBytes,
+      content: PNG_BYTES,
       mimeType: "image/png",
       userMessage: "describe image",
     });
@@ -370,6 +372,58 @@ describe("chat completion - Phase 3 text-like attachment inlining", () => {
         model: "stub-model",
         systemPromptId: "default",
         messages: [{ id: msgId, role: "user", content: "describe image", fileIds: [fileId] }],
+      },
+      cookie: adminCookie,
+    });
+
+    expect(res.status).toBe(200);
+    const userMsg = streamTextCalls[0].messages.find(
+      (m) => m.role === "user" && Array.isArray(m.content)
+    );
+    const imageParts = userMsg.content.filter((p) => p.type === "image");
+    expect(imageParts).toHaveLength(1);
+    expect(imageParts[0].image).toContain("data:image/png;base64,");
+  });
+
+  test("PNG uploaded as application/octet-stream completes as native image", async () => {
+    const fd = new FormData();
+    fd.append("file", new File([PNG_BYTES], "octet.png", { type: "application/octet-stream" }));
+
+    const uploadRes = await app.request("/api/files", {
+      method: "POST",
+      headers: { Cookie: adminCookie },
+      body: fd,
+    });
+    expect(uploadRes.status).toBe(200);
+    const uploadBody = await uploadRes.json();
+    expect(uploadBody.category).toBe("image");
+
+    const metaRes = await makeRequest(app, "GET", `/api/files/${uploadBody.id}`, {
+      cookie: adminCookie,
+    });
+    const metadata = await metaRes.json();
+    expect(metadata.meta.attachmentCategory).toBe("image");
+    expect(metadata.meta.width).toBe(1);
+    expect(metadata.meta.height).toBe(1);
+
+    const msgRes = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+      body: { role: "user", content: "describe octet image", fileIds: [uploadBody.id] },
+      cookie: adminCookie,
+    });
+    const msgId = (await msgRes.json()).id;
+
+    const res = await makeRequest(app, "POST", `/api/chats/${chatId}/completion`, {
+      body: {
+        model: "stub-model",
+        systemPromptId: "default",
+        messages: [
+          {
+            id: msgId,
+            role: "user",
+            content: "describe octet image",
+            fileIds: [uploadBody.id],
+          },
+        ],
       },
       cookie: adminCookie,
     });
@@ -611,6 +665,42 @@ describe("chat completion - Phase 4 PDF preflight", () => {
       );
       expect(userMsg.content.filter((p) => p.type === "file")).toHaveLength(0);
       const attachmentText = userMsg.content.find((p) => p.text?.includes("test.docx"));
+      expect(attachmentText.text).toContain("Attached file:");
+      expect(attachmentText.text).toContain("First paragraph text");
+      expect(attachmentText.text).toContain("Second paragraph with some content");
+    });
+
+    test("docx attachment without an extension extracts from its Office MIME type", async () => {
+      const ctx = { app, chatId, cookie: adminCookie, userId: adminUserId };
+      const { fileId, msgId } = await createFileFixture(ctx, {
+        name: "report",
+        content: await readFile(path.join(__dirname, "fixtures", "test.docx")),
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        userMessage: "analyze extensionless docx",
+      });
+
+      const res = await makeRequest(app, "POST", `/api/chats/${chatId}/completion`, {
+        body: {
+          model: "stub-model",
+          systemPromptId: "default",
+          messages: [
+            {
+              id: msgId,
+              role: "user",
+              content: "analyze extensionless docx",
+              fileIds: [fileId],
+            },
+          ],
+        },
+        cookie: adminCookie,
+      });
+
+      expect(res.status).toBe(200);
+      const userMsg = streamTextCalls[0].messages.find(
+        (m) => m.role === "user" && Array.isArray(m.content)
+      );
+      expect(userMsg.content.filter((p) => p.type === "file")).toHaveLength(0);
+      const attachmentText = userMsg.content.find((p) => p.text?.includes("report"));
       expect(attachmentText.text).toContain("Attached file:");
       expect(attachmentText.text).toContain("First paragraph text");
       expect(attachmentText.text).toContain("Second paragraph with some content");

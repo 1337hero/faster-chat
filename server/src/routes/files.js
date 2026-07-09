@@ -1,24 +1,25 @@
 import { Hono } from "hono";
+import { randomUUID } from "crypto";
 import { writeFile, unlink } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { FILE_CATEGORIES, formatFileSize } from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
-  generateFileId,
   createStoredFilename,
   validateFile,
   calculateFileHash,
   deleteFileFromDisk,
-  formatFileSize,
   ensureUploadDirectory,
   validateFileAccess,
   getAttachmentDownloadPolicy,
   FILE_CONFIG,
 } from "../lib/fileUtils.js";
+import { validateImageDimensions } from "../lib/imageValidation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,13 +56,26 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
   const classification = validation.classification;
 
   // Generate file ID and create stored filename
-  const fileId = generateFileId();
+  const fileId = randomUUID();
   const storedFilename = createStoredFilename(fileId, file.name);
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
 
   // Read file contents
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+
+  let imageDimensions = null;
+  if (classification?.category === FILE_CATEGORIES.IMAGE) {
+    try {
+      imageDimensions = validateImageDimensions(
+        buffer,
+        classification.effectiveMimeType,
+        file.name
+      );
+    } catch (err) {
+      return c.json({ error: err.message }, HTTP_STATUS.BAD_REQUEST);
+    }
+  }
 
   // Calculate file hash (for future deduplication)
   const fileHash = calculateFileHash(buffer);
@@ -87,9 +101,9 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
       {
         originalName: file.name,
         originalMimeType: classification?.originalMimeType ?? file.type,
-        normalizedMimeType: classification?.effectiveMimeType ?? file.type,
         attachmentCategory: classification?.category ?? null,
         downloadPolicy: classification?.downloadPolicy ?? null,
+        ...(imageDimensions || {}),
         uploadedAt: Date.now(),
       }
     );

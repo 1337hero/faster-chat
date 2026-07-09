@@ -11,6 +11,7 @@ import {
   MODEL_FEATURES,
   COMPLETION_CONSTANTS,
   WEB_SEARCH_CONSTANTS,
+  FILE_CATEGORIES,
 } from "@faster-chat/shared";
 import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
@@ -21,13 +22,13 @@ import { readFile } from "fs/promises";
 import path from "path";
 import {
   FILE_CONFIG,
-  isTextLikeAttachment,
-  isOfficeModernAttachment,
-  extractOfficeDocumentText,
+  getAttachmentCategory,
+  getAttachmentMediaType,
   formatInlineAttachmentText,
   MAX_INLINE_TEXT_ATTACHMENT_CHARS,
   preflightAttachments,
 } from "../lib/fileUtils.js";
+import { extractOfficeText } from "../lib/officeExtraction.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   wrapModelWithMemory,
@@ -50,6 +51,29 @@ function mapAttachmentError(error) {
     };
   }
   return null;
+}
+
+class AttachmentDenialError extends Error {
+  constructor(issue) {
+    super(issue.error);
+    this.issue = issue;
+  }
+}
+
+function createAttachmentDenial(file, { category, reason, suggestion, code }) {
+  return {
+    ok: false,
+    code,
+    error: "One or more attachments are not supported by the selected model.",
+    details: [
+      {
+        filename: file.filename,
+        category,
+        reason,
+        suggestion,
+      },
+    ],
+  };
 }
 
 export const chatsRouter = new Hono();
@@ -417,45 +441,67 @@ async function fileToContentPart(file) {
     throw new Error(`Cannot read ${file.id} at ${filePath}: ${err.message}`);
   });
 
-  if (file.mime_type?.startsWith("image/")) {
-    return {
-      type: "image",
-      image: `data:${file.mime_type};base64,${fileBuffer.toString("base64")}`,
-    };
-  }
+  switch (getAttachmentCategory(file)) {
+    case FILE_CATEGORIES.IMAGE: {
+      const mediaType = getAttachmentMediaType(file);
+      return {
+        type: "image",
+        image: `data:${mediaType};base64,${fileBuffer.toString("base64")}`,
+      };
+    }
 
-  if (isOfficeModernAttachment(file)) {
-    const { text } = await extractOfficeDocumentText(file).catch((err) => {
-      throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
-    });
-    const displayText = text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-    const truncated = displayText.length < text.length;
-    return inlineTextPart(
-      file,
-      fileBuffer.length,
-      displayText,
-      truncated ? text.length : undefined
-    );
-  }
+    case FILE_CATEGORIES.OFFICE_MODERN: {
+      let extraction;
+      try {
+        extraction = extractOfficeText({
+          buffer: fileBuffer,
+          filename: file.filename,
+          mimeType: file.mime_type,
+        });
+      } catch (err) {
+        throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
+      }
+      if (!extraction.kind) {
+        throw new AttachmentDenialError(
+          createAttachmentDenial(file, {
+            category: FILE_CATEGORIES.OFFICE_MODERN,
+            code: "ATTACHMENT_UNSUPPORTED",
+            reason: "Office document type could not be determined from filename or MIME type.",
+            suggestion: "Upload a .docx, .xlsx, or .pptx file and try again.",
+          })
+        );
+      }
+      const text = extraction.text;
+      const displayText = text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
+      const truncated = displayText.length < text.length;
+      return inlineTextPart(
+        file,
+        fileBuffer.length,
+        displayText,
+        truncated ? text.length : undefined
+      );
+    }
 
-  if (isTextLikeAttachment(file)) {
-    const fullText = fileBuffer.toString("utf8");
-    const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-    const truncated = displayText.length < fullText.length;
-    return inlineTextPart(
-      file,
-      fileBuffer.length,
-      displayText,
-      truncated ? fullText.length : undefined
-    );
-  }
+    case FILE_CATEGORIES.TEXT_LIKE: {
+      const fullText = fileBuffer.toString("utf8");
+      const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
+      const truncated = displayText.length < fullText.length;
+      return inlineTextPart(
+        file,
+        fileBuffer.length,
+        displayText,
+        truncated ? fullText.length : undefined
+      );
+    }
 
-  return {
-    type: "file",
-    data: fileBuffer,
-    mediaType: file.mime_type,
-    filename: file.filename,
-  };
+    default:
+      return {
+        type: "file",
+        data: fileBuffer,
+        mediaType: getAttachmentMediaType(file),
+        filename: file.filename,
+      };
+  }
 }
 
 function applyCacheControl(messages, modelId) {
@@ -578,6 +624,7 @@ chatsRouter.post(
         files: allFiles,
         modelRecord,
         providerName: modelRecord.provider_name,
+        updateFileMetadata: dbUtils.updateFileMetadata,
       });
       if (!issue.ok) {
         // Include code and formatted error details in response
@@ -661,6 +708,16 @@ chatsRouter.post(
       });
     } catch (error) {
       console.error("Completion error:", error);
+      if (error instanceof AttachmentDenialError) {
+        return c.json(
+          {
+            code: error.issue.code,
+            error: error.issue.error,
+            details: error.issue.details,
+          },
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
       const mapped = mapAttachmentError(error);
       if (mapped) {
         return c.json({ code: mapped.code, error: mapped.error }, HTTP_STATUS.BAD_REQUEST);
