@@ -60,4 +60,21 @@ describe("extractErrorMessage", () => {
   test("JSON string of a non-object -> passthrough", () => {
     expect(extractErrorMessage("42")).toBe("42");
   });
+
+  test("JSON empty array -> passthrough (banner-visible original string)", () => {
+    expect(extractErrorMessage("[]")).toBe("[]");
+  });
+
+  test("JSON array -> passthrough", () => {
+    expect(extractErrorMessage("[1,2]")).toBe("[1,2]");
+  });
+
+  test("JSON empty object -> passthrough", () => {
+    expect(extractErrorMessage("{}")).toBe("{}");
+  });
+
+  test("unrecognized object shape -> passthrough of original JSON string", () => {
+    const raw = '{"detail":"Rate limited"}';
+    expect(extractErrorMessage(raw)).toBe(raw);
+  });
 });

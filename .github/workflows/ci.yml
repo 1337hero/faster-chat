@@ -72,3 +72,6 @@ jobs:
         env:
           API_KEY_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         run: cd server && bun test
+
+      - name: Run frontend tests
+        run: bun run test:frontend

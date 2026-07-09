@@ -14,19 +14,17 @@ export function extractErrorMessage(error) {
     return extractFromString(error.message);
   }
   if (typeof error === "object") {
-    return extractFromObject(error);
+    return extractFromObject(error) ?? safeString(error);
   }
 
-  try {
-    return String(error);
-  } catch {
-    return "An unexpected error occurred.";
-  }
+  return safeString(error);
 }
 
 // A serialized structured error can arrive as a raw JSON string (e.g. the AI SDK
-// transport throws `new Error(await response.text())`). Parse it back into the
-// structured-object handling; non-JSON strings pass through unchanged.
+// transport throws `new Error(await response.text())`). Parsing may only improve
+// the message, never degrade it: only plain objects that yield a usable message
+// get reformatted; arrays, non-objects, and objects with no extractable message
+// pass through as the original string unchanged.
 function extractFromString(str) {
   let parsed;
   try {
@@ -34,9 +32,13 @@ function extractFromString(str) {
   } catch {
     return str;
   }
-  return parsed && typeof parsed === "object" ? extractFromObject(parsed) : str;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return str;
+  }
+  return extractFromObject(parsed) ?? str;
 }
 
+// Returns a usable message string, or null when nothing extractable is present.
 function extractFromObject(error) {
   // Check for structured attachment error with code and details
   if (error.code && error.details) {
@@ -54,8 +56,12 @@ function extractFromObject(error) {
     return error.error.message;
   }
 
+  return null;
+}
+
+function safeString(value) {
   try {
-    return String(error);
+    return String(value);
   } catch {
     return "An unexpected error occurred.";
   }
