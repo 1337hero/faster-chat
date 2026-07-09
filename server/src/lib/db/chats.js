@@ -1,12 +1,12 @@
-export function createChatUtils({ db, parseMessageMetadata, crypto }) {
-  // Batch fetch file IDs for messages, ordered by created_at ASC
+export function createChatUtils({ db, parseMessageMetadata }) {
+  // Batch fetch file IDs for messages, ordered by created_at ASC, rowid ASC
   function getMessageFileIds(messageIds) {
     if (!messageIds || messageIds.length === 0) {
       return {};
     }
     const placeholders = messageIds.map(() => "?").join(",");
     const stmt = db.prepare(
-      `SELECT message_id, file_id FROM message_files WHERE message_id IN (${placeholders}) ORDER BY created_at ASC`
+      `SELECT message_id, file_id FROM message_files WHERE message_id IN (${placeholders}) ORDER BY created_at ASC, rowid ASC`
     );
     const rows = stmt.all(...messageIds);
 
@@ -29,7 +29,6 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
     const messageIds = messages.map((m) => m.id);
     const fileIdMap = getMessageFileIds(messageIds);
     for (const msg of messages) {
-      // Use empty array when there are no associations
       msg.file_ids = fileIdMap[msg.id] ?? null;
     }
     return messages;
@@ -200,10 +199,10 @@ export function createChatUtils({ db, parseMessageMetadata, crypto }) {
         // Insert junction rows for file associations - one per unique fileId
         if (fileIds && fileIds.length > 0) {
           const insertStmt = db.prepare(
-            "INSERT INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
+            "INSERT INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
           );
           for (const fileId of new Set(fileIds)) {
-            insertStmt.run(crypto.randomUUID(), id, fileId, now);
+            insertStmt.run(id, fileId, now);
           }
         }
       })();

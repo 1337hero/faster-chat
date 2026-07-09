@@ -4,6 +4,82 @@ const { createTestApp, resetDatabase, seedAdminUser, makeRequest, db } =
 const { dbUtils } = await import("../lib/db.js");
 const { encryptApiKey } = await import("../lib/encryption.js");
 
+async function createMemoryDb() {
+  const { Database } = await import("bun:sqlite");
+  const database = new Database(":memory:");
+  database.exec("PRAGMA foreign_keys = ON");
+  return database;
+}
+
+function expectCompositeMessageFilesSchema(database) {
+  const columns = database.prepare("PRAGMA table_info(message_files)").all();
+  expect(columns.map((column) => column.name)).toEqual(["message_id", "file_id", "created_at"]);
+  expect(columns.find((column) => column.name === "message_id").pk).toBe(1);
+  expect(columns.find((column) => column.name === "file_id").pk).toBe(2);
+
+  const indexes = database.prepare("PRAGMA index_list(message_files)").all();
+  expect(indexes.some((index) => index.name === "idx_message_files_message_id")).toBe(false);
+  expect(indexes.some((index) => index.name === "idx_message_files_file_id")).toBe(true);
+  expect(indexes.some((index) => index.origin === "u")).toBe(false);
+
+  const foreignKeys = database
+    .prepare("PRAGMA foreign_key_list(message_files)")
+    .all()
+    .map((fk) => ({
+      table: fk.table,
+      from: fk.from,
+      to: fk.to,
+      on_delete: fk.on_delete,
+    }))
+    .sort((a, b) => a.from.localeCompare(b.from));
+  expect(foreignKeys).toEqual([
+    { table: "files", from: "file_id", to: "id", on_delete: "CASCADE" },
+    { table: "messages", from: "message_id", to: "id", on_delete: "CASCADE" },
+  ]);
+
+  expect(() => database.prepare("SELECT rowid FROM message_files LIMIT 1").all()).not.toThrow();
+}
+
+function normalizedMessageFilesSchema(database) {
+  return {
+    columns: database
+      .prepare("PRAGMA table_info(message_files)")
+      .all()
+      .map((column) => ({
+        name: column.name,
+        type: column.type,
+        notnull: column.notnull,
+        pk: column.pk,
+      })),
+    indexes: database
+      .prepare("PRAGMA index_list(message_files)")
+      .all()
+      .map((index) => ({
+        name: index.name.startsWith("sqlite_autoindex") ? "sqlite_autoindex" : index.name,
+        unique: index.unique,
+        origin: index.origin,
+        partial: index.partial,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    foreignKeys: database
+      .prepare("PRAGMA foreign_key_list(message_files)")
+      .all()
+      .map((fk) => ({
+        table: fk.table,
+        from: fk.from,
+        to: fk.to,
+        on_delete: fk.on_delete,
+      }))
+      .sort((a, b) => a.from.localeCompare(b.from)),
+  };
+}
+
+function messageFilesData(database) {
+  return database
+    .prepare("SELECT message_id, file_id, created_at FROM message_files ORDER BY message_id, rowid")
+    .all();
+}
+
 describe("message_files junction table", () => {
   let app, adminCookie, adminUserId, chatId, fileId1, fileId2;
 
@@ -80,6 +156,46 @@ describe("message_files junction table", () => {
     const fileIds = rows.map((r) => r.file_id);
     expect(fileIds).toContain(fileId1);
     expect(fileIds).toContain(fileId2);
+  });
+
+  test("message_files rejects duplicate message and file pairs", async () => {
+    const freshFile = await createTestFile(adminUserId, "duplicate-pair.txt");
+    const res = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+      body: {
+        role: "user",
+        content: "Duplicate pair test",
+        fileIds: [freshFile],
+      },
+      cookie: adminCookie,
+    });
+
+    expect(res.status).toBe(201);
+    const msg = await res.json();
+
+    const duplicateInsert = db.prepare(
+      "INSERT INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
+    );
+    expect(() => {
+      duplicateInsert.run(msg.id, freshFile, Date.now());
+    }).toThrow();
+  });
+
+  test("getMessageById returns fileIds in insertion order when timestamps match", async () => {
+    const firstFile = await createTestFile(adminUserId, "ordered-first.txt");
+    const secondFile = await createTestFile(adminUserId, "ordered-second.txt");
+    const res = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
+      body: {
+        role: "user",
+        content: "Attachment order test",
+        fileIds: [secondFile, firstFile],
+      },
+      cookie: adminCookie,
+    });
+
+    expect(res.status).toBe(201);
+    const msg = await res.json();
+    const dbMsg = dbUtils.getMessageById(msg.id);
+    expect(dbMsg.file_ids).toEqual([secondFile, firstFile]);
   });
 
   test("createMessage with empty fileIds creates no junction entries", async () => {
@@ -516,6 +632,7 @@ describe("migration 003 backfill", () => {
     expect(junctionTableInfo.map((c) => c.name)).toContain("message_id");
     expect(junctionTableInfo.map((c) => c.name)).toContain("file_id");
     expect(junctionTableInfo.map((c) => c.name)).toContain("created_at");
+    expectCompositeMessageFilesSchema(testDb);
 
     // Verify: valid file association was migrated (only existingFileId, orphan skipped)
     const junctionRows = testDb
@@ -544,12 +661,129 @@ describe("migration 003 backfill", () => {
 
     // Verify: UNIQUE constraint works (re-inserting same association should fail or be ignored)
     const duplicateInsert = testDb.prepare(
-      "INSERT INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
+      "INSERT INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
     );
     expect(() => {
-      duplicateInsert.run(crypto.randomUUID(), messageId, existingFileId, Date.now());
+      duplicateInsert.run(messageId, existingFileId, Date.now());
     }).toThrow();
 
+    testDb.close();
+  });
+});
+
+describe("migration 005 message_files composite primary key", () => {
+  function createMigrationBaseTables(database, withFileIdsColumn) {
+    database.exec(`
+      CREATE TABLE messages (
+        id TEXT PRIMARY KEY${withFileIdsColumn ? ",\n        file_ids TEXT" : ""}
+      );
+
+      CREATE TABLE files (
+        id TEXT PRIMARY KEY
+      );
+    `);
+  }
+
+  function seedFilesAndMessages(database, withFileIdsColumn) {
+    database.prepare("INSERT INTO files (id) VALUES (?)").run("file-a");
+    database.prepare("INSERT INTO files (id) VALUES (?)").run("file-b");
+    database.prepare("INSERT INTO files (id) VALUES (?)").run("file-c");
+
+    if (withFileIdsColumn) {
+      database
+        .prepare("INSERT INTO messages (id, file_ids) VALUES (?, ?)")
+        .run("message-1", JSON.stringify(["file-b", "file-a", "file-b"]));
+      database
+        .prepare("INSERT INTO messages (id, file_ids) VALUES (?, ?)")
+        .run("message-2", JSON.stringify(["file-c"]));
+      return;
+    }
+
+    database.prepare("INSERT INTO messages (id) VALUES (?)").run("message-1");
+    database.prepare("INSERT INTO messages (id) VALUES (?)").run("message-2");
+  }
+
+  test("fresh and upgraded databases end with matching schema and data", async () => {
+    const freshDb = await createMemoryDb();
+    const upgradedDb = await createMemoryDb();
+    const now = 123456789;
+    const originalNow = Date.now;
+
+    try {
+      Date.now = () => now;
+      createMigrationBaseTables(freshDb, true);
+      seedFilesAndMessages(freshDb, true);
+      const { migration: migration003 } =
+        await import("../lib/db/migrations/003_message_files_junction.js");
+      const { migration: migration004 } =
+        await import("../lib/db/migrations/004_backfill_message_files_id.js");
+      const { migration: migration005 } =
+        await import("../lib/db/migrations/005_message_files_composite_pk.js");
+      migration003.up(freshDb);
+      migration004.up(freshDb);
+      migration005.up(freshDb);
+
+      createMigrationBaseTables(upgradedDb, false);
+      seedFilesAndMessages(upgradedDb, false);
+      upgradedDb.exec(`
+        CREATE TABLE message_files (
+          id TEXT PRIMARY KEY,
+          message_id TEXT NOT NULL,
+          file_id TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          UNIQUE(message_id, file_id),
+          FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+          FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+        );
+        CREATE INDEX idx_message_files_message_id ON message_files(message_id);
+        CREATE INDEX idx_message_files_file_id ON message_files(file_id);
+      `);
+      const insertLegacyRow = upgradedDb.prepare("INSERT INTO message_files VALUES (?, ?, ?, ?)");
+      insertLegacyRow.run("junction-1", "message-1", "file-b", now);
+      insertLegacyRow.run("junction-2", "message-1", "file-a", now);
+      insertLegacyRow.run("junction-3", "message-2", "file-c", now);
+      migration005.up(upgradedDb);
+
+      expectCompositeMessageFilesSchema(freshDb);
+      expectCompositeMessageFilesSchema(upgradedDb);
+      expect(normalizedMessageFilesSchema(freshDb)).toEqual(
+        normalizedMessageFilesSchema(upgradedDb)
+      );
+      expect(messageFilesData(freshDb)).toEqual(messageFilesData(upgradedDb));
+    } finally {
+      Date.now = originalNow;
+      freshDb.close();
+      upgradedDb.close();
+    }
+  });
+
+  test("dedupes duplicate pairs by earliest timestamp during rebuild", async () => {
+    const testDb = await createMemoryDb();
+    createMigrationBaseTables(testDb, false);
+    seedFilesAndMessages(testDb, false);
+    testDb.exec(`
+      CREATE TABLE message_files (
+        id TEXT PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+        FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+      );
+    `);
+    const insertLegacyRow = testDb.prepare("INSERT INTO message_files VALUES (?, ?, ?, ?)");
+    insertLegacyRow.run("junction-late", "message-1", "file-a", 20);
+    insertLegacyRow.run("junction-early", "message-1", "file-a", 10);
+    insertLegacyRow.run("junction-other", "message-1", "file-b", 15);
+
+    const { migration } = await import("../lib/db/migrations/005_message_files_composite_pk.js");
+    migration.up(testDb);
+
+    expectCompositeMessageFilesSchema(testDb);
+    expect(messageFilesData(testDb)).toEqual([
+      { message_id: "message-1", file_id: "file-a", created_at: 10 },
+      { message_id: "message-1", file_id: "file-b", created_at: 15 },
+    ]);
     testDb.close();
   });
 });

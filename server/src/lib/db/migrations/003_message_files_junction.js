@@ -2,23 +2,18 @@ export const migration = {
   id: 3,
   up(database) {
     // Create the junction table with foreign keys and ON DELETE CASCADE
-    // Uses UUID primary key for consistency with the rest of the schema
     database.exec(`
       CREATE TABLE IF NOT EXISTS message_files (
-        id TEXT PRIMARY KEY,
         message_id TEXT NOT NULL,
         file_id TEXT NOT NULL,
         created_at INTEGER NOT NULL,
-        UNIQUE(message_id, file_id),
+        PRIMARY KEY (message_id, file_id),
         FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
         FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
       )
     `);
 
-    // Create indexes for efficient querying
-    database.exec(`
-      CREATE INDEX IF NOT EXISTS idx_message_files_message_id ON message_files(message_id)
-    `);
+    // Create index for file delete paths
     database.exec(`
       CREATE INDEX IF NOT EXISTS idx_message_files_file_id ON message_files(file_id)
     `);
@@ -66,7 +61,7 @@ export const migration = {
     // Batch insert all valid junction rows
     const now = Date.now();
     const insertStmt = database.prepare(
-      "INSERT OR IGNORE INTO message_files (id, message_id, file_id, created_at) VALUES (?, ?, ?, ?)"
+      "INSERT OR IGNORE INTO message_files (message_id, file_id, created_at) VALUES (?, ?, ?)"
     );
 
     database.transaction(() => {
@@ -86,9 +81,7 @@ export const migration = {
         for (const fileId of fileIds) {
           // Only insert if the file actually exists (skip orphans)
           if (existingFileIds.has(fileId)) {
-            // Generate UUID for the junction row
-            const junctionId = crypto.randomUUID();
-            insertStmt.run(junctionId, msg.id, fileId, now);
+            insertStmt.run(msg.id, fileId, now);
           }
         }
       }
