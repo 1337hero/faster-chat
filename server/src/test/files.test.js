@@ -320,6 +320,17 @@ describe("file routes", () => {
       expect(metadata.meta.height).toBe(1);
     });
 
+    it("rejects a corrupt image upload", async () => {
+      const res = await uploadFile(app, adminCookie, {
+        name: "corrupt.png",
+        type: "image/png",
+        content: Buffer.from("not a png"),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("PNG");
+    });
+
     it("accepts a CSV with application/octet-stream MIME (extension fallback)", async () => {
       const res = await uploadFile(app, adminCookie, {
         name: "data.csv",

@@ -23,7 +23,7 @@ import path from "path";
 import {
   FILE_CONFIG,
   getAttachmentCategory,
-  classifyAttachment,
+  getAttachmentMediaType,
   formatInlineAttachmentText,
   MAX_INLINE_TEXT_ATTACHMENT_CHARS,
   preflightAttachments,
@@ -51,6 +51,29 @@ function mapAttachmentError(error) {
     };
   }
   return null;
+}
+
+class AttachmentDenialError extends Error {
+  constructor(issue) {
+    super(issue.error);
+    this.issue = issue;
+  }
+}
+
+function createAttachmentDenial(file, { category, reason, suggestion, code }) {
+  return {
+    ok: false,
+    code,
+    error: "One or more attachments are not supported by the selected model.",
+    details: [
+      {
+        filename: file.filename,
+        category,
+        reason,
+        suggestion,
+      },
+    ],
+  };
 }
 
 export const chatsRouter = new Hono();
@@ -409,17 +432,6 @@ function inlineTextPart(file, size, text, totalCharCount) {
   };
 }
 
-function getAttachmentMediaType(file) {
-  return (
-    classifyAttachment({
-      filename: file.filename,
-      mimeType: file.mime_type,
-    }).effectiveMimeType ||
-    file.mime_type ||
-    "application/octet-stream"
-  );
-}
-
 async function fileToContentPart(file) {
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
   if (file.size > MAX_MODEL_ATTACHMENT_BYTES) {
@@ -439,15 +451,27 @@ async function fileToContentPart(file) {
     }
 
     case FILE_CATEGORIES.OFFICE_MODERN: {
-      let text;
+      let extraction;
       try {
-        ({ text } = extractOfficeText({
+        extraction = extractOfficeText({
           buffer: fileBuffer,
           filename: file.filename,
-        }));
+          mimeType: file.mime_type,
+        });
       } catch (err) {
         throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
       }
+      if (!extraction.kind) {
+        throw new AttachmentDenialError(
+          createAttachmentDenial(file, {
+            category: FILE_CATEGORIES.OFFICE_MODERN,
+            code: "ATTACHMENT_UNSUPPORTED",
+            reason: "Office document type could not be determined from filename or MIME type.",
+            suggestion: "Upload a .docx, .xlsx, or .pptx file and try again.",
+          })
+        );
+      }
+      const text = extraction.text;
       const displayText = text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
       const truncated = displayText.length < text.length;
       return inlineTextPart(
@@ -684,6 +708,16 @@ chatsRouter.post(
       });
     } catch (error) {
       console.error("Completion error:", error);
+      if (error instanceof AttachmentDenialError) {
+        return c.json(
+          {
+            code: error.issue.code,
+            error: error.issue.error,
+            details: error.issue.details,
+          },
+          HTTP_STATUS.BAD_REQUEST
+        );
+      }
       const mapped = mapAttachmentError(error);
       if (mapped) {
         return c.json({ code: mapped.code, error: mapped.error }, HTTP_STATUS.BAD_REQUEST);

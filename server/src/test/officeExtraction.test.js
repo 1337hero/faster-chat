@@ -2,95 +2,21 @@ import { describe, test, expect, beforeAll } from "bun:test";
 import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  extractOfficeText,
-  isOfficeModernFile,
-  isOfficeLegacyFile,
-  decodeXmlEntities,
-} from "../lib/officeExtraction.js";
+import { extractOfficeText, decodeXmlEntities } from "../lib/officeExtraction.js";
 import AdmZip from "adm-zip";
 import { FILE_CATEGORIES } from "@faster-chat/shared";
 import { classifyAttachment } from "../lib/fileUtils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+const DOC_MIME = "application/msword";
+const XLS_MIME = "application/vnd.ms-excel";
+const PPT_MIME = "application/vnd.ms-powerpoint";
 
 describe("officeExtraction", () => {
-  describe("isOfficeModernFile", () => {
-    test("returns true for .docx files", () => {
-      expect(isOfficeModernFile({ filename: "document.docx" })).toBe(true);
-      expect(isOfficeModernFile({ filename: "report.DOCX" })).toBe(true);
-    });
-
-    test("returns true for .xlsx files", () => {
-      expect(isOfficeModernFile({ filename: "sheet.xlsx" })).toBe(true);
-      expect(isOfficeModernFile({ filename: "data.XLSX" })).toBe(true);
-    });
-
-    test("returns true for .pptx files", () => {
-      expect(isOfficeModernFile({ filename: "slides.pptx" })).toBe(true);
-      expect(isOfficeModernFile({ filename: "presentation.PPTX" })).toBe(true);
-    });
-
-    test("returns false for legacy Office files", () => {
-      expect(isOfficeModernFile({ filename: "document.doc" })).toBe(false);
-      expect(isOfficeModernFile({ filename: "sheet.xls" })).toBe(false);
-      expect(isOfficeModernFile({ filename: "slides.ppt" })).toBe(false);
-    });
-
-    test("returns false for non-Office files", () => {
-      expect(isOfficeModernFile({ filename: "document.pdf" })).toBe(false);
-      expect(isOfficeModernFile({ filename: "file.txt" })).toBe(false);
-      expect(isOfficeModernFile({ filename: "image.png" })).toBe(false);
-    });
-
-    test("returns false based on MIME type without extension", () => {
-      expect(
-        isOfficeModernFile({
-          filename: "unknown",
-          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        })
-      ).toBe(false);
-      expect(
-        isOfficeModernFile({
-          filename: "unknown",
-          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        })
-      ).toBe(false);
-      expect(
-        isOfficeModernFile({
-          filename: "unknown",
-          mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        })
-      ).toBe(false);
-    });
-  });
-
-  describe("isOfficeLegacyFile", () => {
-    test("returns true for .doc files", () => {
-      expect(isOfficeLegacyFile({ filename: "document.doc" })).toBe(true);
-    });
-
-    test("returns true for .xls files", () => {
-      expect(isOfficeLegacyFile({ filename: "sheet.xls" })).toBe(true);
-    });
-
-    test("returns true for .ppt files", () => {
-      expect(isOfficeLegacyFile({ filename: "slides.ppt" })).toBe(true);
-    });
-
-    test("returns false for modern Office files", () => {
-      expect(isOfficeLegacyFile({ filename: "document.docx" })).toBe(false);
-      expect(isOfficeLegacyFile({ filename: "sheet.xlsx" })).toBe(false);
-      expect(isOfficeLegacyFile({ filename: "slides.pptx" })).toBe(false);
-    });
-
-    test("returns false for non-Office files", () => {
-      expect(isOfficeLegacyFile({ filename: "document.pdf" })).toBe(false);
-      expect(isOfficeLegacyFile({ filename: "file.txt" })).toBe(false);
-    });
-  });
-
   describe("classifyAttachment integration", () => {
     test("classifies .docx as officeModern", () => {
       const result = classifyAttachment({ filename: "report.docx" });
@@ -107,6 +33,36 @@ describe("officeExtraction", () => {
       expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
     });
 
+    test("classifies uppercase .DOCX as officeModern", () => {
+      const result = classifyAttachment({ filename: "REPORT.DOCX" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies uppercase .XLSX as officeModern", () => {
+      const result = classifyAttachment({ filename: "SHEET.XLSX" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies uppercase .PPTX as officeModern", () => {
+      const result = classifyAttachment({ filename: "SLIDES.PPTX" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies DOCX MIME without an extension as officeModern", () => {
+      const result = classifyAttachment({ filename: "report", mimeType: DOCX_MIME });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies XLSX MIME without an extension as officeModern", () => {
+      const result = classifyAttachment({ filename: "sheet", mimeType: XLSX_MIME });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
+    test("classifies PPTX MIME without an extension as officeModern", () => {
+      const result = classifyAttachment({ filename: "slides", mimeType: PPTX_MIME });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_MODERN);
+    });
+
     test("classifies .doc as officeLegacy", () => {
       const result = classifyAttachment({ filename: "report.doc" });
       expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
@@ -119,6 +75,21 @@ describe("officeExtraction", () => {
 
     test("classifies .ppt as officeLegacy", () => {
       const result = classifyAttachment({ filename: "slides.ppt" });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
+    });
+
+    test("classifies DOC MIME without an extension as officeLegacy", () => {
+      const result = classifyAttachment({ filename: "report", mimeType: DOC_MIME });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
+    });
+
+    test("classifies XLS MIME without an extension as officeLegacy", () => {
+      const result = classifyAttachment({ filename: "sheet", mimeType: XLS_MIME });
+      expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
+    });
+
+    test("classifies PPT MIME without an extension as officeLegacy", () => {
+      const result = classifyAttachment({ filename: "slides", mimeType: PPT_MIME });
       expect(result.category).toBe(FILE_CATEGORIES.OFFICE_LEGACY);
     });
   });
@@ -153,15 +124,26 @@ describe("officeExtraction", () => {
       expect(Array.isArray(result.warnings)).toBe(true);
     });
 
-    test("does not infer type from MIME without an extension", () => {
+    test("falls back to MIME type when the filename has no extension", () => {
       const result = extractOfficeText({
         buffer: docxBuffer,
         filename: "unknown",
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mimeType: DOCX_MIME,
       });
 
-      expect(result.kind).toBeNull();
-      expect(result.text).toBe("");
+      expect(result.kind).toBe("docx");
+      expect(result.text).toContain("First paragraph text");
+    });
+
+    test("falls back to MIME type when the filename has an unknown extension", () => {
+      const result = extractOfficeText({
+        buffer: docxBuffer,
+        filename: "report.bin",
+        mimeType: DOCX_MIME,
+      });
+
+      expect(result.kind).toBe("docx");
+      expect(result.text).toContain("First paragraph text");
     });
   });
 
@@ -196,6 +178,18 @@ describe("officeExtraction", () => {
       expect(result.text).toContain("Row 1 Col A");
       expect(result.text).toContain("Row 1 Col B");
     });
+
+    test("falls back to MIME type when the filename has no extension", () => {
+      const result = extractOfficeText({
+        buffer: xlsxBuffer,
+        filename: "unknown",
+        mimeType: XLSX_MIME,
+      });
+
+      expect(result.kind).toBe("xlsx");
+      expect(result.text).toContain("Header A");
+      expect(result.text).toContain("Header B");
+    });
   });
 
   describe("extractOfficeText - PPTX", () => {
@@ -215,6 +209,18 @@ describe("officeExtraction", () => {
 
       expect(result.kind).toBe("pptx");
       expect(result.text).toContain("Slide 1:");
+      expect(result.text).toContain("Slide 1 Title");
+      expect(result.text).toContain("Slide 1 content text");
+    });
+
+    test("falls back to MIME type when the filename has no extension", () => {
+      const result = extractOfficeText({
+        buffer: pptxBuffer,
+        filename: "unknown",
+        mimeType: PPTX_MIME,
+      });
+
+      expect(result.kind).toBe("pptx");
       expect(result.text).toContain("Slide 1 Title");
       expect(result.text).toContain("Slide 1 content text");
     });

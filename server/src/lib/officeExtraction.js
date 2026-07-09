@@ -1,6 +1,10 @@
 import path from "path";
 import AdmZip from "adm-zip";
-import { FILE_CATEGORIES, FILE_CATEGORY_DEFINITIONS } from "@faster-chat/shared";
+import {
+  FILE_CATEGORIES,
+  FILE_CATEGORY_DEFINITIONS,
+  getMimeFromExtension,
+} from "@faster-chat/shared";
 
 const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
@@ -22,6 +26,32 @@ function safeGetData(entry) {
 
 function getExtension(filename) {
   return path.extname(filename).toLowerCase().replace(".", "");
+}
+
+function normalizeMimeType(mimeType) {
+  if (!mimeType || typeof mimeType !== "string") {
+    return "";
+  }
+  return mimeType.trim().split(";")[0].trim().toLowerCase();
+}
+
+function getOfficeExtractionKind({ filename, mimeType }) {
+  const extension = getExtension(filename);
+  const definition = FILE_CATEGORY_DEFINITIONS[FILE_CATEGORIES.OFFICE_MODERN];
+  if (definition.extensions.includes(extension)) {
+    return extension;
+  }
+
+  const normalizedMimeType = normalizeMimeType(mimeType);
+  if (!definition.mimeTypes.some((mt) => mt.toLowerCase() === normalizedMimeType)) {
+    return null;
+  }
+
+  return (
+    definition.extensions.find(
+      (ext) => getMimeFromExtension(ext)?.toLowerCase() === normalizedMimeType
+    ) || null
+  );
 }
 
 export function decodeXmlEntities(text) {
@@ -204,8 +234,8 @@ function extractPptxText(buffer) {
   };
 }
 
-export function extractOfficeText({ buffer, filename }) {
-  const kind = getExtension(filename);
+export function extractOfficeText({ buffer, filename, mimeType }) {
+  const kind = getOfficeExtractionKind({ filename, mimeType });
 
   let result;
   switch (kind) {
@@ -231,14 +261,4 @@ export function extractOfficeText({ buffer, filename }) {
     kind,
     warnings: result.warnings || [],
   };
-}
-
-export function isOfficeModernFile({ filename }) {
-  const extension = getExtension(filename);
-  return FILE_CATEGORY_DEFINITIONS[FILE_CATEGORIES.OFFICE_MODERN].extensions.includes(extension);
-}
-
-export function isOfficeLegacyFile({ filename }) {
-  const extension = getExtension(filename);
-  return FILE_CATEGORY_DEFINITIONS[FILE_CATEGORIES.OFFICE_LEGACY].extensions.includes(extension);
 }

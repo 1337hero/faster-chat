@@ -56,7 +56,8 @@ async function createFileFixture(ctx, { name, content, mimeType, userMessage }) 
   const { app, chatId, cookie, userId } = ctx;
   await mkdir(FILE_CONFIG.UPLOAD_DIR, { recursive: true });
   const fileId = `test-${crypto.randomUUID()}`;
-  const ext = name.slice(name.lastIndexOf("."));
+  const extIndex = name.lastIndexOf(".");
+  const ext = extIndex === -1 ? "" : name.slice(extIndex);
   const storedFilename = `${fileId}${ext}`;
   const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
   const buf = Buffer.isBuffer(content) ? content : Buffer.from(content);
@@ -664,6 +665,42 @@ describe("chat completion - Phase 4 PDF preflight", () => {
       );
       expect(userMsg.content.filter((p) => p.type === "file")).toHaveLength(0);
       const attachmentText = userMsg.content.find((p) => p.text?.includes("test.docx"));
+      expect(attachmentText.text).toContain("Attached file:");
+      expect(attachmentText.text).toContain("First paragraph text");
+      expect(attachmentText.text).toContain("Second paragraph with some content");
+    });
+
+    test("docx attachment without an extension extracts from its Office MIME type", async () => {
+      const ctx = { app, chatId, cookie: adminCookie, userId: adminUserId };
+      const { fileId, msgId } = await createFileFixture(ctx, {
+        name: "report",
+        content: await readFile(path.join(__dirname, "fixtures", "test.docx")),
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        userMessage: "analyze extensionless docx",
+      });
+
+      const res = await makeRequest(app, "POST", `/api/chats/${chatId}/completion`, {
+        body: {
+          model: "stub-model",
+          systemPromptId: "default",
+          messages: [
+            {
+              id: msgId,
+              role: "user",
+              content: "analyze extensionless docx",
+              fileIds: [fileId],
+            },
+          ],
+        },
+        cookie: adminCookie,
+      });
+
+      expect(res.status).toBe(200);
+      const userMsg = streamTextCalls[0].messages.find(
+        (m) => m.role === "user" && Array.isArray(m.content)
+      );
+      expect(userMsg.content.filter((p) => p.type === "file")).toHaveLength(0);
+      const attachmentText = userMsg.content.find((p) => p.text?.includes("report"));
       expect(attachmentText.text).toContain("Attached file:");
       expect(attachmentText.text).toContain("First paragraph text");
       expect(attachmentText.text).toContain("Second paragraph with some content");

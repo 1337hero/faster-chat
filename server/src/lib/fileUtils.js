@@ -205,15 +205,7 @@ export function getAttachmentDownloadPolicy(file) {
   );
 }
 
-export function isTextLikeAttachment(file) {
-  return getAttachmentCategory(file) === FILE_CATEGORIES.TEXT_LIKE;
-}
-
-export function isOfficeModernAttachment(file) {
-  return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_MODERN;
-}
-
-function getAttachmentMediaType(file) {
+export function getAttachmentMediaType(file) {
   return (
     classifyAttachment({
       filename: file.filename,
