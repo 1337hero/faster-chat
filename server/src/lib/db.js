@@ -100,7 +100,7 @@ Object.assign(
   createProviderUtils({ db, buildUpdateFields }),
   createModelUtils({ db, buildUpdateFields }),
   createFileUtils({ db, parseFileMeta }),
-  createChatUtils({ db, parseMessageMetadata, crypto }),
+  createChatUtils({ db, parseMessageMetadata }),
   createFolderUtils({ db, buildUpdateFields }),
   createSettingUtils({ db, encryptApiKey, decryptApiKey }),
   createAuditUtils({ db }),
