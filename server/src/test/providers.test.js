@@ -9,6 +9,26 @@ import {
 } from "./helpers.js";
 import { dbUtils } from "../lib/db.js";
 
+const MODELS_DEV_TEST_DATABASE = {
+  openai: {
+    name: "OpenAI",
+    api: "https://api.openai.com/v1",
+    env: ["OPENAI_API_KEY"],
+    models: {
+      "gpt-4o": {
+        name: "GPT-4o",
+        modalities: { input: ["text"], output: ["text"] },
+      },
+    },
+  },
+  "z-community": {
+    name: "Z Community",
+    api: "https://api.z-community.example/v1",
+    env: ["Z_COMMUNITY_API_KEY"],
+    models: {},
+  },
+};
+
 // Stub DNS so tests using fictitious hostnames don't depend on real network resolution.
 // Returns a public-looking (TEST-NET-3) IP for any hostname.
 dns.promises.lookup = async (_hostname, opts) => {
@@ -19,14 +39,31 @@ dns.promises.lookup = async (_hostname, opts) => {
 
 describe("provider routes", () => {
   let app, adminCookie, memberCookie;
+  let originalFetch;
 
   beforeAll(async () => {
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url === "https://models.dev/api.json") {
+        return new Response(JSON.stringify(MODELS_DEV_TEST_DATABASE), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return originalFetch(input, init);
+    };
+
     resetDatabase();
     app = createTestApp();
     const admin = await seedAdminUser(app);
     adminCookie = admin.cookie;
     const member = await seedMemberUser(app, adminCookie);
     memberCookie = member.cookie;
+  });
+
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
   });
 
   describe("access control", () => {
@@ -281,43 +318,27 @@ describe("provider routes", () => {
       expect(res.status).toBe(403);
     });
 
-    test("returns providers array for admin", async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = async (input, init) => {
-        if (typeof input === "string" && input === "https://models.dev/api.json") {
-          return new Response(
-            JSON.stringify({
-              openai: {
-                name: "OpenAI",
-                api: "https://api.openai.com/v1",
-                env: ["OPENAI_API_KEY"],
-                models: {
-                  "gpt-4o": {
-                    name: "GPT-4o",
-                    modalities: { input: ["text"], output: ["text"] },
-                  },
-                },
-              },
-            }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-        }
-        return originalFetch(input, init);
-      };
-
+    test("returns providers array for admin in local, official, community order", async () => {
       const res = await makeRequest(app, "GET", "/api/admin/providers/available", {
         cookie: adminCookie,
-      }).finally(() => {
-        globalThis.fetch = originalFetch;
       });
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(Array.isArray(data.providers)).toBe(true);
       expect(data.providers.length).toBeGreaterThan(0);
       expect(data.providers.some((provider) => provider.id === "openai")).toBe(true);
+      expect(data.providers.find((provider) => provider.id === "llama-cpp")?.category).toBe(
+        "local"
+      );
+      expect(data.providers.find((provider) => provider.id === "z-community")?.category).toBe(
+        "community"
+      );
+      const kinds = data.providers.map((provider) => {
+        const kind = provider.type ?? provider.category;
+        return kind === "openai-compatible" ? "local" : kind;
+      });
+      expect(kinds.lastIndexOf("local")).toBeLessThan(kinds.indexOf("official"));
+      expect(kinds.lastIndexOf("official")).toBeLessThan(kinds.indexOf("community"));
     });
   });
 

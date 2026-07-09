@@ -76,12 +76,6 @@ export function createFileUtils({ db, parseFileMeta }) {
       return result.changes > 0;
     },
 
-    deleteFileByUser(fileId, userId) {
-      const stmt = db.prepare("DELETE FROM files WHERE id = ? AND user_id = ?");
-      const result = stmt.run(fileId, userId);
-      return result.changes > 0;
-    },
-
     deleteFilesByUserId(userId) {
       const stmt = db.prepare("DELETE FROM files WHERE user_id = ?");
       const result = stmt.run(userId);

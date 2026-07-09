@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import path from "path";
-import { mkdir, writeFile, rm } from "fs/promises";
-import { createTestApp, seedAdminUser, makeRequest } from "./helpers.js";
+import { mkdir, writeFile, rm, readdir } from "fs/promises";
+import { createTestApp, seedAdminUser, seedMemberUser, makeRequest, db } from "./helpers.js";
 import { encryptApiKey } from "../lib/encryption.js";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
 
 describe("file routes", () => {
-  let app, adminCookie, adminUserId;
+  let app, adminCookie, adminUserId, memberCookie, memberUserId;
 
   beforeAll(async () => {
     const { resetDatabase } = await import("./helpers.js");
@@ -15,6 +15,9 @@ describe("file routes", () => {
     const admin = await seedAdminUser(app);
     adminCookie = admin.cookie;
     adminUserId = admin.user.id;
+    const member = await seedMemberUser(app, adminCookie);
+    memberCookie = member.cookie;
+    memberUserId = member.user.id;
 
     // Ensure upload directory exists
     await mkdir(FILE_CONFIG.UPLOAD_DIR, { recursive: true });
@@ -242,6 +245,51 @@ describe("file routes", () => {
     });
   });
 
+  describe("DELETE /api/files/:id", () => {
+    async function createFileFixture(fileId, ownerId) {
+      const { dbUtils } = await import("../lib/db.js");
+      const storedFilename = `${fileId}.txt`;
+      const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
+      await writeFile(filePath, Buffer.from("delete test"));
+      dbUtils.createFile(
+        fileId,
+        ownerId,
+        `${fileId}.txt`,
+        storedFilename,
+        `server/data/uploads/${storedFilename}`,
+        "text/plain",
+        11
+      );
+      return { dbUtils, filePath };
+    }
+
+    it("allows an admin to delete another user's file", async () => {
+      const fileId = "admin-delete-member-file";
+      const { dbUtils, filePath } = await createFileFixture(fileId, memberUserId);
+
+      const res = await makeRequest(app, "DELETE", `/api/files/${fileId}`, {
+        cookie: adminCookie,
+      });
+
+      expect(res.status).toBe(200);
+      expect(dbUtils.getFileById(fileId)).toBeFalsy();
+      expect(await Bun.file(filePath).exists()).toBe(false);
+    });
+
+    it("denies a non-owner member without deleting disk content", async () => {
+      const fileId = "member-denied-admin-file";
+      const { dbUtils, filePath } = await createFileFixture(fileId, adminUserId);
+
+      const res = await makeRequest(app, "DELETE", `/api/files/${fileId}`, {
+        cookie: memberCookie,
+      });
+
+      expect([403, 404]).toContain(res.status);
+      expect(dbUtils.getFileById(fileId)).toBeTruthy();
+      expect(await Bun.file(filePath).exists()).toBe(true);
+    });
+  });
+
   describe("POST /api/files (upload)", () => {
     async function uploadFile(app, cookie, { name, type, content }) {
       const fd = new FormData();
@@ -319,6 +367,38 @@ describe("file routes", () => {
       expect(body.meta.attachmentCategory).toBe("textLike");
       expect(body.meta.normalizedMimeType).toBe("text/csv");
       expect(body.meta.downloadPolicy).toBe("inlineSafe");
+    });
+
+    it("removes the disk file when metadata insert fails", async () => {
+      const filename = `db-fail-${Date.now()}.txt`;
+      const triggerName = "files_test_fail_insert";
+      let leftovers = [];
+      db.exec(`
+        CREATE TRIGGER ${triggerName}
+        BEFORE INSERT ON files
+        WHEN NEW.filename = '${filename}'
+        BEGIN
+          SELECT RAISE(ABORT, 'test db failure');
+        END
+      `);
+
+      try {
+        const res = await uploadFile(app, adminCookie, {
+          name: filename,
+          type: "text/plain",
+          content: Buffer.from("orphan check"),
+        });
+        expect(res.status).toBe(500);
+        leftovers = (await readdir(FILE_CONFIG.UPLOAD_DIR)).filter((name) =>
+          name.endsWith(`_${filename}`)
+        );
+        expect(leftovers).toEqual([]);
+      } finally {
+        db.exec(`DROP TRIGGER IF EXISTS ${triggerName}`);
+        await Promise.all(
+          leftovers.map((name) => rm(path.join(FILE_CONFIG.UPLOAD_DIR, name), { force: true }))
+        );
+      }
     });
   });
 });

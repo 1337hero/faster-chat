@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { writeFile } from "fs/promises";
+import { writeFile, unlink } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dbUtils } from "../lib/db.js";
@@ -74,29 +74,28 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
 
   // Save file metadata to database
   const relativePath = path.join("server/data/uploads", storedFilename);
-  const fileRecord = dbUtils.createFile(
-    fileId,
-    user.id,
-    file.name,
-    storedFilename,
-    relativePath,
-    file.type,
-    file.size,
-    fileHash,
-    {
-      originalName: file.name,
-      originalMimeType: classification?.originalMimeType ?? file.type,
-      normalizedMimeType: classification?.effectiveMimeType ?? file.type,
-      attachmentCategory: classification?.category ?? null,
-      downloadPolicy: classification?.downloadPolicy ?? null,
-      uploadedAt: Date.now(),
-    }
-  );
-
-  if (!fileRecord) {
-    // Cleanup file if database insert failed
+  try {
+    dbUtils.createFile(
+      fileId,
+      user.id,
+      file.name,
+      storedFilename,
+      relativePath,
+      file.type,
+      file.size,
+      fileHash,
+      {
+        originalName: file.name,
+        originalMimeType: classification?.originalMimeType ?? file.type,
+        normalizedMimeType: classification?.effectiveMimeType ?? file.type,
+        attachmentCategory: classification?.category ?? null,
+        downloadPolicy: classification?.downloadPolicy ?? null,
+        uploadedAt: Date.now(),
+      }
+    );
+  } catch (err) {
     await deleteFileFromDisk(filePath);
-    return c.json({ error: "Failed to save file metadata" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    throw err;
   }
 
   return c.json({
@@ -192,18 +191,20 @@ filesRouter.delete("/:id", async (c) => {
     return c.json({ error: access.reason }, statusCode);
   }
 
-  // Delete from disk - use the path field which includes subdirectories
-  const filePath = path.join(PROJECT_ROOT, file.path);
-  await deleteFileFromDisk(filePath);
-
-  // Delete from database (scoped to owner as defense-in-depth)
-  const deleted = dbUtils.deleteFileByUser(fileId, user.id);
+  const deleted = dbUtils.deleteFile(fileId);
 
   if (!deleted) {
-    return c.json(
-      { error: "Failed to delete file from database" },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
+    return c.json({ error: "File not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Delete from disk - use the path field which includes subdirectories
+  const filePath = path.join(PROJECT_ROOT, file.path);
+  try {
+    await unlink(filePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Failed to delete file from disk:", error);
+    }
   }
 
   return c.json({ message: "File deleted successfully" });
