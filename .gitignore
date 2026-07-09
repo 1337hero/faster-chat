@@ -58,6 +58,7 @@ lerna-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/typescript
 
 #misc
 /_backup
