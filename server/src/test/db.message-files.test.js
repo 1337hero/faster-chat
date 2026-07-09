@@ -80,6 +80,44 @@ function messageFilesData(database) {
     .all();
 }
 
+function attachFileIds(messages) {
+  if (!messages.length) {
+    return messages;
+  }
+  const placeholders = messages.map(() => "?").join(",");
+  const rows = db
+    .prepare(
+      `SELECT message_id, file_id FROM message_files WHERE message_id IN (${placeholders}) ORDER BY created_at ASC, rowid ASC`
+    )
+    .all(...messages.map((m) => m.id));
+  const fileIdsByMessage = {};
+  for (const row of rows) {
+    fileIdsByMessage[row.message_id] ??= [];
+    fileIdsByMessage[row.message_id].push(row.file_id);
+  }
+  return messages.map((message) => ({
+    ...message,
+    file_ids: fileIdsByMessage[message.id] ?? null,
+  }));
+}
+
+function selectMessageWithFileIds(messageId) {
+  const message = db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId);
+  return message ? attachFileIds([message])[0] : null;
+}
+
+function selectMessagesWithFileIdsForChat(chatId, userId) {
+  const messages = db
+    .prepare("SELECT * FROM messages WHERE chat_id = ? AND user_id = ? ORDER BY created_at ASC")
+    .all(chatId, userId);
+  return attachFileIds(messages);
+}
+
+function deleteMessageRow(messageId) {
+  const result = db.prepare("DELETE FROM messages WHERE id = ?").run(messageId);
+  return result.changes > 0;
+}
+
 describe("message_files junction table", () => {
   let app, adminCookie, adminUserId, chatId, fileId1, fileId2;
 
@@ -180,7 +218,7 @@ describe("message_files junction table", () => {
     }).toThrow();
   });
 
-  test("getMessageById returns fileIds in insertion order when timestamps match", async () => {
+  test("message fileIds preserve insertion order when timestamps match", async () => {
     const firstFile = await createTestFile(adminUserId, "ordered-first.txt");
     const secondFile = await createTestFile(adminUserId, "ordered-second.txt");
     const res = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
@@ -194,7 +232,7 @@ describe("message_files junction table", () => {
 
     expect(res.status).toBe(201);
     const msg = await res.json();
-    const dbMsg = dbUtils.getMessageById(msg.id);
+    const dbMsg = selectMessageWithFileIds(msg.id);
     expect(dbMsg.file_ids).toEqual([secondFile, firstFile]);
   });
 
@@ -219,7 +257,7 @@ describe("message_files junction table", () => {
     expect(row.count).toBe(0);
   });
 
-  test("getMessageById returns fileIds from junction table", async () => {
+  test("message fileIds are read from junction table", async () => {
     // Create a message with files
     const msgRes = await makeRequest(app, "POST", `/api/chats/${chatId}/messages`, {
       body: {
@@ -232,7 +270,7 @@ describe("message_files junction table", () => {
     const msg = await msgRes.json();
 
     // Get message by ID
-    const dbMsg = dbUtils.getMessageById(msg.id);
+    const dbMsg = selectMessageWithFileIds(msg.id);
     expect(dbMsg.file_ids).toEqual([fileId1]);
   });
 
@@ -259,7 +297,7 @@ describe("message_files junction table", () => {
     const msg2 = await msg2Res.json();
 
     // Get all messages for chat
-    const dbMessages = dbUtils.getMessagesByChatAndUser(chatId, adminUserId);
+    const dbMessages = selectMessagesWithFileIdsForChat(chatId, adminUserId);
 
     const msgById = {};
     for (const m of dbMessages) {
@@ -332,7 +370,7 @@ describe("message_files junction table", () => {
     expect(row.count).toBe(2);
 
     // Delete the message
-    const deleted = dbUtils.deleteMessage(msg.id);
+    const deleted = deleteMessageRow(msg.id);
     expect(deleted).toBe(true);
 
     // All junction entries should be gone (CASCADE)
@@ -341,7 +379,7 @@ describe("message_files junction table", () => {
     expect(row.count).toBe(0);
   });
 
-  test("getMessagesByChatAndUser returns fileIds from junction table", async () => {
+  test("chat/user message query returns fileIds from junction table", async () => {
     // Create a new chat for this specific test to avoid conflicts
     const chatRes = await makeRequest(app, "POST", "/api/chats", {
       body: { title: "Get messages by user test" },
@@ -365,7 +403,7 @@ describe("message_files junction table", () => {
     const msg1 = await msg1Res.json();
 
     // Get messages by chat and user
-    const dbMessages = dbUtils.getMessagesByChatAndUser(testChatId, adminUserId);
+    const dbMessages = selectMessagesWithFileIdsForChat(testChatId, adminUserId);
 
     expect(dbMessages.length).toBe(1);
     expect(dbMessages[0].file_ids).toEqual([freshFile]);
@@ -427,7 +465,7 @@ describe("message_files junction table", () => {
     expect(deletedFile).toBe(true);
 
     // Verify message still exists
-    const dbMsg = dbUtils.getMessageById(msg.id);
+    const dbMsg = selectMessageWithFileIds(msg.id);
     expect(dbMsg).not.toBeNull();
     expect(dbMsg.file_ids).toEqual([fileToKeep]); // Only the remaining file
 
@@ -437,7 +475,7 @@ describe("message_files junction table", () => {
     expect(row.count).toBe(1);
   });
 
-  test("deleteMessage cascades - junction rows gone, file remains", async () => {
+  test("deleting a message cascades - junction rows gone, file remains", async () => {
     // Create a new chat for this specific test
     const chatRes = await makeRequest(app, "POST", "/api/chats", {
       body: { title: "Message delete cascade test" },
@@ -470,7 +508,7 @@ describe("message_files junction table", () => {
     expect(dbFile).not.toBeNull();
 
     // Delete the message (this should cascade to junction table)
-    const deletedMsg = dbUtils.deleteMessage(msg.id);
+    const deletedMsg = deleteMessageRow(msg.id);
     expect(deletedMsg).toBe(true);
 
     // Verify file still exists

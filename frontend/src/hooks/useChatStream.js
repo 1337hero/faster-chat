@@ -63,15 +63,12 @@ export function useChatStream({
           const persistedIds = new Set(persistedForTransport.map((m) => m.id));
           const newMessages = (outgoingMessages ?? []).filter((m) => !persistedIds.has(m.id));
           const normalized = formatMessagesForTransport([...persistedForTransport, ...newMessages]);
-          const lastMessage = outgoingMessages?.[outgoingMessages.length - 1];
-          const fileIds = lastMessage?.fileIds || [];
 
           return {
             body: {
               model: modelRef.current,
               systemPromptId: "default",
               messages: normalized,
-              fileIds,
               webSearch: webSearchRef.current,
               memoryEnabled: memoryEnabledRef.current,
             },

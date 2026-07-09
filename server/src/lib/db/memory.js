@@ -69,26 +69,6 @@ export function createMemoryUtils({ db }) {
       db.prepare("UPDATE chats SET memory_disabled = ? WHERE id = ?").run(disabled ? 1 : 0, chatId);
     },
 
-    getMemoryGlobalEnabled() {
-      return this.getSetting("memory_enabled");
-    },
-
-    setMemoryGlobalEnabled(enabled) {
-      this.setSetting("memory_enabled", enabled ? "true" : "false");
-    },
-
-    getMemoryExtractionModel() {
-      return this.getSetting("memory_extraction_model");
-    },
-
-    setMemoryExtractionModel(modelId) {
-      if (modelId) {
-        this.setSetting("memory_extraction_model", modelId);
-      } else {
-        this.deleteSetting("memory_extraction_model");
-      }
-    },
-
     getMemoriesCount(userId) {
       const stmt = db.prepare("SELECT COUNT(*) as count FROM user_memories WHERE user_id = ?");
       const result = stmt.get(userId);

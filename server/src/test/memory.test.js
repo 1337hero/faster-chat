@@ -5,7 +5,7 @@ import { MEMORY_EXTRACTION_MAX_FACTS_PER_TURN } from "@faster-chat/shared";
 describe("memory helpers", () => {
   test("isMemoryEnabledForRequest requires all memory gates to pass", () => {
     const dbUtils = {
-      getMemoryGlobalEnabled: () => "true",
+      getSetting: () => "true",
       getUserMemoryEnabled: () => true,
       getChatMemoryDisabled: () => false,
     };
@@ -18,7 +18,7 @@ describe("memory helpers", () => {
     ).toBe(false);
     expect(
       isMemoryEnabledForRequest({
-        dbUtils: { ...dbUtils, getMemoryGlobalEnabled: () => "false" },
+        dbUtils: { ...dbUtils, getSetting: () => "false" },
         userId: 1,
         chatId: "chat-1",
         requestEnabled: true,
@@ -44,7 +44,7 @@ describe("memory helpers", () => {
 
   test("memory middleware reads request metadata from providerOptions", async () => {
     const middleware = createMemoryMiddleware({
-      getMemoryGlobalEnabled: () => "true",
+      getSetting: () => "true",
       getUserMemoryEnabled: () => true,
       getChatMemoryDisabled: () => false,
       getMemoriesForUser: () => [{ fact: "uses Arch Linux" }],
@@ -96,7 +96,7 @@ describe("memory helpers", () => {
 
   test("memory middleware skips injection when the request disables memory", async () => {
     const middleware = createMemoryMiddleware({
-      getMemoryGlobalEnabled: () => "true",
+      getSetting: () => "true",
       getUserMemoryEnabled: () => true,
       getChatMemoryDisabled: () => false,
       getMemoriesForUser: () => [{ fact: "prefers Python" }],

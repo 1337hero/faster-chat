@@ -1,5 +1,4 @@
 import { Database } from "bun:sqlite";
-import { randomBytes } from "crypto";
 import { config } from "dotenv";
 import { DB_CONSTANTS } from "@faster-chat/shared";
 import { encryptApiKey, decryptApiKey } from "./encryption.js";
@@ -55,28 +54,6 @@ function runMigrations(database) {
   }
 }
 
-function parseFileMeta(file) {
-  if (file?.meta) {
-    try {
-      file.meta = JSON.parse(file.meta);
-    } catch {
-      file.meta = null;
-    }
-  }
-  return file;
-}
-
-function parseMessageMetadata(message) {
-  if (message?.metadata) {
-    try {
-      message.metadata = JSON.parse(message.metadata);
-    } catch {
-      message.metadata = null;
-    }
-  }
-  return message;
-}
-
 function buildUpdateFields(updates, fieldMap, transforms = {}) {
   const fields = [];
   const values = [];
@@ -96,11 +73,11 @@ runMigrations(db);
 export const dbUtils = {};
 Object.assign(
   dbUtils,
-  createUserUtils({ db, DB_CONSTANTS, randomBytes }),
+  createUserUtils({ db }),
   createProviderUtils({ db, buildUpdateFields }),
   createModelUtils({ db, buildUpdateFields }),
-  createFileUtils({ db, parseFileMeta }),
-  createChatUtils({ db, parseMessageMetadata }),
+  createFileUtils({ db }),
+  createChatUtils({ db }),
   createFolderUtils({ db, buildUpdateFields }),
   createSettingUtils({ db, encryptApiKey, decryptApiKey }),
   createAuditUtils({ db }),

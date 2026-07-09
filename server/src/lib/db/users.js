@@ -1,4 +1,7 @@
-export function createUserUtils({ db, DB_CONSTANTS, randomBytes }) {
+import { randomBytes } from "crypto";
+import { DB_CONSTANTS } from "@faster-chat/shared";
+
+export function createUserUtils({ db }) {
   return {
     getUserByUsername(username) {
       const stmt = db.prepare("SELECT * FROM users WHERE username = ?");

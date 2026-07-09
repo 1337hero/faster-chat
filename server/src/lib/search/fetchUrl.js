@@ -4,7 +4,7 @@ import { WEB_SEARCH_CONSTANTS, SEARCH_ERROR_CODES } from "@faster-chat/shared";
 import { validatePublicFetchUrl } from "../ssrf.js";
 
 const { MAX_CONTENT_LENGTH, FETCH_TIMEOUT_MS } = WEB_SEARCH_CONSTANTS;
-const { SSRF_BLOCKED, FETCH_FAILED } = SEARCH_ERROR_CODES;
+const { FETCH_FAILED } = SEARCH_ERROR_CODES;
 
 const MAX_REDIRECTS = 5;
 const USER_AGENT = "FasterChat/1.0";
@@ -77,7 +77,7 @@ function pinnedFetch(validated) {
 // --- Main export ---
 
 export async function fetchAndExtract(url) {
-  let validated = await validatePublicFetchUrl(url, { SSRF_BLOCKED, FETCH_FAILED });
+  let validated = await validatePublicFetchUrl(url);
   if (!validated.valid) {
     return validated;
   }
@@ -93,7 +93,7 @@ export async function fetchAndExtract(url) {
         }
 
         const next = new URL(location, validated.url).href;
-        validated = await validatePublicFetchUrl(next, { SSRF_BLOCKED, FETCH_FAILED });
+        validated = await validatePublicFetchUrl(next);
         if (!validated.valid) {
           return validated;
         }

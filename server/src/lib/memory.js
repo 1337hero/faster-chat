@@ -23,7 +23,7 @@ export function isMemoryEnabledForRequest({
   if (!requestEnabled || !userId) {
     return false;
   }
-  if (dbUtils.getMemoryGlobalEnabled() !== "true") {
+  if (dbUtils.getSetting("memory_enabled") !== "true") {
     return false;
   }
   if (!dbUtils.getUserMemoryEnabled(userId)) {
@@ -106,7 +106,7 @@ export async function extractMemories({
 
 export function getExtractionModel(dbUtils, decryptApiKey) {
   try {
-    const modelId = dbUtils.getMemoryExtractionModel();
+    const modelId = dbUtils.getSetting("memory_extraction_model");
     if (!modelId) {
       return null;
     }
