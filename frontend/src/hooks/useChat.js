@@ -37,6 +37,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     const messageId = crypto.randomUUID();
     const createdAt = Date.now();
     setInput("");
+    setInputFiles([]);
     stream.clearError();
 
     try {
@@ -45,15 +46,14 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
         chatId
       );
       await stream.send({ id: messageId, content: trimmedContent, fileIds, createdAt });
-      setInputFiles([]);
     } catch (err) {
       console.error("Failed to send message", err);
     }
   }
 
-  function handleSubmit(e, fileIds = []) {
+  function handleSubmit(e) {
     e.preventDefault();
-    submitMessage({ content: input, fileIds });
+    submitMessage({ content: input, fileIds: inputFiles.map((f) => f.id) });
   }
 
   function handleInputChange(e) {
@@ -61,10 +61,6 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
   }
 
   const isLoading = (chatId && isChatLoading) || stream.isStreaming;
-
-  async function regenerateResponse() {
-    stream.reload();
-  }
 
   const appendFiles = (files) => setInputFiles((prev) => [...prev, ...files]);
   const removeFile = (fileId) => setInputFiles((prev) => prev.filter((f) => f.id !== fileId));
@@ -85,7 +81,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     clearError: stream.clearError,
     currentChat: chat,
     stop: stream.stop,
-    regenerateResponse: stream.isStreaming ? undefined : regenerateResponse,
+    regenerate: stream.isStreaming ? undefined : stream.regenerate,
     status: stream.status,
   };
 }

@@ -140,7 +140,7 @@ export function useChatStream({
   return {
     messages,
     send,
-    reload: regenerate,
+    regenerate,
     stop,
     status,
     error,

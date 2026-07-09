@@ -18,7 +18,7 @@ async function uploadFile(file) {
   return response.json();
 }
 
-export function useFileUploader({ onFilesUploaded, onError } = {}) {
+export function useFileUploader({ onFilesUploaded } = {}) {
   const [uploading, setUploading] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
 
@@ -39,7 +39,6 @@ export function useFileUploader({ onFilesUploaded, onError } = {}) {
 
     if (uploadable.length === 0) {
       if (errors.length > 0) {
-        onError?.(errors.join("\n"));
         toast.error("Upload failed", { description: errors[0] });
       }
       return;
@@ -66,7 +65,6 @@ export function useFileUploader({ onFilesUploaded, onError } = {}) {
       toast.success(uploaded.length === 1 ? "File uploaded" : `${uploaded.length} files uploaded`);
     }
     if (errors.length > 0) {
-      onError?.(errors.join("\n"));
       toast.error("Upload failed", { description: errors[0] });
     }
   }
