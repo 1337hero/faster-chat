@@ -83,11 +83,35 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     );
   }
 
-  const { buffer, mimeType } = await generateImageForProvider(providerName, apiKey, {
-    prompt: prompt.trim(),
-    aspectRatio,
-    model: modelIdentifier,
-  });
+  let generatedImage;
+  try {
+    generatedImage = await generateImageForProvider(providerName, apiKey, {
+      prompt: prompt.trim(),
+      aspectRatio,
+      model: modelIdentifier,
+    });
+  } catch (error) {
+    const message = error?.message || "";
+    const normalizedMessage = message.toLowerCase();
+
+    if (
+      normalizedMessage.includes("invalid api token") ||
+      normalizedMessage.includes("authentication")
+    ) {
+      return c.json({ error: "Invalid API key" }, HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    if (normalizedMessage.includes("rate limit")) {
+      return c.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        HTTP_STATUS.TOO_MANY_REQUESTS
+      );
+    }
+
+    throw error;
+  }
+
+  const { buffer, mimeType } = generatedImage;
 
   const fileId = randomUUID();
   const extension = mimeType === "image/webp" ? "webp" : mimeType.split("/")[1] || "png";
