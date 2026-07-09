@@ -85,12 +85,15 @@ function parseWebp(buf) {
   throw new Error(`Unknown WebP chunk type: ${chunkType}`);
 }
 
-export function validateImageDimensions(buffer, mimeType, filename) {
-  const dims = getImageDimensions(buffer, mimeType);
+export function validateImageDimensionValues(dims, filename) {
   if (dims.width > MAX_IMAGE_DIMENSION_PX || dims.height > MAX_IMAGE_DIMENSION_PX) {
     throw new Error(
       `Image "${filename}" is ${dims.width}×${dims.height}. The maximum supported dimension is ${MAX_IMAGE_DIMENSION_PX} px per side. Resize the image and upload again.`
     );
   }
   return dims;
+}
+
+export function validateImageDimensions(buffer, mimeType, filename) {
+  return validateImageDimensionValues(getImageDimensions(buffer, mimeType), filename);
 }

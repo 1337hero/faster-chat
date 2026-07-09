@@ -1,4 +1,4 @@
-import { randomUUID, createHash } from "crypto";
+import { createHash } from "crypto";
 import { unlink, mkdir, readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,22 +13,14 @@ import {
   getMimeFromExtension,
   formatFileSize,
 } from "@faster-chat/shared";
-import { extractOfficeText, isOfficeModernFile, isOfficeLegacyFile } from "./officeExtraction.js";
 import { providerSupportsImages, providerSupportsNativePdf } from "./providerFactory.js";
-import { validateImageDimensions, MAX_IMAGE_DIMENSION_PX } from "./imageValidation.js";
+import {
+  validateImageDimensions,
+  validateImageDimensionValues,
+  MAX_IMAGE_DIMENSION_PX,
+} from "./imageValidation.js";
 
 export const MAX_INLINE_TEXT_ATTACHMENT_CHARS = 200_000;
-
-export {
-  formatFileSize,
-  FILE_CATEGORIES,
-  FILE_STRATEGIES,
-  FILE_DOWNLOAD_POLICIES,
-  FILE_CATEGORY_DEFINITIONS,
-  UNSAFE_INLINE_EXTENSIONS,
-  UNSAFE_INLINE_MIME_TYPES,
-  getMimeFromExtension,
-} from "@faster-chat/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../../..");
@@ -40,17 +32,7 @@ export const FILE_CONFIG = {
 };
 
 export async function ensureUploadDirectory() {
-  try {
-    await mkdir(UPLOAD_DIR, { recursive: true });
-  } catch (error) {
-    if (error.code !== "EEXIST") {
-      throw error;
-    }
-  }
-}
-
-export function generateFileId() {
-  return randomUUID();
+  await mkdir(UPLOAD_DIR, { recursive: true });
 }
 
 export function sanitizeFilename(filename) {
@@ -123,40 +105,37 @@ export function isGenericMimeType(mimeType) {
   );
 }
 
+function categoryMatch(predicate) {
+  for (const [catKey, catDef] of Object.entries(FILE_CATEGORY_DEFINITIONS)) {
+    if (predicate(catDef)) {
+      return {
+        category: catKey,
+        uploadAllowed: catDef.uploadAllowed,
+        defaultStrategy: catDef.defaultStrategy,
+        downloadPolicy: catDef.downloadPolicy,
+      };
+    }
+  }
+  return null;
+}
+
 export function classifyAttachment({ filename, mimeType }) {
   const extension = getFileExtension(filename);
   const originalMimeType = mimeType || "";
   const normalizedMimeType = normalizeMimeType(originalMimeType);
   const effectiveMimeType = isGenericMimeType(normalizedMimeType)
-    ? getMimeFromExtension(filename) || normalizedMimeType
+    ? getMimeFromExtension(extension) || normalizedMimeType
     : normalizedMimeType;
+  const effectiveMimeTypeLower = effectiveMimeType.toLowerCase();
+  const matched =
+    categoryMatch((catDef) =>
+      catDef.mimeTypes.some((mt) => mt.toLowerCase() === effectiveMimeTypeLower)
+    ) || categoryMatch((catDef) => catDef.extensions.includes(extension));
 
-  let category = FILE_CATEGORIES.UNKNOWN_BINARY;
-  let uploadAllowed = false;
-  let defaultStrategy = FILE_STRATEGIES.REJECT;
-  let downloadPolicy = FILE_DOWNLOAD_POLICIES.ATTACHMENT_ONLY;
-
-  for (const [catKey, catDef] of Object.entries(FILE_CATEGORY_DEFINITIONS)) {
-    if (catDef.mimeTypes.some((mt) => mt.toLowerCase() === effectiveMimeType.toLowerCase())) {
-      category = catKey;
-      uploadAllowed = catDef.uploadAllowed;
-      defaultStrategy = catDef.defaultStrategy;
-      downloadPolicy = catDef.downloadPolicy;
-      break;
-    }
-  }
-
-  if (category === FILE_CATEGORIES.UNKNOWN_BINARY) {
-    for (const [catKey, catDef] of Object.entries(FILE_CATEGORY_DEFINITIONS)) {
-      if (catDef.extensions.includes(extension)) {
-        category = catKey;
-        uploadAllowed = catDef.uploadAllowed;
-        defaultStrategy = catDef.defaultStrategy;
-        downloadPolicy = catDef.downloadPolicy;
-        break;
-      }
-    }
-  }
+  let category = matched?.category || FILE_CATEGORIES.UNKNOWN_BINARY;
+  let uploadAllowed = matched?.uploadAllowed || false;
+  let defaultStrategy = matched?.defaultStrategy || FILE_STRATEGIES.REJECT;
+  let downloadPolicy = matched?.downloadPolicy || FILE_DOWNLOAD_POLICIES.ATTACHMENT_ONLY;
 
   const overlays = [];
   if (
@@ -234,16 +213,39 @@ export function isOfficeModernAttachment(file) {
   return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_MODERN;
 }
 
-export function isOfficeLegacyAttachment(file) {
-  return getAttachmentCategory(file) === FILE_CATEGORIES.OFFICE_LEGACY;
+function getAttachmentMediaType(file) {
+  return (
+    classifyAttachment({
+      filename: file.filename,
+      mimeType: file.mime_type,
+    }).effectiveMimeType ||
+    file.mime_type ||
+    "application/octet-stream"
+  );
 }
 
-export function getStrategyForCategory(category) {
-  const catDef = FILE_CATEGORY_DEFINITIONS[category];
-  return catDef?.defaultStrategy || FILE_STRATEGIES.REJECT;
+function getStoredImageDimensions(file) {
+  const width = file.meta?.width;
+  const height = file.meta?.height;
+  return Number.isFinite(width) && Number.isFinite(height) ? { width, height } : null;
 }
 
-async function classifyForModel(file, modelRecord, providerName) {
+async function ensureImageDimensions(file, updateFileMetadata) {
+  const storedDimensions = getStoredImageDimensions(file);
+  if (storedDimensions) {
+    validateImageDimensionValues(storedDimensions, file.filename);
+    return;
+  }
+
+  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
+  const buf = await readFile(filePath);
+  const dimensions = validateImageDimensions(buf, getAttachmentMediaType(file), file.filename);
+  const meta = { ...(file.meta || {}), ...dimensions };
+  file.meta = meta;
+  updateFileMetadata?.(file.id, meta);
+}
+
+async function classifyForModel(file, modelRecord, providerName, updateFileMetadata) {
   const category = getAttachmentCategory(file);
 
   switch (category) {
@@ -262,8 +264,7 @@ async function classifyForModel(file, modelRecord, providerName) {
         };
       }
       try {
-        const buf = await readFile(path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename));
-        validateImageDimensions(buf, file.mime_type, file.filename);
+        await ensureImageDimensions(file, updateFileMetadata);
       } catch (err) {
         return {
           category,
@@ -291,15 +292,7 @@ async function classifyForModel(file, modelRecord, providerName) {
       return { category, allowed: true };
 
     case FILE_CATEGORIES.OFFICE_MODERN:
-      return isOfficeModernFile({ filename: file.filename, mimeType: file.mime_type })
-        ? { category, allowed: true }
-        : {
-            category,
-            allowed: false,
-            errorCode: "ATTACHMENT_UNSUPPORTED",
-            reason: "Office document type not recognized.",
-            suggestion: "Ensure the file has a .docx, .xlsx, or .pptx extension.",
-          };
+      return { category, allowed: true };
 
     case FILE_CATEGORIES.OFFICE_LEGACY:
       return {
@@ -322,16 +315,21 @@ async function classifyForModel(file, modelRecord, providerName) {
   }
 }
 
-export async function preflightAttachments({ files, modelRecord, providerName }) {
-  const results = await Promise.all(
+export async function preflightAttachments({
+  files,
+  modelRecord,
+  providerName,
+  updateFileMetadata,
+}) {
+  const denials = await Promise.all(
     files.map(async (file) => {
-      const r = await classifyForModel(file, modelRecord, providerName);
+      const r = await classifyForModel(file, modelRecord, providerName, updateFileMetadata);
+      if (r.allowed) {
+        return null;
+      }
       return {
-        fileId: file.id,
         filename: file.filename,
         category: r.category,
-        strategy: r.allowed ? getStrategyForCategory(r.category) : FILE_STRATEGIES.REJECT,
-        allowed: r.allowed,
         reason: r.reason ?? "",
         suggestion: r.suggestion ?? "",
         errorCode: r.errorCode,
@@ -339,14 +337,13 @@ export async function preflightAttachments({ files, modelRecord, providerName })
     })
   );
 
-  const denied = results.filter((r) => !r.allowed);
+  const denied = denials.filter(Boolean);
   if (denied.length === 0) {
-    return { ok: true, results };
+    return { ok: true };
   }
 
   return {
     ok: false,
-    results,
     code: denied[0].errorCode,
     error: "One or more attachments are not supported by the selected model.",
     details: denied.map(({ filename, category, reason, suggestion }) => ({
@@ -357,21 +354,6 @@ export async function preflightAttachments({ files, modelRecord, providerName })
     })),
   };
 }
-
-export async function extractOfficeDocumentText(file) {
-  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
-  const fileBuffer = await readFile(filePath).catch((err) => {
-    throw new Error(`Cannot read ${file.id} at ${filePath}: ${err.message}`);
-  });
-
-  return extractOfficeText({
-    buffer: fileBuffer,
-    filename: file.filename,
-    mimeType: file.mime_type,
-  });
-}
-
-export { extractOfficeText, isOfficeModernFile, isOfficeLegacyFile };
 
 const FENCE_LANGUAGE_MAP = {
   markdown: "markdown",
@@ -389,8 +371,8 @@ export function formatInlineAttachmentText({ filename, mimeType, size, text, tot
   const extension = getFileExtension(filename);
 
   const fenceLanguage =
-    Object.entries(FENCE_LANGUAGE_MAP).find(([mime]) => normalizedMimeType.includes(mime))?.[1] ??
-    extension ??
+    Object.entries(FENCE_LANGUAGE_MAP).find(([mime]) => normalizedMimeType.includes(mime))?.[1] ||
+    extension ||
     "txt";
 
   const header = `Attached file: ${filename}\nContent-Type: ${normalizedMimeType}\nSize: ${formatFileSize(size)}\n\n`;

@@ -9,7 +9,8 @@ import {
   decodeXmlEntities,
 } from "../lib/officeExtraction.js";
 import AdmZip from "adm-zip";
-import { FILE_CATEGORIES, classifyAttachment } from "../lib/fileUtils.js";
+import { FILE_CATEGORIES } from "@faster-chat/shared";
+import { classifyAttachment } from "../lib/fileUtils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
@@ -43,25 +44,25 @@ describe("officeExtraction", () => {
       expect(isOfficeModernFile({ filename: "image.png" })).toBe(false);
     });
 
-    test("returns true based on MIME type", () => {
+    test("returns false based on MIME type without extension", () => {
       expect(
         isOfficeModernFile({
           filename: "unknown",
           mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         })
-      ).toBe(true);
+      ).toBe(false);
       expect(
         isOfficeModernFile({
           filename: "unknown",
           mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         })
-      ).toBe(true);
+      ).toBe(false);
       expect(
         isOfficeModernFile({
           filename: "unknown",
           mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         })
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 
@@ -152,15 +153,15 @@ describe("officeExtraction", () => {
       expect(Array.isArray(result.warnings)).toBe(true);
     });
 
-    test("handles filename without extension using MIME type", () => {
+    test("does not infer type from MIME without an extension", () => {
       const result = extractOfficeText({
         buffer: docxBuffer,
         filename: "unknown",
         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      expect(result.kind).toBe("docx");
-      expect(result.text).toContain("First paragraph text");
+      expect(result.kind).toBeNull();
+      expect(result.text).toBe("");
     });
   });
 

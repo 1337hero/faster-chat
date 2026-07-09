@@ -1,13 +1,6 @@
 import path from "path";
 import AdmZip from "adm-zip";
-
-const OFFICE_MIME_TYPES = {
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
-};
-
-const OFFICE_EXTENSIONS = { docx: "docx", xlsx: "xlsx", pptx: "pptx" };
+import { FILE_CATEGORIES, FILE_CATEGORY_DEFINITIONS } from "@faster-chat/shared";
 
 const NAMED_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
@@ -25,6 +18,10 @@ function safeGetData(entry) {
     throw new Error(`zip entry ${entry.entryName} exceeds compression ratio limit`);
   }
   return entry.getData();
+}
+
+function getExtension(filename) {
+  return path.extname(filename).toLowerCase().replace(".", "");
 }
 
 export function decodeXmlEntities(text) {
@@ -91,6 +88,8 @@ function extractXlsxText(buffer) {
     const worksheetEntries = entries.filter(
       (e) => e.entryName.startsWith("xl/worksheets/sheet") && e.entryName.endsWith(".xml")
     );
+    const workbookEntry = entries.find((e) => e.entryName === "xl/workbook.xml");
+    const workbookXml = workbookEntry ? safeGetData(workbookEntry).toString("utf8") : "";
 
     for (const entry of worksheetEntries) {
       const xmlContent = safeGetData(entry).toString("utf8");
@@ -100,9 +99,7 @@ function extractXlsxText(buffer) {
       let sheetLabel = `Sheet ${sheetNumMatch ? sheetNumMatch[1] : ""}`;
 
       // Try to get actual sheet name from workbook
-      const workbookEntry = entries.find((e) => e.entryName === "xl/workbook.xml");
-      if (workbookEntry) {
-        const workbookXml = safeGetData(workbookEntry).toString("utf8");
+      if (workbookXml) {
         const sheetNameRegex = new RegExp(
           `<sheet\\s+name="([^"]+)"\\s+sheetId="${sheetNumMatch ? sheetNumMatch[1] : ""}"`
         );
@@ -207,17 +204,8 @@ function extractPptxText(buffer) {
   };
 }
 
-export function extractOfficeText({ buffer, filename, mimeType }) {
-  const extension = path.extname(filename).toLowerCase().replace(".", "");
-  const kind = OFFICE_EXTENSIONS[extension] || OFFICE_MIME_TYPES[mimeType] || null;
-
-  if (!kind) {
-    return {
-      text: "",
-      kind: null,
-      warnings: ["Unknown office document type"],
-    };
-  }
+export function extractOfficeText({ buffer, filename }) {
+  const kind = getExtension(filename);
 
   let result;
   switch (kind) {
@@ -233,8 +221,8 @@ export function extractOfficeText({ buffer, filename, mimeType }) {
     default:
       return {
         text: "",
-        kind,
-        warnings: ["Unsupported office document type"],
+        kind: null,
+        warnings: ["Unknown office document type"],
       };
   }
 
@@ -245,14 +233,12 @@ export function extractOfficeText({ buffer, filename, mimeType }) {
   };
 }
 
-export function isOfficeModernFile({ filename, mimeType }) {
-  const extension = path.extname(filename).toLowerCase().replace(".", "");
-  if (OFFICE_EXTENSIONS[extension]) return true;
-  if (mimeType && OFFICE_MIME_TYPES[mimeType]) return true;
-  return false;
+export function isOfficeModernFile({ filename }) {
+  const extension = getExtension(filename);
+  return FILE_CATEGORY_DEFINITIONS[FILE_CATEGORIES.OFFICE_MODERN].extensions.includes(extension);
 }
 
 export function isOfficeLegacyFile({ filename }) {
-  const extension = path.extname(filename).toLowerCase().replace(".", "");
-  return ["doc", "xls", "ppt"].includes(extension);
+  const extension = getExtension(filename);
+  return FILE_CATEGORY_DEFINITIONS[FILE_CATEGORIES.OFFICE_LEGACY].extensions.includes(extension);
 }
