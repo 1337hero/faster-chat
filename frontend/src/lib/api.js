@@ -12,13 +12,12 @@ export async function apiFetch(endpoint, options = {}) {
     },
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
-    const error = new Error(data.error || "Request failed");
+    const data = await response.json().catch(() => null);
+    const error = new Error(data?.error || `Server unreachable (${response.status})`);
     error.status = response.status;
     throw error;
   }
 
-  return data;
+  return response.json();
 }
