@@ -6,8 +6,6 @@ const CATEGORY_LABELS = {
   [FILE_CATEGORIES.PDF]: "PDF",
   [FILE_CATEGORIES.TEXT_LIKE]: "Text",
   [FILE_CATEGORIES.OFFICE_MODERN]: "Office",
-  [FILE_CATEGORIES.OFFICE_LEGACY]: "Office",
-  [FILE_CATEGORIES.UNKNOWN_BINARY]: "File",
 };
 
 export function FilePreviewList({ files, onRemove }) {

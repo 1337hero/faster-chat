@@ -1,12 +1,6 @@
-import { useRef, useState, useEffect } from "preact/hooks";
-import {
-  UI_CONSTANTS,
-  FILE_CONSTANTS,
-  ATTACHMENT_INPUT_ACCEPT,
-  ATTACHMENT_TITLE_TEXT,
-} from "@faster-chat/shared";
+import { useRef, useEffect } from "preact/hooks";
+import { UI_CONSTANTS, ATTACHMENT_INPUT_ACCEPT, ATTACHMENT_TITLE_TEXT } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
-import ErrorBanner from "@/components/ui/ErrorBanner";
 import ChatMemoryButton from "./ChatMemoryButton";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
@@ -33,24 +27,8 @@ const InputArea = ({
   isGenerating,
 }) => {
   const textareaRef = useRef(null);
-  const errorTimerRef = useRef(null);
-  const [uploadError, setUploadError] = useState(null);
-  const showUploadError = (msg) => {
-    clearTimeout(errorTimerRef.current);
-    setUploadError(msg);
-    if (msg) {
-      errorTimerRef.current = setTimeout(
-        () => setUploadError(null),
-        FILE_CONSTANTS.ERROR_DISPLAY_DURATION_MS
-      );
-    }
-  };
   const { uploadFiles, uploading, currentFile } = useFileUploader({
-    onFilesUploaded: (files) => {
-      onFilesUploaded(files);
-      showUploadError(null);
-    },
-    onError: showUploadError,
+    onFilesUploaded,
   });
   const { dragActive, handleDrag, handleDrop } = useFileDragDrop((files) => uploadFiles(files));
   const imageMode = useUiState((state) => state.imageMode);
@@ -124,16 +102,12 @@ const InputArea = ({
       return;
     }
 
-    const fileIds = selectedFiles.map((f) => f.id);
-    handleSubmit(e, fileIds);
+    handleSubmit(e);
 
     // Reset textarea height when clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-
-    // Clear upload error (files will be cleared by parent on success)
-    showUploadError(null);
   };
 
   const handleFileChange = (e) => {
@@ -179,8 +153,6 @@ const InputArea = ({
         {uploading && currentFile && (
           <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
         )}
-
-        <ErrorBanner message={uploadError} className="mb-2" />
 
         {!imageMode && <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />}
 

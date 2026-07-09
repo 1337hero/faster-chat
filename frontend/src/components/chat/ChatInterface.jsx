@@ -79,7 +79,7 @@ const ChatInterface = ({ chatId }) => {
     isLoading,
     status,
     stop,
-    regenerateResponse,
+    regenerate,
     setInput,
   } = useChat({
     id: chatId,
@@ -187,7 +187,7 @@ const ChatInterface = ({ chatId }) => {
               isGeneratingImage={isGenerating}
               status={status}
               onStop={stop}
-              onRegenerate={regenerateResponse}
+              onRegenerate={regenerate}
             />
           </div>
         </div>
