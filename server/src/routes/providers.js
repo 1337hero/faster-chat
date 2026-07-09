@@ -63,8 +63,8 @@ providersRouter.get("/available", async (c) => {
     (p) => !Object.keys(PROVIDERS).includes(p.id)
   );
   const allProviders = [...nativeProviders, ...filteredCommunity].sort((a, b) => {
-    const order = { "openai-compatible": 0, official: 1, community: 2 };
-    return order[a.type] - order[b.type];
+    const order = { local: 0, "openai-compatible": 0, official: 1, community: 2 };
+    return (order[a.type ?? a.category] ?? 3) - (order[b.type ?? b.category] ?? 3);
   });
   return c.json({ providers: allProviders });
 });
@@ -127,7 +127,9 @@ providersRouter.post("/", async (c) => {
       );
       if (model.metadata) dbUtils.setModelMetadata(modelId, model.metadata);
     }
-  } catch {}
+  } catch (error) {
+    console.error("Failed to fetch provider models:", error.message);
+  }
 
   return c.json(
     { provider: { id: providerId, name, display_name: displayName, model_count: models.length } },
