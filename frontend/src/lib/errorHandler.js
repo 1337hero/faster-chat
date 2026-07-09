@@ -8,31 +8,60 @@ export function extractErrorMessage(error) {
     return "An unexpected error occurred.";
   }
   if (typeof error === "string") {
-    return error;
+    return extractFromString(error);
   }
   if (error instanceof Error) {
-    return error.message;
+    return extractFromString(error.message);
   }
   if (typeof error === "object") {
-    // Check for structured attachment error with code and details
-    if (error.code && error.details) {
-      const detailsText = formatErrorDetails(error.details);
-      return detailsText || error.error || error.message || "Attachment error";
-    }
-
-    if (typeof error.message === "string") {
-      return error.message;
-    }
-    if (typeof error.error === "string") {
-      return error.error;
-    }
-    if (error.error && typeof error.error.message === "string") {
-      return error.error.message;
-    }
+    return extractFromObject(error) ?? safeString(error);
   }
 
+  return safeString(error);
+}
+
+// A serialized structured error can arrive as a raw JSON string (e.g. the AI SDK
+// transport throws `new Error(await response.text())`). Parsing may only improve
+// the message, never degrade it: only plain objects that yield a usable message
+// get reformatted; arrays, non-objects, and objects with no extractable message
+// pass through as the original string unchanged.
+function extractFromString(str) {
+  let parsed;
   try {
-    return String(error);
+    parsed = JSON.parse(str);
+  } catch {
+    return str;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return str;
+  }
+  return extractFromObject(parsed) ?? str;
+}
+
+// Returns a usable message string, or null when nothing extractable is present.
+function extractFromObject(error) {
+  // Check for structured attachment error with code and details
+  if (error.code && error.details) {
+    const detailsText = formatErrorDetails(error.details);
+    return detailsText || error.error || error.message || "Attachment error";
+  }
+
+  if (typeof error.message === "string") {
+    return error.message;
+  }
+  if (typeof error.error === "string") {
+    return error.error;
+  }
+  if (error.error && typeof error.error.message === "string") {
+    return error.error.message;
+  }
+
+  return null;
+}
+
+function safeString(value) {
+  try {
+    return String(value);
   } catch {
     return "An unexpected error occurred.";
   }

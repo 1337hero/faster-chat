@@ -14,7 +14,7 @@ const ErrorBanner = ({ message, className = "", onDismiss }) => {
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <p className="font-medium">Something went wrong</p>
-          <p className="text-theme-red/80 mt-1">{text}</p>
+          <p className="text-theme-red/80 mt-1 whitespace-pre-line">{text}</p>
         </div>
         {onDismiss && (
           <button

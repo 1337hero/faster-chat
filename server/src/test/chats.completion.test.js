@@ -525,6 +525,11 @@ describe("chat completion - Phase 4 PDF preflight", () => {
 
     expect(res.status).toBe(400);
     const body = await res.json();
+    // Client parser (extractErrorMessage) depends on this {code, error, details} shape.
+    expect(typeof body.code).toBe("string");
+    expect(typeof body.error).toBe("string");
+    expect(Array.isArray(body.details)).toBe(true);
+    expect(body.code).toBe("ATTACHMENT_PROVIDER_UNSUPPORTED");
     expect(body.error).toBe("One or more attachments are not supported by the selected model.");
     expect(body.details).toHaveLength(1);
     expect(body.details[0].filename).toBe("report.pdf");
