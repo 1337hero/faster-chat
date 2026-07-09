@@ -97,103 +97,67 @@ function buildPreview(conversations) {
 // ============================================================================
 
 importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
-  try {
-    const user = c.get("user");
-    const body = await c.req.json();
+  const user = c.get("user");
+  const body = await c.req.json();
 
-    // Validate request body
-    const bodyValidation = validateRequestBody(body);
-    if (!bodyValidation.valid) {
-      return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
-    }
+  const bodyValidation = validateRequestBody(body);
+  if (!bodyValidation.valid) {
+    return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
+  }
 
-    // Validate and parse export
-    const parseResult = validateAndParseExport(body.data);
-    if (!parseResult.success) {
-      return c.json(
-        { error: "Invalid ChatGPT export format", details: parseResult.errors },
-        HTTP_STATUS.BAD_REQUEST
-      );
-    }
-
-    // Import all conversations atomically
-    const importedChatIds = [];
-    let totalMessages = 0;
-
-    const importAll = db.transaction(() => {
-      for (const conversation of parseResult.conversations) {
-        const { chatId, messageCount } = importConversation(conversation, user.id);
-        importedChatIds.push(chatId);
-        totalMessages += messageCount;
-      }
-    });
-
-    try {
-      importAll();
-    } catch (error) {
-      console.error("[Import] Transaction failed:", error.message);
-      return c.json(
-        { error: "Failed to import conversations", details: error.message },
-        HTTP_STATUS.INTERNAL_SERVER_ERROR
-      );
-    }
-
+  const parseResult = validateAndParseExport(body.data);
+  if (!parseResult.success) {
     return c.json(
-      {
-        success: true,
-        imported: {
-          conversations: importedChatIds.length,
-          messages: totalMessages,
-        },
-        stats: getImportStats(parseResult.conversations),
-        chatIds: importedChatIds,
-      },
-      HTTP_STATUS.CREATED
-    );
-  } catch (error) {
-    console.error("[Import] ChatGPT import failed:", {
-      error: error.message,
-      stack: error.stack,
-    });
-    return c.json(
-      { error: "Failed to import conversations", details: error.message },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
+      { error: "Invalid ChatGPT export format", details: parseResult.errors },
+      HTTP_STATUS.BAD_REQUEST
     );
   }
+
+  const importedChatIds = [];
+  let totalMessages = 0;
+
+  const importAll = db.transaction(() => {
+    for (const conversation of parseResult.conversations) {
+      const { chatId, messageCount } = importConversation(conversation, user.id);
+      importedChatIds.push(chatId);
+      totalMessages += messageCount;
+    }
+  });
+  importAll();
+
+  return c.json(
+    {
+      success: true,
+      imported: {
+        conversations: importedChatIds.length,
+        messages: totalMessages,
+      },
+      stats: getImportStats(parseResult.conversations),
+      chatIds: importedChatIds,
+    },
+    HTTP_STATUS.CREATED
+  );
 });
 
 importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
-  try {
-    const body = await c.req.json();
+  const body = await c.req.json();
 
-    // Validate request body
-    const bodyValidation = validateRequestBody(body);
-    if (!bodyValidation.valid) {
-      return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Validate and parse export
-    const parseResult = validateAndParseExport(body.data);
-    if (!parseResult.success) {
-      return c.json({ valid: false, errors: parseResult.errors }, HTTP_STATUS.OK);
-    }
-
-    return c.json({
-      valid: true,
-      conversationCount: parseResult.conversationCount,
-      stats: getImportStats(parseResult.conversations),
-      preview: buildPreview(parseResult.conversations),
-    });
-  } catch (error) {
-    console.error("[Import] Validation failed:", {
-      error: error.message,
-      stack: error.stack,
-    });
-    return c.json(
-      { valid: false, errors: ["Failed to validate file: " + error.message] },
-      HTTP_STATUS.INTERNAL_SERVER_ERROR
-    );
+  const bodyValidation = validateRequestBody(body);
+  if (!bodyValidation.valid) {
+    return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
   }
+
+  const parseResult = validateAndParseExport(body.data);
+  if (!parseResult.success) {
+    return c.json({ valid: false, errors: parseResult.errors }, HTTP_STATUS.OK);
+  }
+
+  return c.json({
+    valid: true,
+    conversationCount: parseResult.conversationCount,
+    stats: getImportStats(parseResult.conversations),
+    preview: buildPreview(parseResult.conversations),
+  });
 });
 
 importRouter.get("/formats", async (c) => {

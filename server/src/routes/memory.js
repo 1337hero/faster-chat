@@ -9,7 +9,7 @@ memoryRouter.use("/*", ensureSession);
 
 memoryRouter.get("/status", async (c) => {
   const user = c.get("user");
-  const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
+  const globalEnabled = dbUtils.getSetting("memory_enabled") === "true";
   const enabled = dbUtils.getUserMemoryEnabled(user.id);
   const memoriesCount = dbUtils.getMemoriesCount(user.id);
   return c.json({ enabled, globalEnabled, memoriesCount });

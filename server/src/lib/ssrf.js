@@ -1,5 +1,8 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import { SEARCH_ERROR_CODES } from "@faster-chat/shared";
+
+const { SSRF_BLOCKED, FETCH_FAILED } = SEARCH_ERROR_CODES;
 
 const METADATA_HOSTNAMES = new Set([
   "169.254.169.254",
@@ -13,6 +16,26 @@ function stripIPv6Brackets(hostname) {
 
 function isMetadataAddress(ip) {
   return ip === "169.254.169.254" || ip === "100.100.100.200";
+}
+
+function parsePublicHttpUrl(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { error: "Invalid URL" };
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    return { error: "URL blocked for security reasons" };
+  }
+
+  const hostname = stripIPv6Brackets(parsed.hostname).toLowerCase();
+  if (!hostname || METADATA_HOSTNAMES.has(hostname)) {
+    return { error: "URL blocked for security reasons" };
+  }
+
+  return { parsed, hostname };
 }
 
 function isPrivateIPv4(ip) {
@@ -65,41 +88,18 @@ export function isPrivateAddress(ip) {
 }
 
 export function validateProviderBaseUrl(url) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    return false;
-  }
-
-  const hostname = stripIPv6Brackets(parsed.hostname).toLowerCase();
-  return !!hostname && !METADATA_HOSTNAMES.has(hostname);
+  return !!parsePublicHttpUrl(url).parsed;
 }
 
-export async function validatePublicFetchUrl(url, errorCodes) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return { error: "Invalid URL", code: errorCodes.SSRF_BLOCKED };
-  }
-
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
-  }
-
-  const hostname = stripIPv6Brackets(parsed.hostname).toLowerCase();
-  if (!hostname || METADATA_HOSTNAMES.has(hostname)) {
-    return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
+export async function validatePublicFetchUrl(url) {
+  const { parsed, hostname, error } = parsePublicHttpUrl(url);
+  if (!parsed) {
+    return { error, code: SSRF_BLOCKED };
   }
 
   if (net.isIP(hostname)) {
     if (isMetadataAddress(hostname) || isPrivateAddress(hostname)) {
-      return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
+      return { error: "URL blocked for security reasons", code: SSRF_BLOCKED };
     }
     return { valid: true, url: parsed.href, address: hostname };
   }
@@ -108,18 +108,18 @@ export async function validatePublicFetchUrl(url, errorCodes) {
   try {
     addresses = await dns.lookup(hostname, { all: true });
   } catch {
-    return { error: "DNS resolution failed", code: errorCodes.FETCH_FAILED };
+    return { error: "DNS resolution failed", code: FETCH_FAILED };
   }
 
   if (!addresses.length) {
-    return { error: "Could not resolve hostname", code: errorCodes.FETCH_FAILED };
+    return { error: "Could not resolve hostname", code: FETCH_FAILED };
   }
 
   const blocked = addresses.find(
     ({ address }) => isMetadataAddress(address) || isPrivateAddress(address)
   );
   if (blocked) {
-    return { error: "URL blocked for security reasons", code: errorCodes.SSRF_BLOCKED };
+    return { error: "URL blocked for security reasons", code: SSRF_BLOCKED };
   }
 
   // Return the validated address so the caller can pin the connection to it,

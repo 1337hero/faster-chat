@@ -1,4 +1,15 @@
-export function createChatUtils({ db, parseMessageMetadata }) {
+function parseMessageMetadata(message) {
+  if (message?.metadata) {
+    try {
+      message.metadata = JSON.parse(message.metadata);
+    } catch {
+      message.metadata = null;
+    }
+  }
+  return message;
+}
+
+export function createChatUtils({ db }) {
   // Batch fetch file IDs for messages, ordered by created_at ASC, rowid ASC
   function getMessageFileIds(messageIds) {
     if (!messageIds || messageIds.length === 0) {
@@ -65,18 +76,6 @@ export function createChatUtils({ db, parseMessageMetadata }) {
       return stmt.get(chatId, userId);
     },
 
-    getChatsByUserId(userId, includeArchived = false) {
-      const stmt = db.prepare(`
-      SELECT * FROM chats
-      WHERE user_id = ? AND deleted_at IS NULL AND folder_id IS NULL ${includeArchived ? "" : "AND archived_at IS NULL"}
-      ORDER BY
-        CASE WHEN pinned_at IS NOT NULL THEN 0 ELSE 1 END,
-        pinned_at DESC,
-        updated_at DESC
-    `);
-      return stmt.all(userId);
-    },
-
     getArchivedChatsByUserId(userId) {
       const stmt = db.prepare(`
       SELECT * FROM chats
@@ -110,13 +109,6 @@ export function createChatUtils({ db, parseMessageMetadata }) {
     updateChatTimestampTo(chatId, timestamp) {
       const stmt = db.prepare("UPDATE chats SET updated_at = ? WHERE id = ?");
       stmt.run(timestamp, chatId);
-    },
-
-    softDeleteChat(chatId) {
-      const now = Date.now();
-      const stmt = db.prepare("UPDATE chats SET deleted_at = ?, updated_at = ? WHERE id = ?");
-      const result = stmt.run(now, now, chatId);
-      return result.changes > 0;
     },
 
     softDeleteChatByUser(chatId, userId) {
@@ -161,12 +153,6 @@ export function createChatUtils({ db, parseMessageMetadata }) {
         "UPDATE chats SET archived_at = NULL, updated_at = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
       );
       const result = stmt.run(now, chatId, userId);
-      return result.changes > 0;
-    },
-
-    hardDeleteChat(chatId) {
-      const stmt = db.prepare("DELETE FROM chats WHERE id = ?");
-      const result = stmt.run(chatId);
       return result.changes > 0;
     },
 
@@ -219,34 +205,6 @@ export function createChatUtils({ db, parseMessageMetadata }) {
         metadata,
         created_at: now,
       };
-    },
-
-    getMessageById(messageId) {
-      const stmt = db.prepare("SELECT * FROM messages WHERE id = ?");
-      const msg = stmt.get(messageId);
-      if (!msg) return null;
-      parseMessageMetadata(msg);
-      attachFileIds([msg]);
-      return msg;
-    },
-
-    getMessagesByChatAndUser(chatId, userId) {
-      const stmt = db.prepare(`
-      SELECT * FROM messages
-      WHERE chat_id = ? AND user_id = ?
-      ORDER BY created_at ASC
-    `);
-      const messages = stmt.all(chatId, userId);
-      for (const msg of messages) {
-        parseMessageMetadata(msg);
-      }
-      return attachFileIds(messages);
-    },
-
-    deleteMessage(messageId) {
-      const stmt = db.prepare("DELETE FROM messages WHERE id = ?");
-      const result = stmt.run(messageId);
-      return result.changes > 0;
     },
 
     deleteMessageByUser(messageId, userId, chatId) {

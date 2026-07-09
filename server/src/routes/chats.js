@@ -8,27 +8,15 @@ import { HTTP_STATUS } from "../lib/httpStatus.js";
 import {
   UI_CONSTANTS,
   getSystemPrompt,
-  MODEL_FEATURES,
   COMPLETION_CONSTANTS,
   WEB_SEARCH_CONSTANTS,
-  FILE_CATEGORIES,
 } from "@faster-chat/shared";
 import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
 import { decryptApiKey } from "../lib/encryption.js";
 import { getModelInstance } from "../lib/providerFactory.js";
 import { humanizeProviderError } from "../lib/providerErrors.js";
-import { readFile } from "fs/promises";
-import path from "path";
-import {
-  FILE_CONFIG,
-  getAttachmentCategory,
-  getAttachmentMediaType,
-  formatInlineAttachmentText,
-  MAX_INLINE_TEXT_ATTACHMENT_CHARS,
-  preflightAttachments,
-} from "../lib/fileUtils.js";
-import { extractOfficeText } from "../lib/officeExtraction.js";
+import { preflightAttachments } from "../lib/fileUtils.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
   wrapModelWithMemory,
@@ -36,45 +24,12 @@ import {
   getExtractionModel,
   isMemoryEnabledForRequest,
 } from "../lib/memory.js";
-
-const MAX_MODEL_ATTACHMENT_BYTES = 50 * 1024 * 1024;
-
-function mapAttachmentError(error) {
-  const message = error.message || String(error);
-  if (message.includes("maximum supported dimension")) {
-    return { code: "ATTACHMENT_IMAGE_DIMENSIONS", error: message };
-  }
-  if (message.includes("media type") || message.includes("content type")) {
-    return {
-      code: "ATTACHMENT_UNSUPPORTED",
-      error: "One or more attachments are not supported by the selected model.",
-    };
-  }
-  return null;
-}
-
-class AttachmentDenialError extends Error {
-  constructor(issue) {
-    super(issue.error);
-    this.issue = issue;
-  }
-}
-
-function createAttachmentDenial(file, { category, reason, suggestion, code }) {
-  return {
-    ok: false,
-    code,
-    error: "One or more attachments are not supported by the selected model.",
-    details: [
-      {
-        filename: file.filename,
-        category,
-        reason,
-        suggestion,
-      },
-    ],
-  };
-}
+import {
+  applyCacheControl,
+  AttachmentDenialError,
+  convertToModelMessages,
+  mapAttachmentError,
+} from "../lib/completion.js";
 
 export const chatsRouter = new Hono();
 
@@ -106,7 +61,7 @@ function chatStateHandler(action, message) {
     const user = c.get("user");
     const chatId = c.req.param("chatId");
 
-    const updated = action().call(dbUtils, chatId, user.id);
+    const updated = action(chatId, user.id);
     if (!updated) {
       return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
     }
@@ -165,14 +120,26 @@ chatsRouter.post("/", async (c) => {
   );
 });
 
-chatsRouter.get("/:chatId", async (c) => {
+async function loadChat(c, next) {
+  if (c.get("chat")) {
+    await next();
+    return;
+  }
   const user = c.get("user");
   const chatId = c.req.param("chatId");
-
   const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
   if (!chat) {
     return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
   }
+  c.set("chat", chat);
+  await next();
+}
+
+chatsRouter.use("/:chatId", loadChat);
+chatsRouter.use("/:chatId/*", loadChat);
+
+chatsRouter.get("/:chatId", async (c) => {
+  const chat = c.get("chat");
 
   return c.json({
     id: chat.id,
@@ -184,15 +151,9 @@ chatsRouter.get("/:chatId", async (c) => {
 });
 
 chatsRouter.patch("/:chatId", async (c) => {
-  const user = c.get("user");
   const chatId = c.req.param("chatId");
   const body = await c.req.json();
   const validated = PatchChatSchema.parse(body);
-
-  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-  if (!chat) {
-    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-  }
 
   if (validated.title !== undefined) {
     dbUtils.updateChatTitle(chatId, validated.title);
@@ -219,31 +180,23 @@ chatsRouter.delete("/:chatId", async (c) => {
   return c.json({ message: "Chat deleted successfully" });
 });
 
-chatsRouter.post(
-  "/:chatId/pin",
-  chatStateHandler(() => dbUtils.pinChat, "Chat pinned successfully")
-);
+chatsRouter.post("/:chatId/pin", chatStateHandler(dbUtils.pinChat, "Chat pinned successfully"));
 chatsRouter.delete(
   "/:chatId/pin",
-  chatStateHandler(() => dbUtils.unpinChat, "Chat unpinned successfully")
+  chatStateHandler(dbUtils.unpinChat, "Chat unpinned successfully")
 );
 chatsRouter.post(
   "/:chatId/archive",
-  chatStateHandler(() => dbUtils.archiveChat, "Chat archived successfully")
+  chatStateHandler(dbUtils.archiveChat, "Chat archived successfully")
 );
 chatsRouter.delete(
   "/:chatId/archive",
-  chatStateHandler(() => dbUtils.unarchiveChat, "Chat unarchived successfully")
+  chatStateHandler(dbUtils.unarchiveChat, "Chat unarchived successfully")
 );
 
 chatsRouter.get("/:chatId/messages", async (c) => {
   const user = c.get("user");
   const chatId = c.req.param("chatId");
-
-  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-  if (!chat) {
-    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-  }
 
   const limit = Math.min(parseInt(c.req.query("limit") || "200", 10), 500);
   const offset = parseInt(c.req.query("offset") || "0", 10);
@@ -269,11 +222,6 @@ chatsRouter.post("/:chatId/messages", async (c) => {
   const chatId = c.req.param("chatId");
   const body = await c.req.json();
   const validated = MessageSchema.parse(body);
-
-  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-  if (!chat) {
-    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-  }
 
   const messageId = validated.id || crypto.randomUUID();
   // Validate attachment ownership
@@ -335,11 +283,6 @@ chatsRouter.delete("/:chatId/messages/:messageId", async (c) => {
   const chatId = c.req.param("chatId");
   const messageId = c.req.param("messageId");
 
-  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-  if (!chat) {
-    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-  }
-
   const deleted = dbUtils.deleteMessageByUser(messageId, user.id, chatId);
   if (!deleted) {
     return c.json({ error: "Message not found" }, HTTP_STATUS.NOT_FOUND);
@@ -364,7 +307,6 @@ const CompletionRequestSchema = z.object({
       fileIds: z.array(z.string()).optional(),
     })
   ),
-  fileIds: z.array(z.string()).optional(),
   webSearch: z.boolean().optional(),
   memoryEnabled: z.boolean().optional().default(true),
 });
@@ -419,161 +361,6 @@ async function generateChatTitle(userMessage, modelId) {
   }
 }
 
-function inlineTextPart(file, size, text, totalCharCount) {
-  return {
-    type: "text",
-    text: formatInlineAttachmentText({
-      filename: file.filename,
-      mimeType: file.mime_type,
-      size,
-      text,
-      totalCharCount,
-    }),
-  };
-}
-
-async function fileToContentPart(file) {
-  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, file.stored_filename);
-  if (file.size > MAX_MODEL_ATTACHMENT_BYTES) {
-    throw new Error(`Attachment ${file.filename} exceeds the per-file model limit`);
-  }
-  const fileBuffer = await readFile(filePath).catch((err) => {
-    throw new Error(`Cannot read ${file.id} at ${filePath}: ${err.message}`);
-  });
-
-  switch (getAttachmentCategory(file)) {
-    case FILE_CATEGORIES.IMAGE: {
-      const mediaType = getAttachmentMediaType(file);
-      return {
-        type: "image",
-        image: `data:${mediaType};base64,${fileBuffer.toString("base64")}`,
-      };
-    }
-
-    case FILE_CATEGORIES.OFFICE_MODERN: {
-      let extraction;
-      try {
-        extraction = extractOfficeText({
-          buffer: fileBuffer,
-          filename: file.filename,
-          mimeType: file.mime_type,
-        });
-      } catch (err) {
-        throw new Error(`Office document extraction failed for ${file.filename}: ${err.message}`);
-      }
-      if (!extraction.kind) {
-        throw new AttachmentDenialError(
-          createAttachmentDenial(file, {
-            category: FILE_CATEGORIES.OFFICE_MODERN,
-            code: "ATTACHMENT_UNSUPPORTED",
-            reason: "Office document type could not be determined from filename or MIME type.",
-            suggestion: "Upload a .docx, .xlsx, or .pptx file and try again.",
-          })
-        );
-      }
-      const text = extraction.text;
-      const displayText = text.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-      const truncated = displayText.length < text.length;
-      return inlineTextPart(
-        file,
-        fileBuffer.length,
-        displayText,
-        truncated ? text.length : undefined
-      );
-    }
-
-    case FILE_CATEGORIES.TEXT_LIKE: {
-      const fullText = fileBuffer.toString("utf8");
-      const displayText = fullText.slice(0, MAX_INLINE_TEXT_ATTACHMENT_CHARS);
-      const truncated = displayText.length < fullText.length;
-      return inlineTextPart(
-        file,
-        fileBuffer.length,
-        displayText,
-        truncated ? fullText.length : undefined
-      );
-    }
-
-    default:
-      return {
-        type: "file",
-        data: fileBuffer,
-        mediaType: getAttachmentMediaType(file),
-        filename: file.filename,
-      };
-  }
-}
-
-function applyCacheControl(messages, modelId) {
-  if (!MODEL_FEATURES.SUPPORTS_PROMPT_CACHING(modelId)) {
-    return messages;
-  }
-
-  return messages.map((msg, idx, arr) => {
-    if (msg.role === "system") {
-      return {
-        ...msg,
-        providerOptions: {
-          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
-        },
-      };
-    }
-
-    const isRecentMessage = idx >= arr.length - MODEL_FEATURES.CACHE_LAST_N_MESSAGES;
-    if (isRecentMessage && idx > 0) {
-      return {
-        ...msg,
-        providerOptions: {
-          anthropic: { cacheControl: { type: MODEL_FEATURES.CACHE_TYPE } },
-        },
-      };
-    }
-
-    return msg;
-  });
-}
-
-export async function createMultimodalContent(message, fileIds, filesById) {
-  const content = [];
-  let totalBytes = 0;
-  if (message.content.trim()) {
-    content.push({ type: "text", text: message.content });
-  }
-  for (const id of fileIds) {
-    const file = filesById.get(id);
-    totalBytes += file?.size || 0;
-    if (totalBytes > MAX_MODEL_ATTACHMENT_BYTES) {
-      throw new Error("Combined attachments exceed the model request limit");
-    }
-    content.push(await fileToContentPart(file));
-  }
-  return content;
-}
-
-async function convertToModelMessages(messages, systemPrompt, fileIds = [], filesById = new Map()) {
-  const result = systemPrompt ? [{ role: "system", content: systemPrompt }] : [];
-
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-    if (msg.role === "system") {
-      continue;
-    }
-
-    const isLastUser = i === messages.length - 1 && msg.role === "user";
-    const msgFileIds =
-      msg.fileIds && msg.fileIds.length > 0 ? msg.fileIds : isLastUser ? fileIds : [];
-
-    if (msg.role === "user" && msgFileIds.length > 0) {
-      const content = await createMultimodalContent(msg, msgFileIds, filesById);
-      result.push({ role: msg.role, content });
-    } else {
-      result.push({ role: msg.role, content: msg.content });
-    }
-  }
-
-  return result;
-}
-
 chatsRouter.post(
   "/:chatId/completion",
   createRateLimiter(ENDPOINT_RATE_LIMITS.COMPLETION),
@@ -581,10 +368,6 @@ chatsRouter.post(
     try {
       const user = c.get("user");
       const chatId = c.req.param("chatId");
-      const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-      if (!chat) {
-        return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-      }
 
       const body = await c.req.json();
       const validated = CompletionRequestSchema.parse(body);
@@ -608,12 +391,7 @@ chatsRouter.post(
       const memoryModel = memoryEnabledForRequest ? wrapModelWithMemory(model, dbUtils) : model;
       const systemPrompt = getSystemPrompt(validated.systemPromptId);
 
-      const allFileIds = [
-        ...new Set([
-          ...(validated.fileIds || []),
-          ...validated.messages.flatMap((m) => m.fileIds || []),
-        ]),
-      ];
+      const allFileIds = [...new Set(validated.messages.flatMap((m) => m.fileIds || []))];
 
       const allFiles = allFileIds.length ? dbUtils.getFilesByIdsForUser(allFileIds, user.id) : [];
       if (allFiles.length !== allFileIds.length) {
@@ -641,12 +419,7 @@ chatsRouter.post(
       const filesById = new Map(allFiles.map((f) => [f.id, f]));
 
       const messages = applyCacheControl(
-        await convertToModelMessages(
-          validated.messages,
-          systemPrompt.content,
-          validated.fileIds || [],
-          filesById
-        ),
+        await convertToModelMessages(validated.messages, systemPrompt.content, filesById),
         modelId
       );
 
@@ -732,12 +505,7 @@ chatsRouter.get("/:chatId/stream", async (c) => {
 });
 
 chatsRouter.put("/:chatId/memory", async (c) => {
-  const user = c.get("user");
   const chatId = c.req.param("chatId");
-  const chat = dbUtils.getChatByIdAndUser(chatId, user.id);
-  if (!chat) {
-    return c.json({ error: "Chat not found" }, HTTP_STATUS.NOT_FOUND);
-  }
   const { disabled } = await c.req.json();
   if (typeof disabled !== "boolean") {
     return c.json({ error: "disabled must be a boolean" }, HTTP_STATUS.BAD_REQUEST);

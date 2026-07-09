@@ -7,7 +7,7 @@ import {
   makeRequest,
 } from "./helpers.js";
 import { dbUtils } from "../lib/db.js";
-import { createMultimodalContent } from "../routes/chats.js";
+import { createMultimodalContent } from "../lib/completion.js";
 import { unlink } from "fs/promises";
 import path from "path";
 import { FILE_CONFIG } from "../lib/fileUtils.js";
@@ -410,7 +410,11 @@ describe("chat routes", () => {
 
       let threw = false;
       try {
-        await createMultimodalContent({ content: "hello" }, [fileId], adminUser.id);
+        await createMultimodalContent(
+          { content: "hello" },
+          [fileId],
+          new Map([[fileId, dbUtils.getFileById(fileId)]])
+        );
       } catch {
         threw = true;
       }

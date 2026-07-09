@@ -59,20 +59,24 @@ settingsRouter.put("/web-search", ensureSession, requireRole("admin"), async (c)
 // ========================================
 
 settingsRouter.get("/memory", ensureSession, requireRole("admin"), async (c) => {
-  const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
-  const extractionModel = dbUtils.getMemoryExtractionModel();
+  const globalEnabled = dbUtils.getSetting("memory_enabled") === "true";
+  const extractionModel = dbUtils.getSetting("memory_extraction_model");
   return c.json({ globalEnabled, extractionModel });
 });
 
 settingsRouter.put("/memory", ensureSession, requireRole("admin"), async (c) => {
   const body = await c.req.json();
   if (typeof body.globalEnabled === "boolean") {
-    dbUtils.setMemoryGlobalEnabled(body.globalEnabled);
+    dbUtils.setSetting("memory_enabled", body.globalEnabled ? "true" : "false");
   }
   if (body.extractionModel !== undefined) {
-    dbUtils.setMemoryExtractionModel(body.extractionModel || null);
+    if (body.extractionModel) {
+      dbUtils.setSetting("memory_extraction_model", body.extractionModel);
+    } else {
+      dbUtils.deleteSetting("memory_extraction_model");
+    }
   }
-  const globalEnabled = dbUtils.getMemoryGlobalEnabled() === "true";
-  const extractionModel = dbUtils.getMemoryExtractionModel();
+  const globalEnabled = dbUtils.getSetting("memory_enabled") === "true";
+  const extractionModel = dbUtils.getSetting("memory_extraction_model");
   return c.json({ globalEnabled, extractionModel });
 });

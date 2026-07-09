@@ -1,127 +1,15 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { config } from "dotenv";
-import { Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 import { resolve } from "node:path";
 
 // Load environment variables
 config();
 
-// Import routes
+import { createApp } from "./app.js";
 import { initializeModelsDevCache } from "./lib/modelsdev.js";
-import { installRouteErrorHandler } from "./lib/errorHandler.js";
-import { securityHeaders } from "./middleware/securityHeaders.js";
-import { adminRouter } from "./routes/admin.js";
-import { authRouter } from "./routes/auth.js";
-import { chatsRouter } from "./routes/chats.js";
-import { filesRouter } from "./routes/files.js";
-import { modelsRouter } from "./routes/models.js";
-import { providersRouter } from "./routes/providers.js";
-import { settingsRouter } from "./routes/settings.js";
-import { versionRouter } from "./routes/version.js";
-import { imagesRouter } from "./routes/images.js";
-import { importRouter } from "./routes/import.js";
-import { foldersRouter } from "./routes/folders.js";
-import { memoryRouter } from "./routes/memory.js";
 
-const app = new Hono();
-
-installRouteErrorHandler(app);
-[
-  authRouter,
-  adminRouter,
-  providersRouter,
-  modelsRouter,
-  filesRouter,
-  chatsRouter,
-  settingsRouter,
-  versionRouter,
-  imagesRouter,
-  importRouter,
-  foldersRouter,
-  memoryRouter,
-].forEach(installRouteErrorHandler);
-
-// Security headers on all responses (before logger so they're always set)
-app.use("*", securityHeaders());
-app.use("*", logger());
-
-// Body size limit — reject oversized requests before hitting route handlers
-app.use("/api/*", async (c, next) => {
-  const contentLength = parseInt(c.req.header("content-length") || "0", 10);
-  if (contentLength > 50 * 1024 * 1024) {
-    return c.json({ error: "Request body too large" }, 413);
-  }
-  await next();
-});
-
-app.use(
-  "/api/*",
-  bodyLimit({
-    maxSize: 50 * 1024 * 1024,
-    onError: (c) => c.json({ error: "Request body too large" }, 413),
-  })
-);
-
-app.use(
-  "/api/*",
-  cors({
-    origin: (origin) => {
-      if (process.env.NODE_ENV === "production") {
-        const allowedOrigin = process.env.APP_URL;
-        return origin === allowedOrigin ? origin : null;
-      }
-      // Dev: allow localhost origins only — no wildcard fallback
-      if (!origin) {
-        return null;
-      }
-      try {
-        const url = new URL(origin);
-        return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;
-      } catch {
-        return null;
-      }
-    },
-    credentials: true,
-  })
-);
-
-// Public auth routes
-app.route("/api/auth", authRouter);
-
-// Protected admin routes
-app.route("/api/admin", adminRouter);
-app.route("/api/admin/providers", providersRouter);
-
-// Models routes (includes both public and admin)
-app.route("/api", modelsRouter);
-
-// Files routes (authentication handled in router)
-app.route("/api/files", filesRouter);
-
-// Chats routes (authentication handled in router)
-app.route("/api/chats", chatsRouter);
-
-// Settings routes (public GET, admin-only PUT)
-app.route("/api/settings", settingsRouter);
-
-// Version route (public, no auth)
-app.route("/api/version", versionRouter);
-
-// Images routes (image generation)
-app.route("/api/images", imagesRouter);
-
-// Import routes (conversation import from other platforms)
-app.route("/api/import", importRouter);
-
-// Folders routes (chat organization)
-app.route("/api/folders", foldersRouter);
-
-// Memory routes (user memory management)
-app.route("/api/memory", memoryRouter);
+const app = createApp({ enableLogger: true });
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

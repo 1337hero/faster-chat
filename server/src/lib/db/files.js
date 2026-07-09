@@ -1,4 +1,15 @@
-export function createFileUtils({ db, parseFileMeta }) {
+function parseFileMeta(file) {
+  if (file?.meta) {
+    try {
+      file.meta = JSON.parse(file.meta);
+    } catch {
+      file.meta = null;
+    }
+  }
+  return file;
+}
+
+export function createFileUtils({ db }) {
   return {
     createFile(
       id,
@@ -44,15 +55,6 @@ export function createFileUtils({ db, parseFileMeta }) {
     getFilesByUserId(userId) {
       const stmt = db.prepare("SELECT * FROM files WHERE user_id = ? ORDER BY created_at DESC");
       return stmt.all(userId).map(parseFileMeta);
-    },
-
-    getFilesByIds(fileIds) {
-      if (!fileIds || fileIds.length === 0) {
-        return [];
-      }
-      const placeholders = fileIds.map(() => "?").join(",");
-      const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders})`);
-      return stmt.all(...fileIds).map(parseFileMeta);
     },
 
     getFilesByIdsForUser(fileIds, userId) {

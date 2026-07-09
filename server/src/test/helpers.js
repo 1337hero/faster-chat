@@ -1,95 +1,13 @@
-import { Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
-import { cors } from "hono/cors";
 import db, { dbUtils } from "../lib/db.js";
+import { createApp } from "../app.js";
 
 // Re-export db for tests that need direct database access
 export { db };
 import { hashPassword } from "../lib/security.js";
-import { authRouter, _resetRateLimits } from "../routes/auth.js";
-import { chatsRouter } from "../routes/chats.js";
-import { adminRouter } from "../routes/admin.js";
-import { providersRouter } from "../routes/providers.js";
-import { filesRouter } from "../routes/files.js";
-import { foldersRouter } from "../routes/folders.js";
-import { settingsRouter } from "../routes/settings.js";
-import { modelsRouter } from "../routes/models.js";
-import { importRouter } from "../routes/import.js";
-import { imagesRouter } from "../routes/images.js";
-import { versionRouter } from "../routes/version.js";
-import { memoryRouter } from "../routes/memory.js";
-import { securityHeaders } from "../middleware/securityHeaders.js";
-import { installRouteErrorHandler } from "../lib/errorHandler.js";
+import { _resetRateLimits } from "../routes/auth.js";
 
 export function createTestApp() {
-  const app = new Hono();
-
-  installRouteErrorHandler(app);
-  [
-    authRouter,
-    adminRouter,
-    providersRouter,
-    modelsRouter,
-    filesRouter,
-    chatsRouter,
-    settingsRouter,
-    versionRouter,
-    imagesRouter,
-    importRouter,
-    foldersRouter,
-    memoryRouter,
-  ].forEach(installRouteErrorHandler);
-
-  app.use("*", securityHeaders());
-
-  app.use("/api/*", async (c, next) => {
-    const contentLength = parseInt(c.req.header("content-length") || "0", 10);
-    if (contentLength > 50 * 1024 * 1024) {
-      return c.json({ error: "Request body too large" }, 413);
-    }
-    await next();
-  });
-
-  app.use(
-    "/api/*",
-    bodyLimit({
-      maxSize: 50 * 1024 * 1024,
-      onError: (c) => c.json({ error: "Request body too large" }, 413),
-    })
-  );
-
-  app.use(
-    "/api/*",
-    cors({
-      origin: (origin) => {
-        if (!origin) {
-          return null;
-        }
-        try {
-          const url = new URL(origin);
-          return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? origin : null;
-        } catch {
-          return null;
-        }
-      },
-      credentials: true,
-    })
-  );
-
-  app.route("/api/auth", authRouter);
-  app.route("/api/admin", adminRouter);
-  app.route("/api/admin/providers", providersRouter);
-  app.route("/api", modelsRouter);
-  app.route("/api/files", filesRouter);
-  app.route("/api/chats", chatsRouter);
-  app.route("/api/settings", settingsRouter);
-  app.route("/api/version", versionRouter);
-  app.route("/api/images", imagesRouter);
-  app.route("/api/import", importRouter);
-  app.route("/api/folders", foldersRouter);
-  app.route("/api/memory", memoryRouter);
-
-  return app;
+  return createApp();
 }
 
 export function resetDatabase() {

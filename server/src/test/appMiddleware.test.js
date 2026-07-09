@@ -44,6 +44,8 @@ describe("app middleware", () => {
   describe("body size limit", () => {
     test("rejects request with Content-Length over 50MB", async () => {
       const res = await app.request("/api/auth/session", {
+        method: "POST",
+        body: "x",
         headers: { "content-length": String(60 * 1024 * 1024) },
       });
       expect(res.status).toBe(413);
