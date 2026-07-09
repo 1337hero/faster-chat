@@ -250,9 +250,7 @@ export function createChatUtils({ db, parseMessageMetadata }) {
     },
 
     deleteMessageByUser(messageId, userId, chatId) {
-      const stmt = db.prepare(
-        "DELETE FROM messages WHERE id = ? AND user_id = ? AND chat_id = ?"
-      );
+      const stmt = db.prepare("DELETE FROM messages WHERE id = ? AND user_id = ? AND chat_id = ?");
       const result = stmt.run(messageId, userId, chatId);
       return result.changes > 0;
     },

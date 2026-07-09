@@ -713,15 +713,12 @@ describe("migration 005 message_files composite primary key", () => {
       Date.now = () => now;
       createMigrationBaseTables(freshDb, true);
       seedFilesAndMessages(freshDb, true);
-      const { migration: migration003 } = await import(
-        "../lib/db/migrations/003_message_files_junction.js"
-      );
-      const { migration: migration004 } = await import(
-        "../lib/db/migrations/004_backfill_message_files_id.js"
-      );
-      const { migration: migration005 } = await import(
-        "../lib/db/migrations/005_message_files_composite_pk.js"
-      );
+      const { migration: migration003 } =
+        await import("../lib/db/migrations/003_message_files_junction.js");
+      const { migration: migration004 } =
+        await import("../lib/db/migrations/004_backfill_message_files_id.js");
+      const { migration: migration005 } =
+        await import("../lib/db/migrations/005_message_files_composite_pk.js");
       migration003.up(freshDb);
       migration004.up(freshDb);
       migration005.up(freshDb);
