@@ -44,10 +44,6 @@ vi.mock("@/components/chat/ChatMemoryButton", () => ({
   default: () => <div data-testid="memory-button" />,
 }));
 
-vi.mock("@/components/ui/ErrorBanner", () => ({
-  default: () => null,
-}));
-
 vi.mock("@/components/chat/FilePreviewList", () => ({
   FilePreviewList: () => <div data-testid="file-preview-list" />,
 }));
