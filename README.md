@@ -100,8 +100,8 @@ When enabled, the AI can autonomously search the web and fetch pages to answer q
 ### One-Click Docker Deploy (Recommended)
 
 ```bash
-git clone https://github.com/1337hero/faster-next-chat.git
-cd faster-next-chat
+git clone https://github.com/1337hero/faster-chat.git
+cd faster-chat
 docker compose up -d
 ```
 
@@ -117,8 +117,8 @@ docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 **Prerequisites**: [Bun](https://bun.sh/) (recommended) or Node.js 20+
 
 ```bash
-git clone https://github.com/1337hero/faster-next-chat.git
-cd faster-next-chat
+git clone https://github.com/1337hero/faster-chat.git
+cd faster-chat
 bun install
 bun run dev
 ```
@@ -247,54 +247,14 @@ docker compose up -d
 
 ## 🗺️ Roadmap
 
-### Completed ✅
-- Preact + Hono migration from Next.js
-- Streaming chat with Vercel AI SDK
-- Server-side SQLite persistence (chats sync across devices/tabs)
-- Multi-provider support (19+ providers with auto-discovery)
-- Admin panel for providers, models, and users
-- Role-based access control (admin/member/readonly)
-- File attachments with preview/download
-- Markdown, code highlighting (Shiki syntax highlighting), LaTeX rendering
-- One-click Docker deployment with optional HTTPS
-- Keyboard shortcuts (Ctrl+B sidebar, Ctrl+Shift+O new chat, Ctrl+K search)
-- Theming system (15+ color themes, light/dark mode)
-- Font customization and font themes
-- Voice input/output (speech-to-text, text-to-speech)
-- Settings UI improvements (tabbed interface for user preferences)
-- White labeling (custom app name, custom logo icon selection)
-- ChatGPT conversation import (drag-drop JSON export files)
-- Ollama model pull UI (download models directly from Admin Panel)
-- **Cross-conversation memory** (automatic fact extraction, three-level gating, per-chat opt-out)
-- **Web search** (Brave Search integration, source citations, SSRF protection, result caching)
-- **Image support** — Vision/multimodal analysis + image generation (DALL-E, FLUX, OpenRouter)
-- Auto-title generation for chats
-- Message regeneration
-- Reasoning display for thinking models (DeepSeek R1, o1)
-- Chat folders with colors and pinned chats
+Faster Chat has reached its stated goal — a lighter, faster, more private alternative to Open WebUI — and is now in **maintain mode**: quality and polish over new surface area. Everything in the feature list above is shipped and working; what remains is a short list of small, finishable items, each tracked as a PRD in the [open issues](https://github.com/1337hero/faster-chat/issues).
 
-### Planned 📋
+**What's next**:
+- Chat export to JSON/Markdown ([#27](https://github.com/1337hero/faster-chat/issues/27)) and Claude import ([#28](https://github.com/1337hero/faster-chat/issues/28)) — closing the data-ownership loop
+- Inline message editing ([#29](https://github.com/1337hero/faster-chat/issues/29)), full-text message search ([#30](https://github.com/1337hero/faster-chat/issues/30)), per-chat system prompt/temperature ([#31](https://github.com/1337hero/faster-chat/issues/31))
+- Minimal personal prompt templates ([#34](https://github.com/1337hero/faster-chat/issues/34))
 
-**Chat UX**
-- [ ] Inline message editing
-- [ ] Message rating (thumbs up/down)
-- [ ] Export conversations (JSON, Markdown, CSV)
-- [ ] Import from more sources (Claude, other AI assistants)
-
-**Advanced Capabilities**
-- [ ] Prompt templates (reusable system prompts with variables)
-- [ ] Model comparison arena (side-by-side evaluation)
-- [ ] Conversation sharing and collaboration
-- [ ] MCP (Model Context Protocol) integration
-
-**Administration**
-- [ ] Fine-grained permissions and feature toggles per role
-- [ ] API usage monitoring and cost tracking
-
-**Infrastructure**
-- [ ] PostgreSQL backend option (for larger deployments)
-- [ ] Plugin system for custom extensions
-- [ ] Mobile app (Capacitor)
+**Explicitly not planned**: knowledge bases/RAG, conversation branching, model arenas, MCP, plugin systems, PostgreSQL, mobile apps, i18n, public share links. Each either grows a second product inside this one or is a permanent maintenance tax. A finished tool that stays sharp beats an ambitious one that rusts — don't become Open WebUI.
 
 ## 🎨 Design Philosophy
 
