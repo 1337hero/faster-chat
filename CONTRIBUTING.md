@@ -27,18 +27,19 @@ Read [`AGENTS.md`](./AGENTS.md) for detailed architectural guidelines.
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/faster-next-chat.git
-cd faster-next-chat
+git clone https://github.com/YOUR_USERNAME/faster-chat.git
+cd faster-chat
 
 # Install dependencies
 bun install
 
-# Copy environment template
+# Copy the environment template.
+# The encryption key (API_KEY_ENCRYPTION_KEY) is auto-generated on first run
+# if it's missing, so this step is optional.
 cp server/.env.example server/.env
 
-# Add your API keys or local endpoints to server/.env
-# ANTHROPIC_API_KEY=sk-ant-...
-# OPENAI_API_KEY=sk-...
+# Provider API keys are normally added later in the Admin Panel, not here.
+# For local models you can point at an Ollama endpoint:
 # OLLAMA_BASE_URL=http://localhost:11434
 
 # Start development servers (frontend + backend)
@@ -56,7 +57,7 @@ faster-chat/
 │   ├── src/
 │   │   ├── components/   # Feature-based components
 │   │   ├── hooks/        # Custom hooks
-│   │   ├── lib/          # Utilities, constants, Dexie setup
+│   │   ├── lib/          # API client, utilities, constants
 │   │   └── styles/       # Tailwind CSS
 │   └── vite.config.js
 │
@@ -95,7 +96,7 @@ We welcome feature suggestions that align with our goals:
 - Cloud-only features that break offline mode
 - Analytics/tracking (even optional)
 - Heavy dependencies that bloat the bundle
-- Features that require a backend database (for now)
+- Features that break offline / local-first use (e.g. hard dependencies on a cloud service)
 
 ### Pull Request Process
 
@@ -147,12 +148,12 @@ We don't use TypeScript. Follow these patterns instead:
 ```javascript
 // ✅ Good: Clear function with JSDoc where helpful
 /**
- * Fetches chat history from IndexedDB
+ * Fetches a chat from the API
  * @param {string} chatId - The chat ID to fetch
  * @returns {Promise<Chat>} The chat object
  */
 export async function getChatById(chatId) {
-  return await db.chats.get(chatId);
+  return apiFetch(`/api/chats/${chatId}`);
 }
 
 // ❌ Bad: Unclear, no documentation
@@ -205,20 +206,20 @@ src/components/
 
 ### Styling (Tailwind CSS)
 
-- Use Tailwind utility classes (Tailwind 4.0 with CSS config)
-- Use semantic color variables from `globals.css`
-- Follow the Catppuccin color scheme
+- Use Tailwind utility classes (Tailwind 4 with CSS-based config)
+- Use the semantic `theme-*` color tokens (`bg-theme-surface`, `text-theme-text`, `border-theme-border`, …) so components work across all themes and light/dark
+- Never hard-code colors — themes are runtime CSS variables applied on `<html>`
 - Responsive design: mobile-first
 
 ```jsx
-// ✅ Good: Semantic colors, responsive
-<div className="bg-latte-base dark:bg-macchiato-base p-4 sm:p-6">
-  <button className="px-4 py-2 bg-latte-mauve dark:bg-macchiato-mauve text-white">
+// ✅ Good: Semantic theme tokens, responsive
+<div className="bg-theme-surface p-4 sm:p-6">
+  <button className="bg-theme-primary px-4 py-2 text-white">
     Send
   </button>
 </div>
 
-// ❌ Bad: Hard-coded colors, no dark mode
+// ❌ Bad: Hard-coded colors, no theme support
 <div style={{ backgroundColor: '#eff1f5', padding: '16px' }}>
   <button style={{ backgroundColor: '#8839ef' }}>Send</button>
 </div>
@@ -233,15 +234,17 @@ src/components/
 
 ## 🧪 Testing
 
-Currently, we focus on manual testing. Automated tests are welcome for:
-- Critical paths (message sending, persistence)
+The server has a substantial test suite (`bun:test`); the frontend uses Vitest. Run them before opening a PR:
+
+```bash
+bun run test           # server tests (server/src/test)
+bun run test:frontend  # frontend tests (Vitest)
+```
+
+More tests are always welcome, especially for:
+- Critical paths (auth, chat completion, persistence)
 - Utility functions
 - Edge cases
-
-Run tests (when available):
-```bash
-bun test
-```
 
 ## 🐛 Debugging Tips
 
@@ -258,15 +261,13 @@ bun run dev
 cd server
 bun run dev
 # Check terminal output
-# Test endpoints with curl:
-curl -X POST http://localhost:3001/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"Hello"}],"model":"gpt-4"}'
+# Hit a public endpoint to confirm the server is up:
+curl http://localhost:3001/api/version
 ```
 
-**IndexedDB issues**:
-- Open browser DevTools → Application → IndexedDB
-- Check `faster-chat` database
+**Database issues**:
+- Data lives in server-side SQLite at `server/data/chat.db`
+- Inspect it with any SQLite client (e.g. `sqlite3 server/data/chat.db`)
 
 **Offline mode**:
 - Use Ollama: `ollama serve`
@@ -282,18 +283,18 @@ New to the stack? Here's where to learn:
 - **TanStack Router**: [tanstack.com/router/latest/docs](https://tanstack.com/router/latest/docs/framework/react/overview)
 - **Tailwind CSS 4.0**: [tailwindcss.com/docs](https://tailwindcss.com/docs/installation)
 - **Vercel AI SDK**: [sdk.vercel.ai/docs](https://sdk.vercel.ai/docs)
-- **Dexie**: [dexie.org/docs](https://dexie.org/docs/)
+- **bun:sqlite**: [bun.sh/docs/api/sqlite](https://bun.sh/docs/api/sqlite)
 
 ## 🎨 Design Resources
 
-- **Colors**: We use [Catppuccin](https://github.com/catppuccin/catppuccin) (Latte for light, Macchiato for dark)
+- **Colors**: Runtime CSS-variable themes (multiple built in, including Catppuccin). Use the `theme-*` Tailwind tokens, never hard-coded colors.
 - **Icons**: Keep them minimal and consistent
 - **Spacing**: Use Tailwind spacing scale (p-2, p-4, p-6, etc.)
 
 ## 🌍 Community
 
-- **Issues**: [GitHub Issues](https://github.com/1337hero/faster-next-chat/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/1337hero/faster-next-chat/discussions)
+- **Issues**: [GitHub Issues](https://github.com/1337hero/faster-chat/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/1337hero/faster-chat/discussions)
 - **PRs**: We review PRs regularly and provide feedback
 
 ## 📋 Checklist for PRs

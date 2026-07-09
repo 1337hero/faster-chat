@@ -48,7 +48,8 @@
       "WebFetch(domain:ai-sdk.dev)",
       "Bash(do:*)",
       "Bash(git bundle *)",
-      "Bash(git tag *)"
+      "Bash(git tag *)",
+      "Bash(rmdir types *)"
     ],
     "deny": [],
     "ask": []

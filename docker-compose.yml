@@ -13,7 +13,7 @@ services:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/server/data/chat.db}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     ports:
-      - "1337:3001"
+      - "8787:8787"
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -32,7 +32,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('http').get('http://localhost:8080/api/models', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+          "require('http').get('http://localhost:8787/api/models', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
         ]
       interval: 30s
       timeout: 3s

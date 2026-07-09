@@ -42,7 +42,7 @@ Connect to OpenAI, Anthropic, Google, Groq, Mistral, xAI, DeepSeek, and more—o
 - 💬 Real-time streaming chat with Vercel AI SDK
 - ⚡ **Blazingly fast** — 3KB Preact runtime, zero SSR overhead, instant responses
 - 🗄️ **Server-side SQLite storage** — Conversations persist across devices and browser tabs
-- 🤖 **19+ providers**: OpenAI, Anthropic, Google, Groq, Mistral, xAI, DeepSeek, Cohere, Fireworks, Cerebras, Amazon Bedrock, Azure, OpenRouter, Replicate, Ollama, LM Studio, and more
+- 🤖 **17 built-in providers** (plus 50+ more auto-discoverable via [models.dev](https://models.dev)): OpenAI, Anthropic, Google, Google Vertex, Amazon Bedrock, Azure, Groq, Mistral, xAI, DeepSeek, Cohere, Fireworks, Cerebras, OpenRouter, Replicate, Ollama, LM Studio
 - 🧠 **Cross-conversation memory** — AI remembers your preferences, projects, and context across chats
 - 🔍 **Web search** — AI can search the web and cite sources inline (Brave Search)
 - 🖼️ **Image support** — Upload images for vision analysis, generate images with DALL-E, FLUX, and OpenRouter models

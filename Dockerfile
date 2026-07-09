@@ -29,7 +29,7 @@ FROM oven/bun:1.3-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=1337
+ENV PORT=8787
 
 # Copy built application
 COPY --from=deps /app/package.json ./package.json
@@ -47,7 +47,7 @@ RUN mkdir -p /app/server/data
 # Persist SQLite data outside the container filesystem
 VOLUME /app/server/data
 
-EXPOSE 1337
+EXPOSE 8787
 
 # Set working directory to server folder
 WORKDIR /app/server
