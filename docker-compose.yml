@@ -7,7 +7,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - server/.env
+      - path: server/.env
+        required: false
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL:-sqlite:///app/server/data/chat.db}

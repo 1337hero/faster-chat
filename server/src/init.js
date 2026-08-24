@@ -9,7 +9,7 @@
  */
 
 import { randomBytes } from "crypto";
-import { existsSync, writeFileSync, mkdirSync } from "fs";
+import { copyFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { cwd } from "process";
 
@@ -32,7 +32,16 @@ if (!existsSync(uploadsDir)) {
   console.log("✅ Created uploads directory");
 }
 
-// 2. Generate encryption key if missing
+// 2. Restore .env from the data volume if the container was recreated
+// (in Docker only server/data persists; server/.env would be lost on rebuild)
+const envBackupPath = join(dataDir, ".env");
+
+if (!existsSync(envPath) && existsSync(envBackupPath)) {
+  copyFileSync(envBackupPath, envPath);
+  console.log("✅ Restored .env from data directory");
+}
+
+// 3. Generate encryption key if missing
 let keyGenerated = false;
 
 if (!existsSync(envPath)) {
@@ -69,7 +78,10 @@ API_KEY_ENCRYPTION_KEY=${encryptionKey}
   }
 }
 
-// 3. Security warning if key was just generated
+// 4. Keep a copy of .env in the data directory so the key survives container rebuilds
+copyFileSync(envPath, envBackupPath);
+
+// 5. Security warning if key was just generated
 if (keyGenerated) {
   console.log("\n⚠️  IMPORTANT SECURITY NOTICE:");
   console.log("   • Backup your server/.env file - you'll need it to decrypt API keys");

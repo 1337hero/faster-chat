@@ -114,7 +114,9 @@ docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
 
 ### Local Development
 
-**Prerequisites**: [Bun](https://bun.sh/) (recommended) or Node.js 20+
+**Prerequisites**: [Bun](https://bun.sh/)
+
+> **Note**: This is a Bun workspace using the `workspace:` protocol, which npm does not support — `npm install` will fail with `EUNSUPPORTEDPROTOCOL`. Use Bun for development. To run without Bun installed, use Docker.
 
 ```bash
 git clone https://github.com/1337hero/faster-chat.git
@@ -215,10 +217,12 @@ See `docs/caddy-https-setup.md` and `docs/docker-setup.md` for details.
 
 ### Configuration
 
-**Environment Variables** (`server/.env`):
+**Environment Variables** (`server/.env`, optional):
+
+`server/.env` is not required to start. On first run the server generates an encryption key and keeps a copy in the persistent data volume, so it survives container rebuilds. Create the file only to override defaults:
 
 ```bash
-# Required: Encryption key for API keys
+# Encryption key for API keys (auto-generated if omitted)
 API_KEY_ENCRYPTION_KEY=...  # Generate with crypto.randomBytes(32)
 
 # Optional: Configure via Admin Panel instead
