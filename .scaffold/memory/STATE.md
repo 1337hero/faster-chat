@@ -1,6 +1,6 @@
 # Project State
 
-_Last updated: 2026-08-24 by scaffold init session_
+_Last updated: 2026-08-24 (repo-guard pointer added on chore/scaffold-rails)_
 
 ## What this project is
 Faster Chat — privacy-first, offline-capable AI chat you self-host. Preact SPA + Hono API on
@@ -33,5 +33,7 @@ None durable beyond the issue tracker.
 | `bun run build` / `bun run format` | build both workspaces / prettier |
 | `CLAUDE.md` | canonical agent guide; `AGENTS.md` is `@CLAUDE.md` |
 | `.claude/skill/frontend-philosophy/SKILL.md` | full frontend rules (no TS, state discipline) |
+| `.github/workflows/repo-guard.yml` | PR gate: lockfiles, deps (`deps-approved`), rule edits (`governance-approved`), PM drift |
+| `.githooks/pre-commit` | gitleaks scan on commit; enable per clone: `git config core.hooksPath .githooks` |
 | `frontend/vite.config.js` | defines `ease-snappy` and build config |
 | `specs/` | feature specs from `/plan_w_team` |

@@ -33,6 +33,9 @@ cd faster-chat
 # Install dependencies
 bun install
 
+# Enable the repo's git hooks (gitleaks secret scan on commit; skips if gitleaks is missing)
+git config core.hooksPath .githooks
+
 # Copy the environment template.
 # The encryption key (API_KEY_ENCRYPTION_KEY) is auto-generated on first run
 # if it's missing, so this step is optional.
