@@ -1,0 +1,96 @@
+name: Repo Guard
+
+# Enforces the non-negotiables a human can otherwise walk past:
+# no foreign lockfiles, no unreviewed dependencies, no quiet edits to the project's own rules.
+# Each check names the rule it enforces and the label that unblocks it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Guardrails
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bun is the package manager
+        run: |
+          foreign=$(git ls-files | grep -E '(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$' || true)
+          if [ -n "$foreign" ]; then
+            echo "::error::Foreign lockfile committed. Bun is the package manager and bun.lock is the only lockfile."
+            echo "$foreign" | sed 's/^/  /'
+            echo "Delete it, run 'bun install', and commit bun.lock. On Windows, use WSL."
+            exit 1
+          fi
+          echo "OK: no foreign lockfiles"
+
+      - name: No unreviewed dependencies
+        run: |
+          # Monorepo: every tracked package.json (root + workspaces) is compared against base.
+          fields='{dependencies, devDependencies, peerDependencies, optionalDependencies, overrides, resolutions, packageManager}'
+          changed=0
+          for pkg in $(git ls-files | grep -E '(^|/)package\.json$'); do
+            git show "$BASE_SHA:$pkg" > /tmp/base-package.json 2>/dev/null || echo '{}' > /tmp/base-package.json
+            jq -S "$fields" /tmp/base-package.json > /tmp/base-deps.json
+            jq -S "$fields" "$pkg" > /tmp/head-deps.json
+            if ! diff -u /tmp/base-deps.json /tmp/head-deps.json > /tmp/deps.diff; then
+              echo "Dependency changes in $pkg:"
+              cat /tmp/deps.diff
+              changed=1
+            fi
+          done
+          if [ "$changed" = 0 ]; then
+            echo "OK: dependencies unchanged"
+            exit 0
+          fi
+          case ",$LABELS," in
+            *,deps-approved,*)
+              echo "OK: 'deps-approved' label present" ;;
+            *)
+              echo "::error::package.json dependencies changed. A maintainer must sign off before a new dependency lands."
+              echo "A maintainer who agrees adds the 'deps-approved' label to this PR"
+              exit 1 ;;
+          esac
+
+      - name: No quiet edits to the project's rules
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA" HEAD -- AGENTS.md CLAUDE.md .scaffold/rails/ .github/CODEOWNERS .github/workflows/repo-guard.yml)
+          if [ -z "$changed" ]; then
+            echo "OK: rule files untouched"
+            exit 0
+          fi
+          echo "Rule files changed in this PR:"
+          echo "$changed" | sed 's/^/  /'
+          case ",$LABELS," in
+            *,governance-approved,*)
+              echo "OK: 'governance-approved' label present" ;;
+            *)
+              echo "::error::This PR edits the files that define how the project works. Those describe the project, not your local setup."
+              echo "If a rule does not work for you, say so in the PR rather than rewriting it."
+              echo "A maintainer who agrees adds the 'governance-approved' label to this PR"
+              exit 1 ;;
+          esac
+
+      - name: No package-manager drift
+        run: |
+          # Command lines only — a line that starts with the command, so prose that merely
+          # names npm (this repo's own rules do) does not trip the check.
+          added=$(git diff -U0 "$BASE_SHA" HEAD -- ':!*.lock' ':!bun.lock' | grep -E '^\+' | grep -vE '^\+\+\+' || true)
+          drift=$(echo "$added" | grep -E '^\+[[:space:]]*[$>]?[[:space:]]*(npm|yarn|pnpm) (install|ci|add|run)\b' || true)
+          if [ -n "$drift" ]; then
+            echo "::error::A non-bun install command was added. This project installs with 'bun install'."
+            echo "$drift" | sed 's/^/  /'
+            exit 1
+          fi
+          echo "OK: no package-manager drift"
