@@ -17,6 +17,11 @@ export default defineConfig({
     extensions: [".js", ".jsx"],
   },
   test: {
+    server: {
+      deps: {
+        inline: true,
+      },
+    },
     environment: "jsdom",
     globals: true,
     include: ["src/**/*.test.{js,jsx}"],
