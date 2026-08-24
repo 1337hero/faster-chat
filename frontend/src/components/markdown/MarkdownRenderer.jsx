@@ -6,6 +6,7 @@ import rehypeKatex from "rehype-katex";
 import { toast } from "sonner";
 import { Copy, Check, ExternalLink, Download, WrapText } from "lucide-preact";
 import { highlightCode } from "@/lib/shiki";
+import { useThemeStore } from "@/state/useThemeStore";
 import { UI_CONSTANTS } from "@faster-chat/shared";
 import "katex/dist/katex.min.css";
 
@@ -57,6 +58,7 @@ const CodeBlock = ({ inline, className, children, node }) => {
   const [copied, setCopied] = useState(false);
   const [wrap, setWrap] = useState(false);
   const [highlightedHtml, setHighlightedHtml] = useState(null);
+  const showLineNumbers = useThemeStore((state) => state.showCodeLineNumbers);
 
   const lang = className?.match(/language-(\w+)/)?.[1] ?? "";
   const code = String(children).trim();
@@ -121,6 +123,11 @@ const CodeBlock = ({ inline, className, children, node }) => {
     ? "[&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:whitespace-pre-wrap [&_code]:break-words"
     : "[&_pre]:overflow-x-auto";
 
+  const lineNumbersClass = showLineNumbers ? "line-numbers" : "";
+
+  // Fallback lines mirror Shiki's span.line structure so CSS counters work pre-highlight
+  const fallbackLines = code.split("\n");
+
   return (
     <div className="bg-theme-surface group relative my-4 overflow-hidden rounded-lg border border-white/[0.06]">
       {/* Header bar */}
@@ -154,13 +161,20 @@ const CodeBlock = ({ inline, className, children, node }) => {
       {/* Code content — [&_pre]:!bg-transparent strips Shiki's inline background */}
       {highlightedHtml ? (
         <div
-          className={`shiki-wrapper text-sm [&_pre]:!rounded-none [&_pre]:!bg-transparent [&_pre]:p-4 ${wrapClasses}`}
+          className={`shiki-wrapper text-sm ${lineNumbersClass} [&_pre]:!rounded-none [&_pre]:!bg-transparent [&_pre]:p-4 ${wrapClasses}`}
           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       ) : (
         <pre
-          className={`p-4 text-sm ${wrap ? "break-words whitespace-pre-wrap" : "overflow-x-auto"}`}>
-          <code className="text-theme-text-muted">{code}</code>
+          className={`p-4 text-sm ${lineNumbersClass} ${wrap ? "break-words whitespace-pre-wrap" : "overflow-x-auto"}`}>
+          <code className="text-theme-text-muted">
+            {fallbackLines.map((line, i) => (
+              <span key={i} className="line">
+                {line}
+                {i < fallbackLines.length - 1 ? "\n" : ""}
+              </span>
+            ))}
+          </code>
         </pre>
       )}
     </div>

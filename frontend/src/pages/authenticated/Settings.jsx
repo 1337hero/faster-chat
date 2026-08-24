@@ -3,6 +3,8 @@ import { useAuthState } from "@/state/useAuthState";
 import { useReturnToChat } from "@/hooks/useReturnToChat";
 import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
+import { useThemeStore } from "@/state/useThemeStore";
+import { Switch } from "@/components/ui/Switch";
 import { KEYBOARD_SHORTCUTS } from "@faster-chat/shared";
 import { LayoutGrid, Keyboard } from "lucide-preact";
 
@@ -26,6 +28,8 @@ const KeyboardShortcut = ({ keys, label }) => (
 const Settings = () => {
   const { user } = useAuthState();
   const { returnToChat, isReturning } = useReturnToChat();
+  const showCodeLineNumbers = useThemeStore((state) => state.showCodeLineNumbers);
+  const setShowCodeLineNumbers = useThemeStore((state) => state.setShowCodeLineNumbers);
 
   return (
     <div className="bg-theme-canvas flex h-full flex-col">
@@ -80,6 +84,22 @@ const Settings = () => {
           <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
             <h2 className="text-theme-text mb-4 text-lg font-semibold">Appearance</h2>
             <ThemeSelector />
+
+            <div className="border-theme-surface mt-6 flex items-center justify-between border-t pt-4">
+              <div>
+                <label className="text-theme-text block text-sm font-medium">
+                  Code Line Numbers
+                </label>
+                <p className="text-theme-text-muted mt-0.5 text-sm">
+                  Show line numbers in code blocks
+                </p>
+              </div>
+              <Switch
+                value={showCodeLineNumbers}
+                onChange={setShowCodeLineNumbers}
+                aria-label="Show line numbers in code blocks"
+              />
+            </div>
           </div>
 
           {/* Typography */}

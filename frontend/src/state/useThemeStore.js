@@ -148,6 +148,8 @@ export const useThemeStore = create(
       // Font settings
       chatFont: "default",
       chatFontSize: "medium",
+      // Code blocks
+      showCodeLineNumbers: false,
 
       // Initialize theme on app start
       initializeTheme: async () => {
@@ -234,6 +236,11 @@ export const useThemeStore = create(
         set({ chatFontSize: sizeId });
         applyFontSettings(chatFont, sizeId);
       },
+
+      // Toggle line numbers in code blocks
+      setShowCodeLineNumbers: (show) => {
+        set({ showCodeLineNumbers: Boolean(show) });
+      },
     }),
     {
       name: "theme-store-v3",
@@ -243,6 +250,7 @@ export const useThemeStore = create(
         mode: state.mode,
         chatFont: state.chatFont,
         chatFontSize: state.chatFontSize,
+        showCodeLineNumbers: state.showCodeLineNumbers,
       }),
     }
   )
