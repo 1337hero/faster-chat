@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# scaffold-code pre-push hook — code ships by branch + PR only; never push to the default branch.
+# Installed into .git/hooks/ by `scaffold init` / `scaffold update`. Runtime- and agent-agnostic:
+# enforcement lives in the environment, not in parsing anyone's commands.
+# Escape hatch (visible in the transcript): SCAFFOLD_OFF=1 git push ...
+[ "${SCAFFOLD_OFF:-}" = "1" ] && exit 0
+
+def=$(git symbolic-ref -q --short refs/remotes/origin/HEAD)
+def=${def#origin/}
+if [ -z "$def" ]; then
+  for b in main master; do
+    git show-ref -q --verify "refs/heads/$b" && { def=$b; break; }
+  done
+fi
+def=${def:-main}
+
+zero=0000000000000000000000000000000000000000
+while read -r _local_ref local_sha remote_ref remote_sha; do
+  [ "$remote_ref" = "refs/heads/$def" ] || continue
+  [ "$local_sha" = "$zero" ] && continue   # deleting the remote branch — not a code push
+  [ "$remote_sha" = "$zero" ] && continue  # first push of the default branch — nothing to PR against
+  # closeout exemption: outgoing commits touching ONLY .scaffold/ (memory/log/rails) may land
+  # on the default branch directly — memory maintenance must not cost a branch + PR
+  files=$(git diff --name-only "$remote_sha".."$local_sha" 2>/dev/null)
+  if [ -n "$files" ] && ! echo "$files" | grep -qv '^\.scaffold/'; then
+    continue
+  fi
+  echo "scaffold hard rail: code ships by branch + PR only — never push to $def." >&2
+  echo "(.scaffold/-only commits are exempt; humans can override with SCAFFOLD_OFF=1.)" >&2
+  exit 1
+done
+exit 0
