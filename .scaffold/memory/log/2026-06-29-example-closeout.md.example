@@ -1,0 +1,13 @@
+# 2026-06-29 — example closeout (delete me)
+
+**Task:** Example entry showing the log format. (shape: feature)
+
+**Changed:** Nothing real — this file documents the convention. Replace with your first
+real closeout. PR: n/a. Key files: n/a.
+
+**Proof:** The test that protects the change (n/a here).
+
+**Open / next:** Fill `rails/standards.md` and `memory/STATE.md` for this project, then run
+a real task through the BOOT loop.
+
+**Derived decisions:** none.
