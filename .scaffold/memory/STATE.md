@@ -34,5 +34,6 @@ None durable beyond the issue tracker.
 | `CLAUDE.md` | canonical agent guide; `AGENTS.md` is `@CLAUDE.md` |
 | `.claude/skill/frontend-philosophy/SKILL.md` | full frontend rules (no TS, state discipline) |
 | `.github/workflows/repo-guard.yml` | PR gate: lockfiles, deps (`deps-approved`), rule edits (`governance-approved`), PM drift |
+| `.githooks/pre-commit` | gitleaks scan on commit; enable per clone: `git config core.hooksPath .githooks` |
 | `frontend/vite.config.js` | defines `ease-snappy` and build config |
 | `specs/` | feature specs from `/plan_w_team` |
