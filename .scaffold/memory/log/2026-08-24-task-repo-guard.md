@@ -3,7 +3,7 @@
 **Origin:** Direct user task — port `.github/workflows/repo-guard.yml` from SRWP onto the
 `chore/scaffold-rails` branch. (shape: chore)
 
-**Delivery:** Not opened. Committed on `chore/scaffold-rails` (878863b).
+**Delivery:** PR #43 (https://github.com/1337hero/faster-chat/pull/43). Commits on `chore/scaffold-rails` (878863b).
 Key files: `.github/workflows/repo-guard.yml`.
 
 **Intent changes:** none.

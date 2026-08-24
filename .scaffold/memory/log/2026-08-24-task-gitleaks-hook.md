@@ -3,7 +3,7 @@
 **Origin:** Direct user task — set up a githook like SRWP's `.githooks/pre-commit` on the
 `chore/scaffold-rails` branch. (shape: chore)
 
-**Delivery:** Not opened. Committed on `chore/scaffold-rails` (b737c7d).
+**Delivery:** PR #43 (https://github.com/1337hero/faster-chat/pull/43). Commits on `chore/scaffold-rails` (b737c7d).
 Key files: `.githooks/pre-commit`, `.gitleaks.toml`, `CONTRIBUTING.md`.
 
 **Intent changes:** none.

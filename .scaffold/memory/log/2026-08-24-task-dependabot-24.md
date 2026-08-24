@@ -3,7 +3,7 @@
 **Origin:** Direct user task — tackle dependabot alert
 https://github.com/1337hero/faster-chat/security/dependabot/24. (shape: fix)
 
-**Delivery:** Not opened. Committed on `chore/scaffold-rails` (9cb6b5d).
+**Delivery:** PR #43 (https://github.com/1337hero/faster-chat/pull/43). Commits on `chore/scaffold-rails` (9cb6b5d).
 Key files: `server/package.json`, `bun.lock`.
 
 **Intent changes:** none.
