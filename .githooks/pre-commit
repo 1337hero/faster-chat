@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pre-commit hook: run gitleaks on staged changes
+# Skips if gitleaks is not installed.
+set -euo pipefail
+
+if ! command -v gitleaks &>/dev/null; then
+  echo "⚠️  gitleaks not found — skipping pre-commit secret scan."
+  echo "   Install: paru -S gitleaks  or  go install github.com/gitleaks/gitleaks/v8@latest"
+  exit 0
+fi
+
+echo "🔍 Running gitleaks on staged changes..."
+
+gitleaks protect --staged --verbose
+
+status=$?
+
+if [ $status -eq 1 ]; then
+  echo ""
+  echo "❌ Secrets detected in staged changes. Fix or allowlist before committing."
+  echo "   See .gitleaks.toml for the project allowlist."
+  exit 1
+fi
+
+echo "✅ No secrets found."
+exit 0

@@ -1,0 +1,16 @@
+# Gitleaks configuration for Faster Chat
+# Docs: https://github.com/gitleaks/gitleaks
+
+title = "Faster Chat gitleaks config"
+
+[extend]
+# Use the default gitleaks ruleset
+useDefault = true
+
+# Allowlist — strings that match a rule pattern but are safe in context
+[allowlist]
+description = "Project allowlist — safe test data, example values, and known false positives"
+paths = [
+    # Test fixtures contain dummy keys (e.g. API_KEY_ENCRYPTION_KEY placeholder)
+    '''server/src/test/.*''',
+]
