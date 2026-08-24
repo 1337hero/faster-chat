@@ -79,6 +79,23 @@
     border: 1px solid var(--theme-border, #27272a);
   }
 
+  /* Code block line numbers - CSS counters keep copied/selected text clean */
+  .line-numbers code {
+    counter-reset: line;
+  }
+  .line-numbers .line {
+    counter-increment: line;
+  }
+  .line-numbers .line::before {
+    content: counter(line);
+    display: inline-block;
+    width: 3ch;
+    margin-right: 1.25em;
+    text-align: right;
+    color: var(--theme-text-muted, #8b8b8b);
+    user-select: none;
+  }
+
   /* Set default background and text colors */
   body {
     background-color: var(--theme-background, #09090b);
