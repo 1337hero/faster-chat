@@ -150,6 +150,8 @@ export const useThemeStore = create(
       chatFontSize: "medium",
       // Code blocks
       showCodeLineNumbers: false,
+      // Assistant message token stats
+      showTokenStats: false,
 
       // Initialize theme on app start
       initializeTheme: async () => {
@@ -241,6 +243,11 @@ export const useThemeStore = create(
       setShowCodeLineNumbers: (show) => {
         set({ showCodeLineNumbers: Boolean(show) });
       },
+
+      // Toggle token stats under assistant messages
+      setShowTokenStats: (show) => {
+        set({ showTokenStats: Boolean(show) });
+      },
     }),
     {
       name: "theme-store-v3",
@@ -251,6 +258,7 @@ export const useThemeStore = create(
         chatFont: state.chatFont,
         chatFontSize: state.chatFontSize,
         showCodeLineNumbers: state.showCodeLineNumbers,
+        showTokenStats: state.showTokenStats,
       }),
     }
   )
