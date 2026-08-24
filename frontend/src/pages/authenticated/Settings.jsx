@@ -30,6 +30,8 @@ const Settings = () => {
   const { returnToChat, isReturning } = useReturnToChat();
   const showCodeLineNumbers = useThemeStore((state) => state.showCodeLineNumbers);
   const setShowCodeLineNumbers = useThemeStore((state) => state.setShowCodeLineNumbers);
+  const showTokenStats = useThemeStore((state) => state.showTokenStats);
+  const setShowTokenStats = useThemeStore((state) => state.setShowTokenStats);
 
   return (
     <div className="bg-theme-canvas flex h-full flex-col">
@@ -98,6 +100,20 @@ const Settings = () => {
                 value={showCodeLineNumbers}
                 onChange={setShowCodeLineNumbers}
                 aria-label="Show line numbers in code blocks"
+              />
+            </div>
+
+            <div className="border-theme-surface mt-4 flex items-center justify-between border-t pt-4">
+              <div>
+                <label className="text-theme-text block text-sm font-medium">Token Stats</label>
+                <p className="text-theme-text-muted mt-0.5 text-sm">
+                  Show speed and token counts under assistant replies
+                </p>
+              </div>
+              <Switch
+                value={showTokenStats}
+                onChange={setShowTokenStats}
+                aria-label="Show token stats under assistant replies"
               />
             </div>
           </div>
