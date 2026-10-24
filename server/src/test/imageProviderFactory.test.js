@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { generateImageForProvider } from "../lib/imageProviderFactory.js";
+import { generateImageForProvider } from "../lib/imageProviderFactory.js?real";
 
 const originalFetch = globalThis.fetch;
 
