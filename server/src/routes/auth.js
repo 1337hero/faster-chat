@@ -14,6 +14,7 @@ export const authRouter = new Hono();
 const RegisterSchema = z.object({
   username: z.string().min(3).max(50),
   password: z.string().min(8).max(100),
+  inviteToken: z.string().optional(),
 });
 
 const LoginSchema = z.object({
@@ -49,15 +50,22 @@ authRouter.post("/register", async (c) => {
   }
 
   const body = await c.req.json();
-  const { username, password } = RegisterSchema.parse(body);
+  const { username, password, inviteToken } = RegisterSchema.parse(body);
 
   if (!checkRateLimit(`register:user:${username.toLowerCase()}`)) {
     return c.json({ error: "Too many attempts for this username." }, HTTP_STATUS.TOO_MANY_REQUESTS);
   }
 
-  const userCount = dbUtils.getUserCount();
-  if (userCount > 0) {
-    return c.json({ error: AUTH.REGISTRATION_LOCK_MESSAGE }, HTTP_STATUS.FORBIDDEN);
+  const isFirstUser = dbUtils.getUserCount() === 0;
+  let invite = null;
+  if (!isFirstUser) {
+    if (!inviteToken) {
+      return c.json({ error: AUTH.REGISTRATION_LOCK_MESSAGE }, HTTP_STATUS.FORBIDDEN);
+    }
+    invite = dbUtils.getValidInvite(inviteToken);
+    if (!invite) {
+      return c.json({ error: AUTH.INVITE_INVALID_MESSAGE }, HTTP_STATUS.FORBIDDEN);
+    }
   }
 
   // Check if username already exists
@@ -66,15 +74,26 @@ authRouter.post("/register", async (c) => {
     return c.json({ error: "Registration failed" }, HTTP_STATUS.BAD_REQUEST);
   }
 
-  const role = "admin";
+  const role = isFirstUser ? "admin" : "member";
 
   // Hash password
   const passwordHash = await hashPassword(password);
 
   // Create user
-  const userId = dbUtils.createUser(username, passwordHash, role);
+  const userId = dbUtils.createUser(username, passwordHash, role, invite?.created_by ?? null);
 
-  dbUtils.createAuditLog(userId, "register", "user", String(userId), null, ip);
+  if (invite) {
+    dbUtils.markInviteUsed(invite.id, userId);
+  }
+
+  dbUtils.createAuditLog(
+    userId,
+    "register",
+    "user",
+    String(userId),
+    invite ? `invite: ${invite.id}` : null,
+    ip
+  );
 
   // Create session
   const { sessionId, expiresAt } = dbUtils.createSession(userId);
@@ -95,6 +114,19 @@ authRouter.post("/register", async (c) => {
     },
     201
   );
+});
+
+authRouter.get("/setup", (c) => {
+  return c.json({ needsSetup: dbUtils.getUserCount() === 0 });
+});
+
+authRouter.get("/invites/:token", (c) => {
+  const ip = getClientIP(c);
+  if (!checkRateLimit(`invite:ip:${ip}`)) {
+    return c.json({ valid: false }, HTTP_STATUS.TOO_MANY_REQUESTS);
+  }
+  const invite = dbUtils.getValidInvite(c.req.param("token"));
+  return c.json({ valid: Boolean(invite) }, invite ? 200 : HTTP_STATUS.NOT_FOUND);
 });
 
 authRouter.post("/login", async (c) => {

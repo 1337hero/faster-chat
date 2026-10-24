@@ -31,4 +31,16 @@ export const adminClient = {
       method: "DELETE",
     });
   },
+
+  async getInvites() {
+    return apiFetch("/api/admin/invites");
+  },
+
+  async createInvite() {
+    return apiFetch("/api/admin/invites", { method: "POST" });
+  },
+
+  async revokeInvite(inviteId) {
+    return apiFetch(`/api/admin/invites/${inviteId}`, { method: "DELETE" });
+  },
 };

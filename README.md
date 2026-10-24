@@ -105,7 +105,7 @@ cd faster-chat
 docker compose up -d
 ```
 
-That's it. Open http://localhost:8787, register your first user (becomes admin), and configure your AI providers.
+That's it. Open http://localhost:8787, register your first user (becomes admin), and configure your AI providers. Registration then locks: add more users from Admin → Users, either directly or by generating a single-use invite link (expires in 7 days) they can sign up with.
 
 **With HTTPS** (for production):
 ```bash

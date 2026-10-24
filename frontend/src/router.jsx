@@ -73,6 +73,19 @@ const loginRoute = createRoute({
   ),
 });
 
+const inviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/invite/$token",
+  component: () => {
+    const { token } = inviteRoute.useParams();
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Login inviteToken={token} />
+      </Suspense>
+    );
+  },
+});
+
 // Protected Routes Parent
 const protectedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -151,6 +164,7 @@ const folderRoute = createRoute({
 // Route Tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  inviteRoute,
   protectedRoute.addChildren([
     indexRoute,
     chatRoute,

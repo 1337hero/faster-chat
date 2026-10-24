@@ -3,7 +3,7 @@ import { Navigate } from "@tanstack/react-router";
 import AuthPage from "@/components/auth/AuthPage";
 import { useAuthState } from "@/state/useAuthState";
 
-const Login = () => {
+const Login = ({ inviteToken }) => {
   const { user, isLoading, checkSession } = useAuthState();
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const Login = () => {
     );
   }
 
-  return <AuthPage />;
+  return <AuthPage inviteToken={inviteToken} />;
 };
 
 export default Login;
