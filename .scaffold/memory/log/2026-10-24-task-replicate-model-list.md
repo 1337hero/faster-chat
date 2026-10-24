@@ -4,7 +4,7 @@
 Flux 1.1 Pro) and the admin panel only ever saw 8 hardcoded models. Make Replicate behave like
 OpenRouter/Anthropic: add connection → fetch models → enable in admin. (shape: fix)
 
-**Delivery:** branch `fix/replicate-model-list`, not yet committed/PR'd (user to say go).
+**Delivery:** PR #49 (https://github.com/1337hero/faster-chat/pull/49), branch `fix/replicate-model-list`.
 Key files: `server/src/lib/imageGeneration.js`, `server/src/routes/providers.js`,
 `server/src/lib/modelsdev.js` (hardcoded list removed), `server/src/test/imageGeneration.test.js`.
 
@@ -38,7 +38,7 @@ still used as the env-only fallback in `routes/images.js`. Models without `aspec
 
 **Proof:** `server/src/test/imageGeneration.test.js`.
 
-**Open / next:** commit + PR when the user says go. Consider a schema-aware input mapping if
+**Open / next:** PR #49 awaiting review/merge. Consider a schema-aware input mapping if
 users pick width/height-only models.
 
 **Derived decisions:**
