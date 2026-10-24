@@ -21,6 +21,7 @@ export function resetDatabase() {
   db.exec("DELETE FROM chats");
   db.exec("DELETE FROM folders");
   db.exec("DELETE FROM sessions");
+  db.exec("DELETE FROM invites");
   db.exec("DELETE FROM models");
   db.exec("DELETE FROM providers");
   db.exec("DELETE FROM settings");

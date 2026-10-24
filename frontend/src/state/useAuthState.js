@@ -35,10 +35,10 @@ export const useAuthState = create((set) => ({
     }
   },
 
-  register: async (username, password) => {
+  register: async (username, password, inviteToken) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await authClient.register(username, password);
+      const data = await authClient.register(username, password, inviteToken);
       set({ user: data.user, isLoading: false });
       return data.user;
     } catch (error) {

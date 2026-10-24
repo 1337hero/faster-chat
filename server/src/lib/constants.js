@@ -21,5 +21,7 @@ export const ENDPOINT_RATE_LIMITS = {
  */
 export const AUTH = {
   TRUST_PROXY: process.env.TRUST_PROXY === "true",
-  REGISTRATION_LOCK_MESSAGE: "Registration disabled. Ask an administrator to create an account.",
+  REGISTRATION_LOCK_MESSAGE: "Registration requires an invite link. Ask an administrator for one.",
+  INVITE_INVALID_MESSAGE: "This invite link is invalid, expired, or already used.",
+  INVITE_EXPIRY_MS: 7 * 24 * 60 * 60 * 1000,
 };

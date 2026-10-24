@@ -4,6 +4,7 @@ import { lazy, Suspense } from "preact/compat";
 import { adminClient } from "@/lib/adminClient";
 import { Button } from "@/components/ui/button";
 import { formatDateLong, formatRelativeTime } from "@/lib/formatters";
+import InvitesPanel from "./InvitesPanel";
 
 // Lazy load modal components - only load when needed
 const CreateUserModal = lazy(() => import("./CreateUserModal"));
@@ -99,6 +100,9 @@ const UsersTab = () => {
 
       {/* Users table */}
       <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="mb-4">
+          <InvitesPanel />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

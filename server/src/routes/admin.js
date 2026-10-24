@@ -5,6 +5,7 @@ import { ensureSession, requireRole } from "../middleware/auth.js";
 import { hashPassword } from "../lib/security.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { getClientIP } from "../lib/requestUtils.js";
+import { AUTH } from "../lib/constants.js";
 
 export const adminRouter = new Hono();
 
@@ -171,6 +172,47 @@ adminRouter.delete("/users/:id", async (c) => {
     getClientIP(c)
   );
 
+  return c.json({ success: true });
+});
+
+adminRouter.get("/invites", async (c) => {
+  return c.json({ invites: dbUtils.listInvites() });
+});
+
+adminRouter.post("/invites", async (c) => {
+  const currentUser = c.get("user");
+  const invite = dbUtils.createInvite(currentUser.id, AUTH.INVITE_EXPIRY_MS);
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "invite_created",
+    "invite",
+    String(invite.id),
+    null,
+    getClientIP(c)
+  );
+  return c.json({ invite }, 201);
+});
+
+adminRouter.delete("/invites/:id", async (c) => {
+  const inviteId = parseInt(c.req.param("id"), 10);
+  const currentUser = c.get("user");
+  const invite = dbUtils.getInviteById(inviteId);
+  if (!invite) {
+    return c.json({ error: "Invite not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+  if (invite.used_at) {
+    return c.json({ error: "Invite already used" }, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  dbUtils.revokeInvite(inviteId);
+  dbUtils.createAuditLog(
+    currentUser.id,
+    "invite_revoked",
+    "invite",
+    String(inviteId),
+    null,
+    getClientIP(c)
+  );
   return c.json({ success: true });
 });
 

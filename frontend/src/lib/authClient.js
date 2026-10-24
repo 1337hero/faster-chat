@@ -1,11 +1,24 @@
 import { apiFetch } from "@/lib/api";
 
 export const authClient = {
-  async register(username, password) {
+  async register(username, password, inviteToken) {
     return apiFetch("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, inviteToken }),
     });
+  },
+
+  async getSetup() {
+    return apiFetch("/api/auth/setup");
+  },
+
+  async validateInvite(token) {
+    try {
+      const data = await apiFetch(`/api/auth/invites/${encodeURIComponent(token)}`);
+      return Boolean(data.valid);
+    } catch {
+      return false;
+    }
   },
 
   async login(username, password) {

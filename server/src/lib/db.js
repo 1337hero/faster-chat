@@ -6,6 +6,7 @@ import { createAuditUtils } from "./db/audit.js";
 import { createChatUtils } from "./db/chats.js";
 import { createFileUtils } from "./db/files.js";
 import { createFolderUtils } from "./db/folders.js";
+import { createInviteUtils } from "./db/invites.js";
 import { createMemoryUtils } from "./db/memory.js";
 import { createModelUtils } from "./db/models.js";
 import { migrations } from "./db/migrations/index.js";
@@ -81,7 +82,8 @@ Object.assign(
   createFolderUtils({ db, buildUpdateFields }),
   createSettingUtils({ db, encryptApiKey, decryptApiKey }),
   createAuditUtils({ db }),
-  createMemoryUtils({ db })
+  createMemoryUtils({ db }),
+  createInviteUtils({ db })
 );
 
 dbUtils.cleanExpiredSessions();
