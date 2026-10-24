@@ -45,7 +45,7 @@ Connect to OpenAI, Anthropic, Google, Groq, Mistral, xAI, DeepSeek, and more—o
 - 🤖 **17 built-in providers** (plus 50+ more auto-discoverable via [models.dev](https://models.dev)): OpenAI, Anthropic, Google, Google Vertex, Amazon Bedrock, Azure, Groq, Mistral, xAI, DeepSeek, Cohere, Fireworks, Cerebras, OpenRouter, Replicate, Ollama, LM Studio
 - 🧠 **Cross-conversation memory** — AI remembers your preferences, projects, and context across chats
 - 🔍 **Web search** — AI can search the web and cite sources inline (Brave Search)
-- 🖼️ **Image support** — Upload images for vision analysis, generate images with DALL-E, FLUX, and OpenRouter models
+- 🖼️ **Image support** — Upload images for vision analysis, generate images with DALL-E, any Replicate text-to-image model, and OpenRouter models
 - 📥 **Import conversations** from ChatGPT exports (more formats coming soon)
 - 📎 File attachments with preview and download
 - 📝 Markdown rendering with syntax highlighting (Shiki) and LaTeX support
@@ -92,7 +92,7 @@ When enabled, the AI can autonomously search the web and fetch pages to answer q
 **Vision/Multimodal**: Upload images alongside messages for analysis by vision-capable models (Claude, GPT-4, Gemini, Grok, Mistral, and more).
 
 **Image Generation**: Toggle image mode to generate images with configurable aspect ratios (1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3).
-- **Providers**: OpenAI (DALL-E 3), Replicate (FLUX 1.1 Pro), OpenRouter image models
+- **Providers**: OpenAI (DALL-E 3), Replicate (any model in its text-to-image collection, FLUX, Nano Banana, Imagen, Seedream, and more), OpenRouter image models
 - Generated images display inline with download controls and metadata
 
 ## 🚀 Quick Start
