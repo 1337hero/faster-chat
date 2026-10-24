@@ -12,6 +12,7 @@ export function toCanonicalMessage(msg) {
     parts,
     fileIds: msg.fileIds || [],
     model: msg.model || null,
+    metadata: msg.metadata || null,
     createdAt: getMessageTimestamp(msg),
   };
 }

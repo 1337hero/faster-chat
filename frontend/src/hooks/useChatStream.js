@@ -1,7 +1,13 @@
 import { DefaultChatTransport } from "ai";
 import { useChat as useAIChat } from "@ai-sdk/react";
-import { useMemo, useRef } from "preact/hooks";
-import { deduplicateMessages, ensureTimestamp, getMessageTimestamp } from "@/lib/messageUtils";
+import { useEffect, useMemo, useRef } from "preact/hooks";
+import {
+  deduplicateMessages,
+  ensureTimestamp,
+  getMessageTimestamp,
+  hasTextContent,
+} from "@/lib/messageUtils";
+import { buildTokenStats } from "@/lib/tokenStats";
 import { MESSAGE_CONSTANTS } from "@faster-chat/shared";
 
 function trimMessageHistory(messages) {
@@ -43,6 +49,11 @@ export function useChatStream({
   persistedMessagesRef.current = persistedMessages;
 
   const messageTimestampsRef = useRef(new Map());
+
+  const timingRef = useRef({ sendAt: null, ttftMs: null });
+  const resetTiming = () => {
+    timingRef.current = { sendAt: performance.now(), ttftMs: null };
+  };
 
   const formattedMessages = (persistedMessages ?? []).map((msg) =>
     ensureTimestamp(msg, messageTimestampsRef)
@@ -98,18 +109,38 @@ export function useChatStream({
 
       const toolParts =
         message.parts?.filter((p) => p.type === "tool-invocation" && p.state === "result") || [];
-      const metadata = toolParts.length > 0 ? { toolParts } : null;
+
+      const { sendAt, ttftMs } = timingRef.current;
+      const stats = buildTokenStats({
+        usage: message.metadata?.usage,
+        ttftMs,
+        durationMs: sendAt != null ? Math.round(performance.now() - sendAt) : null,
+      });
+
+      const metadata = {
+        ...(toolParts.length > 0 ? { toolParts } : {}),
+        ...(stats ? { stats } : {}),
+      };
 
       if (onMessageComplete && content.trim()) {
         await onMessageComplete({
           id: message.id,
           content,
-          metadata,
+          metadata: Object.keys(metadata).length > 0 ? metadata : null,
           createdAt: getMessageTimestamp(message),
         });
       }
     },
   });
+
+  useEffect(() => {
+    const { sendAt, ttftMs } = timingRef.current;
+    if (sendAt == null || ttftMs != null) return;
+    const last = streamingMessages[streamingMessages.length - 1];
+    if (last?.role === "assistant" && hasTextContent(last)) {
+      timingRef.current.ttftMs = Math.round(performance.now() - sendAt);
+    }
+  }, [streamingMessages]);
 
   const isStreaming = status === "streaming" || status === "submitted";
 
@@ -131,13 +162,19 @@ export function useChatStream({
     };
     if (fileIds.length > 0) message.fileIds = fileIds;
     messageTimestampsRef.current.set(message.id, message.createdAt);
+    resetTiming();
     await sendMessage(message);
+  }
+
+  async function regenerateWithTiming() {
+    resetTiming();
+    await regenerate();
   }
 
   return {
     messages,
     send,
-    regenerate,
+    regenerate: regenerateWithTiming,
     stop,
     status,
     error,

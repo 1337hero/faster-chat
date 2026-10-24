@@ -1,5 +1,7 @@
 import { MarkdownContent } from "@/components/markdown/MarkdownRenderer";
 import { extractTextContent } from "@/lib/messageUtils";
+import { formatTokenStats } from "@/lib/tokenStats";
+import { useThemeStore } from "@/state/useThemeStore";
 import { memo } from "@preact/compat";
 import { AlertTriangle, Brain, ChevronDown, Sparkles } from "lucide-preact";
 import MessageAttachment from "./MessageAttachment";
@@ -41,6 +43,7 @@ const parseThinkingBlocks = (text) => {
 };
 
 const MessageItem = memo(({ message, onStop, onRegenerate }) => {
+  const showTokenStats = useThemeStore((state) => state.showTokenStats);
   const isUser = message.role === "user";
   const rawContent = extractTextContent(message);
   const { thinking, content } = isUser
@@ -55,6 +58,7 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
     (p) => p.type === "tool-invocation" && p.state === "call"
   );
   const sources = isUser ? [] : extractSources(message.parts);
+  const statsLine = !isUser && showTokenStats ? formatTokenStats(message.metadata?.stats) : "";
   const toolErrors = isUser
     ? []
     : message.parts?.filter(
@@ -126,6 +130,10 @@ const MessageItem = memo(({ message, onStop, onRegenerate }) => {
           </div>
 
           {sources.length > 0 && <SourceCitations sources={sources} />}
+
+          {statsLine && (
+            <p className="text-theme-text-muted mt-3 text-xs opacity-60">{statsLine}</p>
+          )}
 
           {showActions && (
             <div className="mt-4 flex justify-end gap-2">

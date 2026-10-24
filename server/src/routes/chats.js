@@ -478,6 +478,16 @@ chatsRouter.post(
           console.error("Stream error:", error);
           return humanizeProviderError(error, providerLabel);
         },
+        messageMetadata: ({ part }) => {
+          if (part.type !== "finish" || !part.totalUsage) return undefined;
+          return {
+            usage: {
+              inputTokens: part.totalUsage.inputTokens ?? null,
+              outputTokens: part.totalUsage.outputTokens ?? null,
+              totalTokens: part.totalUsage.totalTokens ?? null,
+            },
+          };
+        },
       });
     } catch (error) {
       console.error("Completion error:", error);
