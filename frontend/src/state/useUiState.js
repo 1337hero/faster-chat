@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { IMAGE_GENERATION } from "@faster-chat/shared";
 
 export const useUiState = create(
   persist(
@@ -8,6 +9,7 @@ export const useUiState = create(
       sidebarCollapsed: false,
       preferredModel: "claude-sonnet-4-5",
       preferredImageModel: null,
+      imageAspectRatio: IMAGE_GENERATION.DEFAULT_ASPECT_RATIO,
       theme: "dark",
       autoScroll: true,
       imageMode: false,
@@ -19,6 +21,7 @@ export const useUiState = create(
       toggleSidebarCollapse: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setPreferredModel: (modelId) => set({ preferredModel: modelId }),
       setPreferredImageModel: (modelId) => set({ preferredImageModel: modelId }),
+      setImageAspectRatio: (ratio) => set({ imageAspectRatio: ratio }),
       toggleTheme: () => set((state) => ({ theme: state.theme === "light" ? "dark" : "light" })),
       setAutoScroll: (enabled) => set({ autoScroll: enabled }),
       setImageMode: (enabled) => set({ imageMode: enabled }),
@@ -33,6 +36,7 @@ export const useUiState = create(
         sidebarCollapsed: state.sidebarCollapsed,
         preferredModel: state.preferredModel,
         preferredImageModel: state.preferredImageModel,
+        imageAspectRatio: state.imageAspectRatio,
         theme: state.theme,
         autoScroll: state.autoScroll,
       }),

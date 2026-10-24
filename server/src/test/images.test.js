@@ -10,6 +10,7 @@ mock.module("../lib/imageProviderFactory.js", () => ({
 }));
 
 const { createTestApp, resetDatabase, seedAdminUser, makeRequest } = await import("./helpers.js");
+const { dbUtils } = await import("../lib/db.js");
 
 const originalReplicateApiKey = process.env.REPLICATE_API_KEY;
 
@@ -88,5 +89,63 @@ describe("image routes", () => {
     const body = await res.json();
     expect(body).toEqual({ error: "Internal server error" });
     expect(JSON.stringify(body)).not.toContain("sensitive internal provider trace");
+  });
+
+  describe("aspect ratio and provider options", () => {
+    let factoryCalls;
+
+    beforeEach(() => {
+      factoryCalls = [];
+      generateImageForProviderImpl = async (...args) => {
+        factoryCalls.push(args);
+        return { buffer: Buffer.from("image"), mimeType: "image/png" };
+      };
+    });
+
+    const generate = (body) =>
+      makeRequest(app, "POST", "/api/images/generate", { body, cookie: adminCookie });
+
+    test("forwards the requested aspect ratio to the provider", async () => {
+      const res = await generate({ prompt: "a cube", aspectRatio: "16:9" });
+
+      expect(res.status).toBe(200);
+      expect(factoryCalls[0][2].aspectRatio).toBe("16:9");
+    });
+
+    test("defaults to 1:1 when no aspect ratio is sent", async () => {
+      await generate({ prompt: "a cube" });
+
+      expect(factoryCalls[0][2].aspectRatio).toBe("1:1");
+    });
+
+    test("rejects an unknown aspect ratio", async () => {
+      const res = await generate({ prompt: "a cube", aspectRatio: "5:1" });
+
+      expect(res.status).toBe(400);
+      expect(factoryCalls).toHaveLength(0);
+    });
+
+    test("local provider with a base URL and no key reaches the factory", async () => {
+      delete process.env.REPLICATE_API_KEY;
+      const providerId = dbUtils.createProvider(
+        "sd-server",
+        "SD Server",
+        "openai-compatible",
+        "http://localhost:1234/v1",
+        null,
+        null,
+        null
+      );
+      dbUtils.createModel(providerId, "sdxl", "SDXL", true, "image");
+
+      const res = await generate({ prompt: "a cube", modelId: "sdxl" });
+
+      expect(res.status).toBe(200);
+      const [providerName, apiKey, options] = factoryCalls[0];
+      expect(providerName).toBe("sd-server");
+      expect(apiKey).toBeUndefined();
+      expect(options.baseUrl).toBe("http://localhost:1234/v1");
+      expect(options.model).toBe("sdxl");
+    });
   });
 });
