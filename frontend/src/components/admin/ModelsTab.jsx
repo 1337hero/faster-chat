@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Database,
   Download,
+  ExternalLink,
 } from "lucide-preact";
 import { formatPrice, formatContextWindow } from "@faster-chat/shared";
 import { providersClient } from "@/lib/providersClient";
@@ -366,13 +367,24 @@ const ModelsTab = () => {
                                   {formatContextWindow(model.metadata.context_window)} context
                                 </span>
                               )}
-                              {model.metadata?.input_price_per_1m !== undefined &&
+                              {providerData.providerId === "replicate" ? (
+                                <a
+                                  href={`https://replicate.com/${model.model_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:text-theme-text inline-flex items-center gap-1 transition-colors duration-75">
+                                  <ExternalLink className="h-3 w-3" />
+                                  Pricing on Replicate
+                                </a>
+                              ) : (
+                                model.metadata?.input_price_per_1m !== undefined &&
                                 model.metadata?.output_price_per_1m !== undefined && (
                                   <span title="Input / Output price per 1M tokens">
                                     {formatPrice(model.metadata.input_price_per_1m)}/
                                     {formatPrice(model.metadata.output_price_per_1m)} per 1M
                                   </span>
-                                )}
+                                )
+                              )}
                               {model.metadata?.cache_read_price_per_1m > 0 && (
                                 <span
                                   className="text-theme-green inline-flex items-center gap-1"

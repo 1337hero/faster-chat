@@ -7,13 +7,13 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import db, { dbUtils } from "../lib/db.js";
-import { encryptApiKey } from "../lib/encryption.js";
+import { decryptApiKey, encryptApiKey } from "../lib/encryption.js";
 import { isLikelyValidApiKey } from "../lib/providerErrors.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
+import { fetchReplicateImageModels } from "../lib/imageGeneration.js";
 import {
   getAvailableProviders as getModelsDevProviders,
   getModelsForProvider,
-  getReplicateImageModels,
 } from "../lib/modelsdev.js";
 import { getClientIP } from "../lib/requestUtils.js";
 import { validateProviderBaseUrl } from "../lib/ssrf.js";
@@ -23,8 +23,10 @@ const BulkEnableSchema = z.object({ enabled: z.boolean() });
 export const providersRouter = new Hono();
 providersRouter.use("*", ensureSession, requireRole("admin"));
 
+const DISABLED_BY_DEFAULT = new Set(["openrouter", "replicate"]);
+
 function getDefaultEnabledForProvider(providerName, fallbackEnabled) {
-  return providerName === "openrouter" ? false : fallbackEnabled;
+  return DISABLED_BY_DEFAULT.has(providerName) ? false : fallbackEnabled;
 }
 
 function normalizeBaseUrl(providerName, baseUrl) {
@@ -116,7 +118,7 @@ providersRouter.post("/", async (c) => {
 
   let models = [];
   try {
-    models = await fetchModelsForProvider(name, normalizedBaseUrl);
+    models = await fetchModelsForProvider(name, normalizedBaseUrl, { apiKey });
     for (const model of models) {
       const modelId = dbUtils.createModel(
         providerId,
@@ -189,12 +191,14 @@ providersRouter.post("/:id/refresh-models", async (c) => {
   if (normalizedBaseUrl !== provider.base_url)
     dbUtils.updateProvider(providerId, { baseUrl: normalizedBaseUrl });
 
-  const models = await fetchModelsForProvider(
-    provider.name,
-    normalizedBaseUrl,
-    provider.provider_type,
-    provider.display_name
-  );
+  const apiKey = provider.encrypted_key
+    ? decryptApiKey(provider.encrypted_key, provider.iv, provider.auth_tag)
+    : null;
+  const models = await fetchModelsForProvider(provider.name, normalizedBaseUrl, {
+    providerType: provider.provider_type,
+    displayName: provider.display_name,
+    apiKey,
+  });
 
   db.transaction(() => {
     dbUtils.deleteModelsForProvider(providerId);
@@ -237,12 +241,16 @@ const MODEL_FETCHERS = {
   lmstudio: (url) => fetchOpenAICompatibleModels(url, "LM Studio"),
   "llama-cpp": (url) => fetchOpenAICompatibleModels(url, "llama.cpp server"),
   llamafile: (url) => fetchOpenAICompatibleModels(url, "llamafile server"),
-  replicate: () => Promise.resolve(getReplicateImageModels()),
+  replicate: (_baseUrl, apiKey) => fetchReplicateImageModels(apiKey),
 };
 
-async function fetchModelsForProvider(providerName, baseUrl, providerType, displayName) {
+async function fetchModelsForProvider(
+  providerName,
+  baseUrl,
+  { providerType, displayName, apiKey } = {}
+) {
   const fetcher = MODEL_FETCHERS[providerName];
-  if (fetcher) return await fetcher(baseUrl);
+  if (fetcher) return await fetcher(baseUrl, apiKey);
   if (providerType === "openai-compatible")
     return await fetchOpenAICompatibleModels(baseUrl, displayName || providerName);
   return await getModelsForProvider(providerName);
