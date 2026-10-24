@@ -11,11 +11,13 @@ vi.mock("@/hooks/useFileUploader", () => ({
   }),
 }));
 
+let mockImageMode = false;
+
 // Mock useUiState
 vi.mock("@/state/useUiState", () => ({
   useUiState: (selector) => {
     const state = {
-      imageMode: false,
+      imageMode: mockImageMode,
       toggleImageMode: vi.fn(),
       setImageMode: vi.fn(),
       setWebSearchEnabled: vi.fn(),
@@ -64,12 +66,16 @@ const defaultProps = {
   onRemoveFile: vi.fn(),
   isLoading: false,
   isGenerating: false,
+  aspectRatios: ["1:1", "16:9", "9:16"],
+  aspectRatio: "16:9",
+  onAspectRatioChange: vi.fn(),
 };
 
 describe("InputArea", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDragActive = false;
+    mockImageMode = false;
     capturedOnFileSelect = null;
   });
 
@@ -197,5 +203,34 @@ describe("InputArea", () => {
     const fileInput = document.getElementById("chat-input-file-upload");
     expect(fileInput).toBeTruthy();
     expect(fileInput.multiple).toBe(true);
+  });
+
+  describe("aspect ratio chips", () => {
+    test("are hidden outside image mode", () => {
+      render(<InputArea {...defaultProps} />);
+      expect(screen.queryByText("Aspect ratio")).toBeNull();
+    });
+
+    test("render one chip per ratio in image mode, marking the active one", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+
+      expect(screen.getByText("Aspect ratio")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "16:9" }).getAttribute("aria-pressed")).toBe(
+        "true"
+      );
+      expect(screen.getByRole("button", { name: "1:1" }).getAttribute("aria-pressed")).toBe(
+        "false"
+      );
+      expect(screen.getByRole("button", { name: "9:16" })).toBeTruthy();
+    });
+
+    test("clicking a chip reports the ratio", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "9:16" }));
+      expect(defaultProps.onAspectRatioChange).toHaveBeenCalledWith("9:16");
+    });
   });
 });

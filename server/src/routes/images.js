@@ -59,6 +59,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
   let apiKey = process.env.REPLICATE_API_KEY;
   let modelIdentifier = IMAGE_MODELS.DEFAULT;
   let modelDisplayName = IMAGE_MODELS.DISPLAY_NAME;
+  let baseUrl = null;
 
   if (modelId) {
     const model = dbUtils.getEnabledModelWithProvider(modelId);
@@ -66,6 +67,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
       providerName = model.provider_name;
       modelIdentifier = model.model_id;
       modelDisplayName = model.display_name;
+      baseUrl = model.provider_base_url;
       if (model.provider_encrypted_key) {
         apiKey = decryptApiKey(
           model.provider_encrypted_key,
@@ -76,7 +78,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     }
   }
 
-  if (!apiKey) {
+  if (!apiKey && !baseUrl) {
     return c.json(
       { error: "Image generation is not configured. Please add a provider with image models." },
       HTTP_STATUS.BAD_REQUEST
@@ -89,6 +91,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
       prompt: prompt.trim(),
       aspectRatio,
       model: modelIdentifier,
+      baseUrl,
     });
   } catch (error) {
     const message = error?.message || "";

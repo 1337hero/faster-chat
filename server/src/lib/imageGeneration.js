@@ -1,15 +1,21 @@
 import { IMAGE_GENERATION } from "@faster-chat/shared";
 import Replicate from "replicate";
 
-const REPLICATE_TEXT_TO_IMAGE_COLLECTION = "text-to-image";
+const REPLICATE_TEXT_TO_IMAGE_COLLECTION_URL =
+  "https://api.replicate.com/v1/collections/text-to-image";
 
 export function createReplicateClient(apiKey) {
   return new Replicate({ auth: apiKey });
 }
 
 export async function fetchReplicateImageModels(apiKey) {
-  const client = createReplicateClient(apiKey);
-  const collection = await client.collections.get(REPLICATE_TEXT_TO_IMAGE_COLLECTION);
+  const response = await fetch(REPLICATE_TEXT_TO_IMAGE_COLLECTION_URL, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Replicate API returned ${response.status}`);
+  }
+  const collection = await response.json();
 
   return (collection.models || []).map((model) => ({
     model_id: `${model.owner}/${model.name}`,

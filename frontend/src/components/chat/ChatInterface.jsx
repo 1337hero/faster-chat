@@ -11,7 +11,7 @@ import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChat
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { providersClient } from "@/lib/providersClient";
-import { CACHE_DURATIONS } from "@faster-chat/shared";
+import { CACHE_DURATIONS, supportedAspectRatios } from "@faster-chat/shared";
 import { useQuery } from "@tanstack/react-query";
 
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
@@ -30,6 +30,8 @@ const ChatInterface = ({ chatId }) => {
   const imageMode = useUiState((state) => state.imageMode);
   const preferredImageModel = useUiState((state) => state.preferredImageModel);
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
+  const storedAspectRatio = useUiState((state) => state.imageAspectRatio);
+  const setImageAspectRatio = useUiState((state) => state.setImageAspectRatio);
   const autoScroll = useUiState((state) => state.autoScroll);
   const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
   const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
@@ -42,8 +44,24 @@ const ChatInterface = ({ chatId }) => {
     staleTime: CACHE_DURATIONS.IMAGE_MODELS,
   });
 
+  const { data: imageModelsData } = useQuery({
+    queryKey: ["models", "image"],
+    queryFn: () => providersClient.getEnabledModelsByType("image"),
+    staleTime: CACHE_DURATIONS.IMAGE_MODELS,
+  });
+
   const currentModelData = (modelsData?.models || []).find((m) => m.model_id === preferredModel);
   const modelSupportsTools = !!currentModelData?.metadata?.supports_tools;
+
+  const imageModels = imageModelsData?.models || [];
+  const imageModel =
+    imageModels.find((m) => m.model_id === preferredImageModel) ||
+    imageModels.find((m) => m.is_default) ||
+    imageModels[0];
+  const aspectRatios = supportedAspectRatios(imageModel?.provider, imageModel?.model_id);
+  const aspectRatio = aspectRatios.includes(storedAspectRatio)
+    ? storedAspectRatio
+    : aspectRatios[0];
 
   const handleModelChange = (modelId) => {
     setPreferredModel(modelId);
@@ -120,7 +138,7 @@ const ChatInterface = ({ chatId }) => {
     setInput("");
 
     generateImage(
-      { prompt, chatId, model: preferredImageModel },
+      { prompt, chatId, model: preferredImageModel, aspectRatio },
       {
         onSuccess: async (data) => {
           const assistantMessageId = crypto.randomUUID();
@@ -218,6 +236,9 @@ const ChatInterface = ({ chatId }) => {
               onRemoveFile={removeFile}
               isLoading={isLoading}
               isGenerating={isGenerating}
+              aspectRatios={aspectRatios}
+              aspectRatio={aspectRatio}
+              onAspectRatioChange={setImageAspectRatio}
             />
           </div>
         </div>

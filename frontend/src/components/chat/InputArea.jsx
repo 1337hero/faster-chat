@@ -25,6 +25,9 @@ const InputArea = ({
   onRemoveFile,
   isLoading,
   isGenerating,
+  aspectRatios,
+  aspectRatio,
+  onAspectRatioChange,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
@@ -168,6 +171,26 @@ const InputArea = ({
           rows={1}
           className="text-theme-text placeholder-theme-muted max-h-[200px] w-full resize-none border-none bg-transparent px-4 py-3 text-base focus:ring-0 focus:outline-none"
         />
+
+        {imageMode && (
+          <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2">
+            <span className="text-theme-text-muted mr-1 text-xs">Aspect ratio</span>
+            {aspectRatios.map((ratio) => (
+              <button
+                key={ratio}
+                type="button"
+                onClick={() => onAspectRatioChange(ratio)}
+                aria-pressed={ratio === aspectRatio}
+                className={`rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 ${
+                  ratio === aspectRatio
+                    ? "bg-theme-pink text-white"
+                    : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
+                }`}>
+                {ratio}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Bottom Row - Tool Buttons + Send */}
         <div className="flex items-center justify-between px-2 pb-1">
