@@ -54,7 +54,7 @@ const ModelSelector = ({ type = "text", currentModel, onModelChange }) => {
     return (
       <div className={`${variant.emptyWrapClass} rounded-xl border px-3 py-2 text-sm`}>
         <span className={variant.emptyTextClass}>
-          No image models - add Replicate or OpenRouter
+          No image models - add Replicate, OpenRouter, OpenAI, or Google
         </span>
       </div>
     );

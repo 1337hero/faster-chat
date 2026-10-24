@@ -17,6 +17,9 @@ export async function generateImageForProvider(providerName, apiKey, options) {
     case "openai":
       return generateWithOpenAI(apiKey, { prompt });
 
+    case "google":
+      return generateWithGoogle(apiKey, { prompt, aspectRatio, model });
+
     default:
       throw new Error(`Image generation not supported for provider: ${providerName}`);
   }
@@ -161,4 +164,50 @@ async function generateWithOpenAI(apiKey, options) {
 
   const buffer = Buffer.from(base64Data, "base64");
   return { buffer, mimeType: "image/png" };
+}
+
+async function generateWithGoogle(apiKey, options) {
+  const { prompt, aspectRatio, model } = options;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio } },
+      }),
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw googleError(response.status, data.error);
+  }
+
+  const part = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData && !p.thought);
+  if (!part) {
+    throw new Error("No image in Google response");
+  }
+
+  return {
+    buffer: Buffer.from(part.inlineData.data, "base64"),
+    mimeType: part.inlineData.mimeType || "image/png",
+  };
+}
+
+function googleError(status, error = {}) {
+  const message = error.message || "";
+
+  if (status === 429 || error.status === "RESOURCE_EXHAUSTED") {
+    return new Error(`rate limit exceeded: ${message}`);
+  }
+
+  const invalidKey = JSON.stringify(error).includes("API_KEY_INVALID");
+  if (status === 401 || status === 403 || (status === 400 && invalidKey)) {
+    return new Error(`authentication failed: ${message}`);
+  }
+
+  return new Error(message || "Google generation failed");
 }
