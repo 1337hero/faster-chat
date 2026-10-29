@@ -2,11 +2,30 @@
 # scaffold-code closeout floor — the outcome gate for any shell-capable agent. Run from anywhere
 # in the repo. Verifies outcomes, not process: nothing shipped → passes silently; code changed →
 # must be off the default branch, have a log entry as fresh as the code, and contain no secrets.
+#
+# --if-changed (relay mode — what the adapters run): speak once per distinct repo state. The gate
+#   remembers the state it last reported — HEAD plus the uncommitted diff and file list, hashed
+#   into .git/scaffold-gate. An identical state means nothing happened since: a read-only session,
+#   or the same unfinished work it already reported — so it stays quiet instead of costing the
+#   agent a closeout ritual. Any edit — tracked or untracked — and any commit re-arms it. Without
+#   the flag the gate always reports the truth, side effects aside.
 # note: session ≈ branch — code changes are measured against the merge-base with the default
 # branch, so log changes count whether committed or not.
 fail() { echo "FAIL: $1"; exit 1; }
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || fail "not in a git repo"
 [ -f .scaffold/BOOT.md ] || fail "no .scaffold/ at repo root"
+
+if [ "${1:-}" = "--if-changed" ]; then
+  state=$(git rev-parse --git-dir)/scaffold-gate
+  current=$( { git rev-parse HEAD 2>/dev/null; git diff HEAD --no-color 2>/dev/null
+               git ls-files -o --exclude-standard | git hash-object --stdin-paths 2>/dev/null
+               git status --porcelain -uall; } | (sha256sum || shasum -a 256) 2>/dev/null | cut -d' ' -f1)
+  if [ -n "$current" ] && [ -f "$state" ] && [ "$(cat "$state")" = "$current" ]; then
+    echo "OK: repo unchanged since the gate last spoke — nothing to close out"
+    exit 0
+  fi
+  echo "$current" > "$state"
+fi
 
 default=$(git symbolic-ref -q --short refs/remotes/origin/HEAD)
 default=${default#origin/}

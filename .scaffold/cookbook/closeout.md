@@ -45,7 +45,9 @@ bash .scaffold/cookbook/closeout-check.sh   # works from anywhere in the repo
 
 It diffs code against the merge-base with the default branch and includes dirty paths, so both
 committed and uncommitted work are covered. It passes untouched when no code changed, so a
-read-only session owes no ceremony.
+read-only session owes no ceremony. Adapters run it with `--if-changed`, which also keeps quiet
+when the repo is exactly where the gate last reported it — a session that changed nothing since
+the last check is not nagged for the same state twice.
 
 ## 4. Re-confirm the hard rails held
 Branch+PR (not main), no secrets, in scope, green. (A re-check of REVIEW, not a first look.)
