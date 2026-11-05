@@ -189,4 +189,14 @@ describe("ChatInterface image generation", () => {
     expect(mockCreateMessage.mock.calls[0][0].message.role).toBe("user");
     expect(toast.error).toHaveBeenCalledWith("All image generations failed");
   });
+
+  test("total failure surfaces the provider reason from the response body", async () => {
+    await submitImage();
+
+    const error = new Error("All image generations failed");
+    error.body = { failures: [{ index: 0, error: "Invalid API key" }] };
+    imageGenHookOptions.onError(error);
+
+    expect(toast.error).toHaveBeenCalledWith("Invalid API key");
+  });
 });

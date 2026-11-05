@@ -118,7 +118,8 @@ const ChatInterface = ({ chatId }) => {
   const createMessageMutation = useCreateMessageMutation();
   const { generate: generateImage, isGenerating } = useImageGeneration({
     onError: (error) => {
-      toast.error(error.message || "Image generation failed");
+      const failureReason = error.body?.failures?.[0]?.error;
+      toast.error(failureReason || error.message || "Image generation failed");
     },
   });
 
@@ -145,7 +146,6 @@ const ChatInterface = ({ chatId }) => {
         onSuccess: async (data) => {
           const images = data.images || [];
           const failures = data.failures || [];
-          if (images.length === 0) return;
 
           if (failures.length > 0) {
             toast.warning(

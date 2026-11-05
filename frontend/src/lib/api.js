@@ -16,6 +16,7 @@ export async function apiFetch(endpoint, options = {}) {
     const data = await response.json().catch(() => null);
     const error = new Error(data?.error || `Server unreachable (${response.status})`);
     error.status = response.status;
+    error.body = data;
     throw error;
   }
 

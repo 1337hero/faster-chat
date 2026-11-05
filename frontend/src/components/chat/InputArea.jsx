@@ -13,6 +13,7 @@ import { FilePreviewList } from "./FilePreviewList";
 import { useUiState } from "@/state/useUiState";
 
 const FILE_INPUT_ID = "chat-input-file-upload";
+const IMAGE_COUNTS = Array.from({ length: IMAGE_GENERATION.MAX_IMAGES }, (_, i) => i + 1);
 
 const InputArea = ({
   input,
@@ -127,7 +128,6 @@ const InputArea = ({
 
   const isSubmitDisabled = !hasContent || disabled;
   const loadingBorder = isLoading || isGenerating;
-  const imageCounts = Array.from({ length: IMAGE_GENERATION.MAX_IMAGES }, (_, i) => i + 1);
 
   return (
     <div
@@ -198,7 +198,7 @@ const InputArea = ({
               </button>
             ))}
             <span className="text-theme-text-muted mr-1 ml-3 text-xs">Count</span>
-            {imageCounts.map((count) => (
+            {IMAGE_COUNTS.map((count) => (
               <button
                 key={count}
                 type="button"

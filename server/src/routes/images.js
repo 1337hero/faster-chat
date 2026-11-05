@@ -74,7 +74,6 @@ async function saveGeneratedImage({
   const storedFilename = createStoredFilename(fileId, filename);
   const filePath = path.join(GENERATED_DIR, storedFilename);
 
-  await ensureGeneratedDirectory();
   await writeFile(filePath, buffer);
 
   const fileHash = calculateFileHash(buffer);
@@ -197,9 +196,9 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     }
   });
 
-  const results = await runWithConcurrency(tasks, Math.min(numImages, MAX_CONCURRENT_GENERATIONS));
-  results.sort((a, b) => a.index - b.index);
+  const results = await runWithConcurrency(tasks, MAX_CONCURRENT_GENERATIONS);
 
+  await ensureGeneratedDirectory();
   const images = [];
   const failures = [];
   for (const result of results) {
