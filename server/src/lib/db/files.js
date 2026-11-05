@@ -64,6 +64,22 @@ export function createFileUtils({ db }) {
       return stmt.all(userId).map(parseFileMeta);
     },
 
+    getGeneratedFiles(userId) {
+      const stmt = db.prepare(
+        "SELECT * FROM files WHERE user_id = ? AND json_extract(meta, '$.type') = 'generated' ORDER BY created_at DESC"
+      );
+      return stmt.all(userId).map(parseFileMeta);
+    },
+
+    toggleFileFavorite(fileId) {
+      const row = db
+        .prepare(
+          "UPDATE files SET is_favorite = 1 - is_favorite WHERE id = ? RETURNING is_favorite"
+        )
+        .get(fileId);
+      return !!row?.is_favorite;
+    },
+
     getFilesByIdsForUser(fileIds, userId) {
       if (!fileIds || fileIds.length === 0) {
         return [];

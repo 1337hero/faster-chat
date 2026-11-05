@@ -19,6 +19,7 @@ const Admin = lazy(() => import("@/pages/authenticated/Admin"));
 const Settings = lazy(() => import("@/pages/authenticated/Settings"));
 const Import = lazy(() => import("@/pages/authenticated/Import"));
 const Folder = lazy(() => import("@/pages/authenticated/Folder"));
+const Gallery = lazy(() => import("@/pages/authenticated/Gallery"));
 
 // Loading component
 const LoadingSpinner = () => {
@@ -161,6 +162,16 @@ const folderRoute = createRoute({
   },
 });
 
+const galleryRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/gallery",
+  component: () => (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Gallery />
+    </Suspense>
+  ),
+});
+
 // Route Tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -172,6 +183,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     importRoute,
     folderRoute,
+    galleryRoute,
   ]),
 ]);
 

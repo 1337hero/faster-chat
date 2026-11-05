@@ -169,6 +169,42 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
   });
 });
 
+imagesRouter.get("/gallery", async (c) => {
+  const user = c.get("user");
+  const files = dbUtils.getGeneratedFiles(user.id);
+
+  const images = files.map((file) => ({
+    id: file.id,
+    filename: file.filename,
+    mimeType: file.mime_type,
+    createdAt: file.created_at,
+    isFavorite: !!file.is_favorite,
+    size: file.size,
+    prompt: file.meta?.prompt ?? null,
+    model: file.meta?.model ?? null,
+    modelDisplayName: file.meta?.modelDisplayName ?? null,
+    aspectRatio: file.meta?.aspectRatio ?? null,
+    source: file.meta?.source ?? null,
+    chatId: file.meta?.chatId ?? null,
+    generatedAt: file.meta?.generatedAt ?? null,
+  }));
+
+  return c.json({ images });
+});
+
+imagesRouter.post("/gallery/:fileId/favorite", async (c) => {
+  const user = c.get("user");
+  const fileId = c.req.param("fileId");
+
+  const file = dbUtils.getFileByIdAndUser(fileId, user.id);
+  if (!file) {
+    return c.json({ error: "File not found" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  const isFavorite = dbUtils.toggleFileFavorite(fileId);
+  return c.json({ id: fileId, isFavorite });
+});
+
 imagesRouter.get("/status", async (c) => {
   const apiKey = process.env.REPLICATE_API_KEY;
 
