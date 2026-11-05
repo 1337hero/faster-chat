@@ -168,9 +168,10 @@ export function createChatUtils({ db }) {
       content,
       model = null,
       fileIds = null,
-      metadata = null
+      metadata = null,
+      createdAt = Date.now()
     ) {
-      const now = Date.now();
+      const now = createdAt;
       const metadataJson = metadata ? JSON.stringify(metadata) : null;
 
       // Start transaction for atomicity
@@ -242,7 +243,7 @@ export function createChatUtils({ db }) {
       const stmt = db.prepare(`
       SELECT * FROM messages
       WHERE chat_id = ? AND user_id = ?
-      ORDER BY created_at ASC
+      ORDER BY created_at ASC, rowid ASC
       LIMIT ? OFFSET ?
     `);
       const messages = stmt.all(chatId, userId, limit, offset);
