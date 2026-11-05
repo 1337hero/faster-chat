@@ -32,6 +32,8 @@ const ChatInterface = ({ chatId }) => {
   const setPreferredImageModel = useUiState((state) => state.setPreferredImageModel);
   const storedAspectRatio = useUiState((state) => state.imageAspectRatio);
   const setImageAspectRatio = useUiState((state) => state.setImageAspectRatio);
+  const imageCount = useUiState((state) => state.imageCount);
+  const setImageCount = useUiState((state) => state.setImageCount);
   const autoScroll = useUiState((state) => state.autoScroll);
   const webSearchEnabled = useUiState((state) => state.webSearchEnabled);
   const toggleWebSearch = useUiState((state) => state.toggleWebSearch);
@@ -116,7 +118,8 @@ const ChatInterface = ({ chatId }) => {
   const createMessageMutation = useCreateMessageMutation();
   const { generate: generateImage, isGenerating } = useImageGeneration({
     onError: (error) => {
-      toast.error(error.message || "Image generation failed");
+      const failureReason = error.body?.failures?.[0]?.error;
+      toast.error(failureReason || error.message || "Image generation failed");
     },
   });
 
@@ -138,22 +141,36 @@ const ChatInterface = ({ chatId }) => {
     setInput("");
 
     generateImage(
-      { prompt, chatId, model: preferredImageModel, aspectRatio },
+      { prompt, chatId, model: preferredImageModel, aspectRatio, numImages: imageCount },
       {
         onSuccess: async (data) => {
+          const images = data.images || [];
+          const failures = data.failures || [];
+
+          if (failures.length > 0) {
+            toast.warning(
+              `${images.length} of ${images.length + failures.length} images generated`
+            );
+          }
+
           const assistantMessageId = crypto.randomUUID();
           await createMessageMutation.mutateAsync({
             chatId,
             message: {
               id: assistantMessageId,
               role: "assistant",
-              content: `Generated image: "${prompt}"`,
-              fileIds: [data.id],
-              model: data.model,
+              content:
+                images.length === 1
+                  ? `Generated image: "${prompt}"`
+                  : `Generated ${images.length} images: "${prompt}"`,
+              fileIds: images.map((image) => image.id),
+              model: images[0].model,
               createdAt: Date.now(),
             },
           });
-          toast.success("Image generated!");
+          if (failures.length === 0) {
+            toast.success("Image generated!");
+          }
         },
       }
     );
@@ -239,6 +256,8 @@ const ChatInterface = ({ chatId }) => {
               aspectRatios={aspectRatios}
               aspectRatio={aspectRatio}
               onAspectRatioChange={setImageAspectRatio}
+              imageCount={imageCount}
+              onImageCountChange={setImageCount}
             />
           </div>
         </div>

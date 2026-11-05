@@ -1,6 +1,6 @@
 # Project State
 
-_Last updated: 2026-08-24 (repo-guard pointer added on chore/scaffold-rails)_
+_Last updated: 2026-11-05 (PR #55 batch image generation in flight)_
 
 ## What this project is
 Faster Chat — privacy-first, offline-capable AI chat you self-host. Preact SPA + Hono API on
@@ -12,13 +12,13 @@ Maintain mode: bug fixes, deploy/docker hardening, and structural cleanup — no
 (see #38 for the roadmap alignment).
 
 ## In flight
-None — GitHub Issues and PRs own the active queue.
+- PR #55 `feat/batch-image-generation` — batch generation (1–4 images, per-image failure isolation).
 
 ## Last shipped
 2026-08 — #41: docker starts without `server/.env` and persists the encryption key.
 
 ## Last verified
-2026-08-24 — `main` clean at 1c0644b; `bun run test` is the local gate.
+2026-11-05 — `feat/batch-image-generation` green (483 server + 66 frontend tests); `bun run test` is the local gate.
 
 ## Known issues / watch list
 None durable beyond the issue tracker.

@@ -23,6 +23,26 @@ describe("apiFetch", () => {
     });
   });
 
+  test("attaches the parsed body to the error", async () => {
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          error: "All image generations failed",
+          failures: [{ index: 0, error: "Invalid API key" }],
+        }),
+        { status: 502 }
+      )
+    );
+    await expect(apiFetch("/api/images/generate")).rejects.toMatchObject({
+      message: "All image generations failed",
+      status: 502,
+      body: {
+        error: "All image generations failed",
+        failures: [{ index: 0, error: "Invalid API key" }],
+      },
+    });
+  });
+
   test("throws a readable message when the backend is down (non-JSON body)", async () => {
     mockFetch(new Response("<html>502 Bad Gateway</html>", { status: 502 }));
     await expect(apiFetch("/api/version")).rejects.toMatchObject({

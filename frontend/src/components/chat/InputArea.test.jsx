@@ -12,6 +12,7 @@ vi.mock("@/hooks/useFileUploader", () => ({
 }));
 
 let mockImageMode = false;
+let mockImageCount = 1;
 
 // Mock useUiState
 vi.mock("@/state/useUiState", () => ({
@@ -21,6 +22,8 @@ vi.mock("@/state/useUiState", () => ({
       toggleImageMode: vi.fn(),
       setImageMode: vi.fn(),
       setWebSearchEnabled: vi.fn(),
+      imageCount: mockImageCount,
+      setImageCount: vi.fn(),
     };
     return selector(state);
   },
@@ -69,6 +72,8 @@ const defaultProps = {
   aspectRatios: ["1:1", "16:9", "9:16"],
   aspectRatio: "16:9",
   onAspectRatioChange: vi.fn(),
+  imageCount: 1,
+  onImageCountChange: vi.fn(),
 };
 
 describe("InputArea", () => {
@@ -76,6 +81,7 @@ describe("InputArea", () => {
     vi.clearAllMocks();
     mockDragActive = false;
     mockImageMode = false;
+    mockImageCount = 1;
     capturedOnFileSelect = null;
   });
 
@@ -231,6 +237,32 @@ describe("InputArea", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "9:16" }));
       expect(defaultProps.onAspectRatioChange).toHaveBeenCalledWith("9:16");
+    });
+  });
+
+  describe("image count chips", () => {
+    test("are hidden outside image mode", () => {
+      render(<InputArea {...defaultProps} />);
+      expect(screen.queryByText("Count")).toBeNull();
+    });
+
+    test("render one chip per count up to the max, marking the active one", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} imageCount={2} />);
+
+      expect(screen.getByText("Count")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "2" }).getAttribute("aria-pressed")).toBe("true");
+      expect(screen.getByRole("button", { name: "1" }).getAttribute("aria-pressed")).toBe("false");
+      expect(screen.getByRole("button", { name: "4" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "5" })).toBeNull();
+    });
+
+    test("clicking a chip reports the count", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "3" }));
+      expect(defaultProps.onImageCountChange).toHaveBeenCalledWith(3);
     });
   });
 });

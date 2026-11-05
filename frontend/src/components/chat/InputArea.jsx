@@ -1,5 +1,10 @@
 import { useRef, useEffect } from "preact/hooks";
-import { UI_CONSTANTS, ATTACHMENT_INPUT_ACCEPT, ATTACHMENT_TITLE_TEXT } from "@faster-chat/shared";
+import {
+  UI_CONSTANTS,
+  IMAGE_GENERATION,
+  ATTACHMENT_INPUT_ACCEPT,
+  ATTACHMENT_TITLE_TEXT,
+} from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
 import ChatMemoryButton from "./ChatMemoryButton";
 import { useFileUploader } from "@/hooks/useFileUploader";
@@ -8,6 +13,7 @@ import { FilePreviewList } from "./FilePreviewList";
 import { useUiState } from "@/state/useUiState";
 
 const FILE_INPUT_ID = "chat-input-file-upload";
+const IMAGE_COUNTS = Array.from({ length: IMAGE_GENERATION.MAX_IMAGES }, (_, i) => i + 1);
 
 const InputArea = ({
   input,
@@ -28,6 +34,8 @@ const InputArea = ({
   aspectRatios,
   aspectRatio,
   onAspectRatioChange,
+  imageCount,
+  onImageCountChange,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
@@ -187,6 +195,21 @@ const InputArea = ({
                     : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
                 }`}>
                 {ratio}
+              </button>
+            ))}
+            <span className="text-theme-text-muted mr-1 ml-3 text-xs">Count</span>
+            {IMAGE_COUNTS.map((count) => (
+              <button
+                key={count}
+                type="button"
+                onClick={() => onImageCountChange(count)}
+                aria-pressed={count === imageCount}
+                className={`rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 ${
+                  count === imageCount
+                    ? "bg-theme-pink text-white"
+                    : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
+                }`}>
+                {count}
               </button>
             ))}
           </div>
