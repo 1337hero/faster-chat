@@ -11,6 +11,7 @@ import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import { createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
 import { generateImageForProvider } from "../lib/imageProviderFactory.js";
+import { runWithConcurrency } from "../lib/concurrency.js";
 import { decryptApiKey } from "../lib/encryption.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +23,8 @@ const GENERATED_DIR = path.join(
   "server/data/uploads",
   IMAGE_GENERATION.GENERATED_DIR
 );
+
+const MAX_CONCURRENT_GENERATIONS = 3;
 
 export const imagesRouter = new Hono();
 
@@ -39,10 +42,95 @@ async function ensureGeneratedDirectory() {
   }
 }
 
+function normalizeProviderError(error) {
+  const message = (error?.message || "").toLowerCase();
+
+  if (message.includes("invalid api token") || message.includes("authentication")) {
+    return "Invalid API key";
+  }
+
+  if (message.includes("rate limit")) {
+    return "Rate limit exceeded. Please try again later.";
+  }
+
+  console.error("Image generation failed:", error);
+  return "Image generation failed";
+}
+
+async function saveGeneratedImage({
+  user,
+  buffer,
+  mimeType,
+  prompt,
+  model,
+  modelDisplayName,
+  aspectRatio,
+  source,
+  chatId,
+}) {
+  const fileId = randomUUID();
+  const extension = mimeType === "image/webp" ? "webp" : mimeType.split("/")[1] || "png";
+  const filename = `generated_${Date.now()}.${extension}`;
+  const storedFilename = createStoredFilename(fileId, filename);
+  const filePath = path.join(GENERATED_DIR, storedFilename);
+
+  await ensureGeneratedDirectory();
+  await writeFile(filePath, buffer);
+
+  const fileHash = calculateFileHash(buffer);
+  const relativePath = path.join(
+    "server/data/uploads",
+    IMAGE_GENERATION.GENERATED_DIR,
+    storedFilename
+  );
+
+  const fileRecord = dbUtils.createFile(
+    fileId,
+    user.id,
+    filename,
+    storedFilename,
+    relativePath,
+    mimeType,
+    buffer.length,
+    fileHash,
+    {
+      type: "generated",
+      prompt,
+      model,
+      modelDisplayName,
+      aspectRatio,
+      source,
+      generatedAt: Date.now(),
+      chatId: chatId || null,
+    }
+  );
+
+  if (!fileRecord) {
+    return null;
+  }
+
+  return {
+    id: fileId,
+    filename,
+    size: buffer.length,
+    mimeType,
+    model,
+    modelDisplayName,
+    prompt,
+    aspectRatio,
+  };
+}
+
 imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN), async (c) => {
   const user = c.get("user");
   const body = await c.req.json();
-  const { prompt, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO, chatId, modelId } = body;
+  const {
+    prompt,
+    aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO,
+    chatId,
+    modelId,
+    numImages = IMAGE_GENERATION.DEFAULT_NUM_IMAGES,
+  } = body;
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return c.json({ error: "Prompt is required" }, HTTP_STATUS.BAD_REQUEST);
@@ -51,6 +139,13 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
   if (!IMAGE_GENERATION.ASPECT_RATIOS.includes(aspectRatio)) {
     return c.json(
       { error: `Invalid aspect ratio. Allowed: ${IMAGE_GENERATION.ASPECT_RATIOS.join(", ")}` },
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+
+  if (!Number.isInteger(numImages) || numImages < 1 || numImages > IMAGE_GENERATION.MAX_IMAGES) {
+    return c.json(
+      { error: `numImages must be an integer between 1 and ${IMAGE_GENERATION.MAX_IMAGES}` },
       HTTP_STATUS.BAD_REQUEST
     );
   }
@@ -85,88 +180,62 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     );
   }
 
-  let generatedImage;
-  try {
-    generatedImage = await generateImageForProvider(providerName, apiKey, {
-      prompt: prompt.trim(),
-      aspectRatio,
-      model: modelIdentifier,
-      baseUrl,
-    });
-  } catch (error) {
-    const message = error?.message || "";
-    const normalizedMessage = message.toLowerCase();
+  const trimmedPrompt = prompt.trim();
+  const tasks = Array.from({ length: numImages }, (_, index) => async () => {
+    try {
+      return {
+        index,
+        image: await generateImageForProvider(providerName, apiKey, {
+          prompt: trimmedPrompt,
+          aspectRatio,
+          model: modelIdentifier,
+          baseUrl,
+        }),
+      };
+    } catch (error) {
+      return { index, error: normalizeProviderError(error) };
+    }
+  });
 
-    if (
-      normalizedMessage.includes("invalid api token") ||
-      normalizedMessage.includes("authentication")
-    ) {
-      return c.json({ error: "Invalid API key" }, HTTP_STATUS.UNAUTHORIZED);
+  const results = await runWithConcurrency(tasks, Math.min(numImages, MAX_CONCURRENT_GENERATIONS));
+  results.sort((a, b) => a.index - b.index);
+
+  const images = [];
+  const failures = [];
+  for (const result of results) {
+    if (result.error) {
+      failures.push({ index: result.index, error: result.error });
+      continue;
     }
 
-    if (normalizedMessage.includes("rate limit")) {
-      return c.json(
-        { error: "Rate limit exceeded. Please try again later." },
-        HTTP_STATUS.TOO_MANY_REQUESTS
-      );
-    }
-
-    throw error;
-  }
-
-  const { buffer, mimeType } = generatedImage;
-
-  const fileId = randomUUID();
-  const extension = mimeType === "image/webp" ? "webp" : mimeType.split("/")[1] || "png";
-  const filename = `generated_${Date.now()}.${extension}`;
-  const storedFilename = createStoredFilename(fileId, filename);
-  const filePath = path.join(GENERATED_DIR, storedFilename);
-
-  await ensureGeneratedDirectory();
-  await writeFile(filePath, buffer);
-
-  const fileHash = calculateFileHash(buffer);
-  const relativePath = path.join(
-    "server/data/uploads",
-    IMAGE_GENERATION.GENERATED_DIR,
-    storedFilename
-  );
-
-  const fileRecord = dbUtils.createFile(
-    fileId,
-    user.id,
-    filename,
-    storedFilename,
-    relativePath,
-    mimeType,
-    buffer.length,
-    fileHash,
-    {
-      type: "generated",
-      prompt: prompt.trim(),
+    const record = await saveGeneratedImage({
+      user,
+      buffer: result.image.buffer,
+      mimeType: result.image.mimeType,
+      prompt: trimmedPrompt,
       model: modelIdentifier,
       modelDisplayName,
       aspectRatio,
       source: providerName,
-      generatedAt: Date.now(),
-      chatId: chatId || null,
-    }
-  );
+      chatId,
+    });
 
-  if (!fileRecord) {
-    return c.json({ error: "Failed to save generated image" }, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    if (!record) {
+      failures.push({ index: result.index, error: "Failed to save generated image" });
+      continue;
+    }
+
+    images.push(record);
   }
 
-  return c.json({
-    id: fileId,
-    filename,
-    size: buffer.length,
-    mimeType,
-    model: modelIdentifier,
-    modelDisplayName,
-    prompt: prompt.trim(),
-    aspectRatio,
-  });
+  if (images.length === 0) {
+    return c.json(
+      { error: "All image generations failed", images, failures },
+      HTTP_STATUS.BAD_GATEWAY
+    );
+  }
+
+  return c.json({ images, failures });
 });
 
 imagesRouter.get("/gallery", async (c) => {
