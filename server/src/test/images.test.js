@@ -20,7 +20,7 @@ describe("image routes", () => {
 
   beforeEach(async () => {
     resetDatabase();
-    process.env.REPLICATE_API_KEY = "test-replicate-key";
+    process.env.REPLICATE_API_KEY = "test-key";
     generateImageForProviderImpl = async () => ({
       buffer: Buffer.from("image"),
       mimeType: "image/png",
@@ -107,7 +107,7 @@ describe("aspect ratio and provider options", () => {
 
   beforeEach(async () => {
     resetDatabase();
-    process.env.REPLICATE_API_KEY = "test-replicate-key";
+    process.env.REPLICATE_API_KEY = "test-key";
     factoryCalls = [];
     generateImageForProviderImpl = async (...args) => {
       factoryCalls.push(args);
@@ -171,7 +171,7 @@ describe("batch generation", () => {
 
   beforeEach(async () => {
     resetDatabase();
-    process.env.REPLICATE_API_KEY = "test-replicate-key";
+    process.env.REPLICATE_API_KEY = "test-key";
     factoryCalls = [];
     generateImageForProviderImpl = async (...args) => {
       factoryCalls.push(args);
