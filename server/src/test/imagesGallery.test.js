@@ -79,6 +79,31 @@ describe("getGeneratedFiles", () => {
   });
 });
 
+describe("getFilesByUserId", () => {
+  let adminId;
+
+  beforeEach(async () => {
+    resetDatabase();
+    const app = createTestApp();
+    const { user } = await seedAdminUser(app);
+    adminId = user.id;
+  });
+
+  test("returns every file type, not just generated", () => {
+    const generated = seedFile({ userId: adminId, prompt: "a cube", createdAt: 2000 });
+    const upload = seedFile({
+      userId: adminId,
+      prompt: "an upload",
+      metaType: "upload",
+      createdAt: 1000,
+    });
+
+    const files = dbUtils.getFilesByUserId(adminId);
+
+    expect(files.map((f) => f.id).sort()).toEqual([generated, upload].sort());
+  });
+});
+
 describe("GET /api/images/gallery", () => {
   let app, adminId, adminCookie;
 
