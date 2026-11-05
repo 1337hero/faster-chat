@@ -115,7 +115,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-014",
     prompt:
-      "Retro 90s anime aesthetic, a mecha pilot in a cockpit, flat cel colors, VHS scanlines, neon green HUD glow on the face, VHS tape label in the corner reading \"MECHA LOG 7\"",
+      'Retro 90s anime aesthetic, a mecha pilot in a cockpit, flat cel colors, VHS scanlines, neon green HUD glow on the face, VHS tape label in the corner reading "MECHA LOG 7"',
     style: "retro anime",
     category: "anime",
     source: "curated",
@@ -237,7 +237,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-029",
     prompt:
-      "Mood board style composition of a post-apocalyptic diner, overgrown with ivy, faded neon sign reading \"OPEN\", dusty interior, god rays through broken windows, muted olive and rust palette",
+      'Mood board style composition of a post-apocalyptic diner, overgrown with ivy, faded neon sign reading "OPEN", dusty interior, god rays through broken windows, muted olive and rust palette',
     style: "painterly concept art",
     category: "concept-art",
     source: "curated",
@@ -278,7 +278,7 @@ export const INSPIRATION_PROMPTS = [
   },
   {
     id: "ip-034",
-      prompt:
+    prompt:
       "Clay render of a baroque church interior, untextured grey clay material, dramatic window light, long shadows, architectural depth",
     style: "clay render",
     category: "3d-render",
@@ -427,7 +427,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-052",
     prompt:
-      "Portrait of a android with cracked porcelain face, single green optical sensor, rim light from a neon sign reading \"AI\", dark background, cinematic close-up",
+      'Portrait of a android with cracked porcelain face, single green optical sensor, rim light from a neon sign reading "AI", dark background, cinematic close-up',
     style: "sci-fi portrait",
     category: "cyberpunk",
     source: "curated",
@@ -475,7 +475,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-058",
     prompt:
-      "Abandoned arcade in a derelict station, dead machines glowing faintly, one machine still lit showing the text \"PLAYER 1\", dust in a shaft of cold light, blue and purple palette",
+      'Abandoned arcade in a derelict station, dead machines glowing faintly, one machine still lit showing the text "PLAYER 1", dust in a shaft of cold light, blue and purple palette',
     style: "sci-fi environment",
     category: "cyberpunk",
     source: "curated",
@@ -607,7 +607,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-074",
     prompt:
-      "Bold flat illustration of a woman planting a tree in a city block, thick simple shapes, sunny yellow and green palette, geometric clouds, poster composition with the text \"PLANT MORE\" at the bottom",
+      'Bold flat illustration of a woman planting a tree in a city block, thick simple shapes, sunny yellow and green palette, geometric clouds, poster composition with the text "PLANT MORE" at the bottom',
     style: "flat design",
     category: "flat-design",
     source: "curated",
@@ -639,7 +639,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-078",
     prompt:
-      "Infographic illustration of the water cycle, flat vector style, soft blue and white palette, simple clouds, rain, and sun icons, clean arrows, label text \"EVAPORATION\" on the sun ray",
+      'Infographic illustration of the water cycle, flat vector style, soft blue and white palette, simple clouds, rain, and sun icons, clean arrows, label text "EVAPORATION" on the sun ray',
     style: "vector illustration",
     category: "flat-design",
     source: "curated",
@@ -647,7 +647,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-079",
     prompt:
-      "Flat poster of a rocket launch at night, geometric stars, long motion streaks, navy and orange palette, bold sans-serif text \"LIFT OFF 00:00\" across the top",
+      'Flat poster of a rocket launch at night, geometric stars, long motion streaks, navy and orange palette, bold sans-serif text "LIFT OFF 00:00" across the top',
     style: "flat design",
     category: "flat-design",
     source: "awesome-gpt-image-2",
@@ -737,7 +737,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-090",
     prompt:
-      "Isometric garden in a jar, tiny tomato plant, a snail, a small sign reading \"GROW\", soft pastel palette, gentle light from above, clean edges",
+      'Isometric garden in a jar, tiny tomato plant, a snail, a small sign reading "GROW", soft pastel palette, gentle light from above, clean edges',
     style: "isometric",
     category: "isometric",
     source: "curated",
@@ -819,7 +819,7 @@ export const INSPIRATION_PROMPTS = [
   {
     id: "ip-100",
     prompt:
-      "Hand-drawn zine cover of a tiny robot delivering mail, ballpoint pen lines, one flat wash of blue, stamp-like border, the text \"ISSUE 7: RAINY DAY DELIVERY\" in hand lettering",
+      'Hand-drawn zine cover of a tiny robot delivering mail, ballpoint pen lines, one flat wash of blue, stamp-like border, the text "ISSUE 7: RAINY DAY DELIVERY" in hand lettering',
     style: "ballpoint pen",
     category: "hand-drawn",
     source: "hand-drawn",
