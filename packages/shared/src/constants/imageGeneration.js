@@ -58,3 +58,10 @@ export const IMAGE_MODELS = {
   DEFAULT: "black-forest-labs/flux-1.1-pro",
   DISPLAY_NAME: "Flux 1.1 Pro",
 };
+
+// Canonical reverse-prompt length options: keys are the API contract, values are UI labels
+export const REVERSE_PROMPT_LENGTHS = {
+  concise: "Concise",
+  standard: "Standard",
+  detailed: "Detailed",
+};

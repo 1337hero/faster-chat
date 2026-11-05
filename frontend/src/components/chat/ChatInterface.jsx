@@ -259,6 +259,7 @@ const ChatInterface = ({ chatId }) => {
               input={input}
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
+              onSetInput={setInput}
               voiceControls={voice}
               disabled={isLoading || isGenerating}
               onImageSubmit={handleImageSubmit}

@@ -20,6 +20,7 @@ export * from "./constants/folders.js";
 
 // Data
 export * from "./data/languages.js";
+export * from "./data/inspirationPrompts.js";
 
 // Utilities
 export * from "./utils/formatters.js";

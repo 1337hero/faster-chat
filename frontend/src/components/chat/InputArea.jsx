@@ -1,15 +1,17 @@
-import { useRef, useEffect } from "preact/hooks";
+import { useRef, useEffect, useState } from "preact/hooks";
 import {
   UI_CONSTANTS,
   IMAGE_GENERATION,
   ATTACHMENT_INPUT_ACCEPT,
   ATTACHMENT_TITLE_TEXT,
 } from "@faster-chat/shared";
-import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
+import { Paperclip, Image, Globe, Send, Mic, MicOff, WandSparkles, Lightbulb } from "lucide-preact";
 import { toast } from "sonner";
 import ChatMemoryButton from "./ChatMemoryButton";
+import InspirationPanel from "@/components/imagegen/InspirationPanel";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
+import { usePromptModel, useEnhancePrompt } from "@/hooks/usePromptTools";
 import { FilePreviewList } from "./FilePreviewList";
 import { useUiState } from "@/state/useUiState";
 
@@ -39,6 +41,7 @@ const InputArea = ({
   onImageCountChange,
   supportsImageToImage = false,
   onClearFiles,
+  onSetInput,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
@@ -50,6 +53,16 @@ const InputArea = ({
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
   const setImageMode = useUiState((state) => state.setImageMode);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+  const imageEnhance = useUiState((state) => state.imageEnhance);
+  const toggleImageEnhance = useUiState((state) => state.toggleImageEnhance);
+  const setEnhanceModelId = useUiState((state) => state.setEnhanceModelId);
+  const pendingPrompt = useUiState((state) => state.pendingPrompt);
+  const clearPendingPrompt = useUiState((state) => state.clearPendingPrompt);
+  const { visionModels, modelId: promptModelId } = usePromptModel();
+  const { mutateAsync: enhancePrompt } = useEnhancePrompt();
+  const [showInspirationPanel, setShowInspirationPanel] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [justEnhanced, setJustEnhanced] = useState(false);
 
   const atReferenceCap = imageMode && selectedFiles.length >= IMAGE_GENERATION.MAX_REFERENCE_IMAGES;
   const fileInputDisabled = disabled || uploading || atReferenceCap;
@@ -114,10 +127,22 @@ const InputArea = ({
     }
   }, [pendingReference, imageMode, selectedFiles.length, onFilesUploaded, clearPendingReference]);
 
+  const insertPrompt = (text) => {
+    onSetInput((prev) => (prev.trim() ? `${prev.trimEnd()} ${text}` : text));
+  };
+
+  // Consume a prompt handed off from the gallery or reverse-prompt modal
+  useEffect(() => {
+    if (!pendingPrompt) return;
+    insertPrompt(pendingPrompt);
+    clearPendingPrompt();
+  }, [pendingPrompt, clearPendingPrompt]);
+
   const handleToggleImageMode = () => {
     if (webSearchEnabled) {
       setWebSearchEnabled(false);
     }
+    setJustEnhanced(false);
     toggleImageMode();
   };
 
@@ -135,6 +160,9 @@ const InputArea = ({
 
   const handleChange = (e) => {
     adjustHeight(e.target);
+    if (!e.target.value) {
+      setJustEnhanced(false);
+    }
     handleInputChange(e);
   };
 
@@ -149,7 +177,7 @@ const InputArea = ({
     }
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (disabled) {
       return;
@@ -157,6 +185,23 @@ const InputArea = ({
 
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
+      // Transparent two-step: enhance first, put the expanded text in the
+      // composer, and let the user confirm it with one more submit.
+      if (imageEnhance && !justEnhanced && promptModelId) {
+        setIsEnhancing(true);
+        try {
+          const result = await enhancePrompt({ prompt: input.trim(), modelId: promptModelId });
+          onSetInput(result.prompt);
+          setJustEnhanced(true);
+        } catch (err) {
+          toast.error(err.message || "Could not enhance prompt");
+        } finally {
+          setIsEnhancing(false);
+        }
+        return;
+      }
+
+      setJustEnhanced(false);
       onImageSubmit(input.trim(), selectedFiles);
       onClearFiles?.(); // references are consumed; don't leak them into the next message
       setImageMode(false); // Auto-reset after send
@@ -179,7 +224,7 @@ const InputArea = ({
     e.target.value = "";
   };
 
-  const isSubmitDisabled = !hasContent || disabled;
+  const isSubmitDisabled = !hasContent || disabled || isEnhancing;
   const loadingBorder = isLoading || isGenerating;
 
   return (
@@ -203,6 +248,15 @@ const InputArea = ({
           </div>
         </div>
       )}
+      {showInspirationPanel && imageMode && (
+        <div className="absolute bottom-full left-0 z-30 w-[420px] max-w-full pb-2">
+          <InspirationPanel
+            onInsert={insertPrompt}
+            onClose={() => setShowInspirationPanel(false)}
+          />
+        </div>
+      )}
+
       <div className="flex w-full flex-col">
         <input
           id={FILE_INPUT_ID}
@@ -265,6 +319,41 @@ const InputArea = ({
                 {count}
               </button>
             ))}
+            <span className="text-theme-text-muted mr-1 ml-3 text-xs">Prompt</span>
+            <button
+              type="button"
+              onClick={toggleImageEnhance}
+              aria-pressed={imageEnhance}
+              disabled={disabled || !promptModelId}
+              title={
+                !promptModelId
+                  ? "No vision-capable chat model available"
+                  : "Enhance your prompt before generating"
+              }
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 disabled:cursor-not-allowed disabled:opacity-50 ${
+                imageEnhance
+                  ? "bg-theme-pink text-white"
+                  : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
+              }`}>
+              <WandSparkles size={13} />
+              Enhance
+            </button>
+            {imageEnhance && visionModels.length > 0 && (
+              <label className="flex items-center gap-1">
+                <span className="text-theme-text-muted text-xs">with</span>
+                <select
+                  value={promptModelId}
+                  onChange={(event) => setEnhanceModelId(event.target.value)}
+                  aria-label="Enhancement model"
+                  className="border-theme-surface bg-theme-surface-strong focus:border-theme-primary focus:ring-theme-primary/30 text-theme-text rounded-lg border px-1.5 py-1 text-xs outline-none focus:ring-2">
+                  {visionModels.map((model) => (
+                    <option key={model.model_id} value={model.model_id}>
+                      {model.display_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         )}
 
@@ -327,6 +416,22 @@ const InputArea = ({
               <Globe size={18} />
             </button>
             <ChatMemoryButton chatId={chatId} disabled={disabled} />
+
+            {imageMode && (
+              <button
+                type="button"
+                onClick={() => setShowInspirationPanel(!showInspirationPanel)}
+                aria-expanded={showInspirationPanel}
+                aria-label="Inspiration library"
+                className={`rounded-lg p-2 transition-colors ${
+                  showInspirationPanel
+                    ? "bg-theme-yellow/20 text-theme-yellow"
+                    : "text-theme-muted hover:bg-theme-yellow/10 hover:text-theme-yellow"
+                }`}
+                title="Inspiration library">
+                <Lightbulb size={18} />
+              </button>
+            )}
 
             {/* Voice Control Button */}
             {voiceControls && (

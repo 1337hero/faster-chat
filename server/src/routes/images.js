@@ -3,7 +3,13 @@ import { randomUUID } from "crypto";
 import { writeFile, mkdir, readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { IMAGE_GENERATION, IMAGE_MODELS, supportsImageToImage } from "@faster-chat/shared";
+import { generateText } from "ai";
+import {
+  IMAGE_GENERATION,
+  IMAGE_MODELS,
+  supportsImageToImage,
+  REVERSE_PROMPT_LENGTHS,
+} from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
@@ -11,6 +17,11 @@ import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import { createStoredFilename, calculateFileHash } from "../lib/fileUtils.js";
 import { generateImageForProvider } from "../lib/imageProviderFactory.js";
+import { getModelInstance } from "../lib/providerFactory.js";
+import {
+  buildReversePromptSystemPrompt,
+  ENHANCE_PROMPT_SYSTEM_PROMPT,
+} from "../lib/promptEngineering.js";
 import { runWithConcurrency } from "../lib/concurrency.js";
 import { decryptApiKey } from "../lib/encryption.js";
 
@@ -55,6 +66,22 @@ function normalizeProviderError(error) {
 
   console.error("Image generation failed:", error);
   return "Image generation failed";
+}
+
+// Resolves a chat model the same way chats.js does (enabled model + provider +
+// decrypted key) and gates on metadata.supports_vision, which both prompt tools
+// require. Returns the model instance or an error message for a 400.
+function resolveVisionModel(modelId) {
+  const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
+  if (!modelRecord) {
+    return { error: `Model ${modelId} is disabled or not registered` };
+  }
+  if (!modelRecord.supports_vision) {
+    return {
+      error: `Model ${modelId} does not support vision. Choose a vision-capable chat model.`,
+    };
+  }
+  return { model: getModelInstance(modelRecord, decryptApiKey) };
 }
 
 async function saveGeneratedImage({
@@ -333,3 +360,101 @@ imagesRouter.get("/status", async (c) => {
     modelDisplayName: IMAGE_MODELS.DISPLAY_NAME,
   });
 });
+
+imagesRouter.post(
+  "/reverse-prompt",
+  createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN),
+  async (c) => {
+    const user = c.get("user");
+    const body = await c.req.json();
+    const { fileId, length = "standard", modelId } = body;
+
+    if (!modelId) {
+      return c.json({ error: "modelId is required" }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const file = dbUtils.getFileByIdAndUser(fileId, user.id);
+    if (!file) {
+      return c.json({ error: "File not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+    if (!file.mime_type?.startsWith("image/")) {
+      return c.json({ error: `File ${file.filename} is not an image` }, HTTP_STATUS.BAD_REQUEST);
+    }
+    if (!REVERSE_PROMPT_LENGTHS[length]) {
+      return c.json(
+        { error: `length must be one of: ${Object.keys(REVERSE_PROMPT_LENGTHS).join(", ")}` },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const { model, error: modelError } = resolveVisionModel(modelId);
+    if (modelError) {
+      return c.json({ error: modelError }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    let buffer;
+    try {
+      buffer = await readFile(path.join(PROJECT_ROOT, file.path));
+    } catch {
+      return c.json({ error: "File content is not available" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    try {
+      const { text } = await generateText({
+        model,
+        system: buildReversePromptSystemPrompt(length),
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Describe this image as a reusable generation prompt." },
+              { type: "image", image: buffer },
+            ],
+          },
+        ],
+        maxTokens: 2000,
+      });
+      return c.json({ prompt: text.trim() });
+    } catch (error) {
+      console.error("Reverse prompt failed:", error);
+      return c.json({ error: "Reverse prompt failed. Please try again." }, HTTP_STATUS.BAD_GATEWAY);
+    }
+  }
+);
+
+imagesRouter.post(
+  "/enhance-prompt",
+  createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN),
+  async (c) => {
+    const body = await c.req.json();
+    const { prompt, modelId } = body;
+
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+      return c.json({ error: "Prompt is required" }, HTTP_STATUS.BAD_REQUEST);
+    }
+    if (!modelId) {
+      return c.json({ error: "modelId is required" }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const { model, error: modelError } = resolveVisionModel(modelId);
+    if (modelError) {
+      return c.json({ error: modelError }, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    try {
+      const { text } = await generateText({
+        model,
+        system: ENHANCE_PROMPT_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: prompt.trim() }],
+        maxTokens: 1500,
+      });
+      return c.json({ prompt: text.trim() });
+    } catch (error) {
+      console.error("Prompt enhancement failed:", error);
+      return c.json(
+        { error: "Prompt enhancement failed. Please try again." },
+        HTTP_STATUS.BAD_GATEWAY
+      );
+    }
+  }
+);
