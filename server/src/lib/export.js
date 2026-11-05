@@ -79,6 +79,7 @@ export function chatToMarkdown(userId, chat) {
       `_${new Date(m.created_at).toISOString()}_`,
       "",
       m.content,
+      "",
     ].join("\n")
   );
 

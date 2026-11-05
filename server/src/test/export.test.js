@@ -151,6 +151,8 @@ describe("chat export", () => {
       expect(md).toContain(CODE_CONTENT);
       expect(md.indexOf("## User")).toBeLessThan(md.indexOf("## Assistant"));
       expect(md.split("\n---\n")).toHaveLength(3);
+      expect(md).toContain("Show me code\n\n---\n");
+      expect(md).not.toMatch(/[^\n]\n---/);
     });
   });
 
