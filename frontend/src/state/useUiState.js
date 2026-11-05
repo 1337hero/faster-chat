@@ -16,6 +16,10 @@ export const useUiState = create(
       imageMode: false,
       webSearchEnabled: false,
       pendingReference: null,
+      imageEnhance: false,
+      enhanceModelId: null,
+      inspirationFavorites: [],
+      pendingPrompt: null,
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -33,6 +37,16 @@ export const useUiState = create(
       toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
       setPendingReference: (file) => set({ pendingReference: file }),
       clearPendingReference: () => set({ pendingReference: null }),
+      toggleImageEnhance: () => set((state) => ({ imageEnhance: !state.imageEnhance })),
+      setEnhanceModelId: (modelId) => set({ enhanceModelId: modelId }),
+      toggleInspirationFavorite: (id) =>
+        set((state) => ({
+          inspirationFavorites: state.inspirationFavorites.includes(id)
+            ? state.inspirationFavorites.filter((favorite) => favorite !== id)
+            : [...state.inspirationFavorites, id],
+        })),
+      setPendingPrompt: (text) => set({ pendingPrompt: text }),
+      clearPendingPrompt: () => set({ pendingPrompt: null }),
     }),
     {
       name: "ui-state",
@@ -45,6 +59,9 @@ export const useUiState = create(
         imageCount: state.imageCount,
         theme: state.theme,
         autoScroll: state.autoScroll,
+        imageEnhance: state.imageEnhance,
+        enhanceModelId: state.enhanceModelId,
+        inspirationFavorites: state.inspirationFavorites,
       }),
     }
   )

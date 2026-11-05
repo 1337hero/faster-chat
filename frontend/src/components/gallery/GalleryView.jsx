@@ -6,7 +6,17 @@ import { FILE_CATEGORIES, formatFileSize } from "@faster-chat/shared";
 import { API_BASE } from "@/lib/api";
 import { useImageGallery } from "@/hooks/useImageGallery";
 import { useUiState } from "@/state/useUiState";
-import { Copy, Download, ImageOff, MessageSquare, PenTool, Search, Star } from "lucide-preact";
+import PromptToolsModal from "@/components/imagegen/PromptToolsModal";
+import {
+  Copy,
+  Download,
+  ImageOff,
+  MessageSquare,
+  PenTool,
+  ScanText,
+  Search,
+  Star,
+} from "lucide-preact";
 
 const ACTION_BUTTON =
   "text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors";
@@ -22,7 +32,13 @@ const toReferenceFile = (image) => ({
   category: FILE_CATEGORIES.IMAGE,
 });
 
-const GalleryCard = ({ image, onToggleFavorite, onOpenChat, onUseAsReference }) => {
+const GalleryCard = ({
+  image,
+  onToggleFavorite,
+  onOpenChat,
+  onUseAsReference,
+  onReversePrompt,
+}) => {
   const handleCopyPrompt = async () => {
     if (!image.prompt) return;
     try {
@@ -98,6 +114,13 @@ const GalleryCard = ({ image, onToggleFavorite, onOpenChat, onUseAsReference }) 
             className={ACTION_BUTTON}>
             <PenTool size={14} />
           </button>
+          <button
+            type="button"
+            onClick={() => onReversePrompt(image)}
+            aria-label="Reverse prompt"
+            className={ACTION_BUTTON}>
+            <ScanText size={14} />
+          </button>
         </div>
       </div>
     </div>
@@ -108,14 +131,25 @@ const GalleryView = () => {
   const { images, isLoading, error, toggleFavorite } = useImageGallery();
   const navigate = useNavigate();
   const setPendingReference = useUiState((state) => state.setPendingReference);
+  const setPendingPrompt = useUiState((state) => state.setPendingPrompt);
   const setImageMode = useUiState((state) => state.setImageMode);
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [reversePromptImage, setReversePromptImage] = useState(null);
 
   const handleUseAsReference = (file) => {
     // Entering image mode is what makes the composer accept the pending reference.
     setImageMode(true);
     setPendingReference(file);
+    navigate({ to: "/" });
+  };
+
+  const handleInsertPrompt = (text) => {
+    // A reverse-engineered prompt is a generation prompt — land the user in
+    // image mode with it in the composer.
+    setImageMode(true);
+    setPendingPrompt(text);
+    setReversePromptImage(null);
     navigate({ to: "/" });
   };
 
@@ -206,11 +240,20 @@ const GalleryView = () => {
                 onToggleFavorite={toggleFavorite}
                 onOpenChat={(chatId) => navigate({ to: `/chat/${chatId}` })}
                 onUseAsReference={handleUseAsReference}
+                onReversePrompt={setReversePromptImage}
               />
             ))}
           </div>
         )}
       </div>
+
+      {reversePromptImage && (
+        <PromptToolsModal
+          fileId={reversePromptImage.id}
+          onInsert={handleInsertPrompt}
+          onClose={() => setReversePromptImage(null)}
+        />
+      )}
     </div>
   );
 };

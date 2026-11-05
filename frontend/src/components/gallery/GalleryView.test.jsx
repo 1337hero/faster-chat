@@ -20,11 +20,14 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 let mockSetPendingReference = null;
+let mockSetPendingPrompt = null;
+let mockSetImageMode = null;
 vi.mock("@/state/useUiState", () => ({
   useUiState: (selector) =>
     selector({
       setPendingReference: (file) => mockSetPendingReference(file),
-      setImageMode: vi.fn(),
+      setPendingPrompt: (text) => mockSetPendingPrompt(text),
+      setImageMode: (enabled) => mockSetImageMode(enabled),
     }),
 }));
 
@@ -88,6 +91,8 @@ describe("GalleryView", () => {
     fetchMock.mockReset();
     capturedNavigate = null;
     mockSetPendingReference = vi.fn();
+    mockSetPendingPrompt = vi.fn();
+    mockSetImageMode = vi.fn();
     fetchMock.mockImplementation(async (endpoint) => {
       if (endpoint === "/api/images/gallery") {
         return { images: galleryImages };
@@ -179,6 +184,48 @@ describe("GalleryView", () => {
     expect(mockSetPendingReference).toHaveBeenCalledWith(
       expect.objectContaining({ id: "img-1", filename: "gen_1.png", mimeType: "image/png" })
     );
+    expect(capturedNavigate).toHaveBeenCalledWith({ to: "/" });
+  });
+
+  test("reverse prompt opens the modal and inserts the result into a chat composer", async () => {
+    capturedNavigate = vi.fn();
+    let resolveReversePrompt;
+    fetchMock.mockImplementation(async (endpoint) => {
+      if (endpoint === "/api/images/gallery") {
+        return { images: galleryImages };
+      }
+      if (endpoint === "/api/models?type=text") {
+        return {
+          models: [
+            { model_id: "gpt-4o", display_name: "GPT-4o", metadata: { supports_vision: true } },
+          ],
+        };
+      }
+      if (endpoint === "/api/images/reverse-prompt") {
+        return new Promise((resolve) => {
+          resolveReversePrompt = () => resolve({ prompt: "a red cube, studio light" });
+        });
+      }
+      throw new Error(`Unexpected endpoint: ${endpoint}`);
+    });
+
+    renderWithClient(<GalleryView />);
+    const card = await screen
+      .findByText("a red cube on a table")
+      .then((el) => el.closest(".group"));
+
+    fireEvent.click(within(card).getByRole("button", { name: "Reverse prompt" }));
+    expect(await screen.findByText("Analyzing image...")).toBeTruthy();
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/images/reverse-prompt", expect.anything())
+    );
+
+    resolveReversePrompt();
+    fireEvent.click(await screen.findByRole("button", { name: "Insert into composer" }));
+
+    expect(mockSetPendingPrompt).toHaveBeenCalledWith("a red cube, studio light");
+    // Inserting a reverse-engineered prompt drops the user into image mode
+    expect(mockSetImageMode).toHaveBeenCalledWith(true);
     expect(capturedNavigate).toHaveBeenCalledWith({ to: "/" });
   });
 

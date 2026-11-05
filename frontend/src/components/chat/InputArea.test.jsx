@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/preact";
+import { render, screen, fireEvent, cleanup } from "@testing-library/preact";
 import { toast } from "sonner";
 import InputArea from "@/components/chat/InputArea";
 
@@ -22,6 +22,12 @@ let mockImageMode = false;
 let mockImageCount = 1;
 let mockPendingReference = null;
 let mockClearPendingReference = null;
+let mockImageEnhance = false;
+let mockToggleImageEnhance = null;
+let mockSetEnhanceModelId = null;
+let mockPendingPrompt = null;
+let mockClearPendingPrompt = null;
+let mockPreferredModel = "claude-sonnet-4-5";
 
 // Mock useUiState
 vi.mock("@/state/useUiState", () => ({
@@ -35,9 +41,40 @@ vi.mock("@/state/useUiState", () => ({
       setImageCount: vi.fn(),
       pendingReference: mockPendingReference,
       clearPendingReference: mockClearPendingReference,
+      imageEnhance: mockImageEnhance,
+      toggleImageEnhance: (v) => mockToggleImageEnhance(v),
+      enhanceModelId: null,
+      setEnhanceModelId: (id) => mockSetEnhanceModelId(id),
+      preferredModel: mockPreferredModel,
+      pendingPrompt: mockPendingPrompt,
+      clearPendingPrompt: () => mockClearPendingPrompt(),
     };
     return selector(state);
   },
+}));
+
+let mockPromptModelId = "gpt-4o";
+let mockVisionModels = [
+  { model_id: "gpt-4o", display_name: "GPT-4o" },
+  { model_id: "gemini-flash", display_name: "Gemini Flash" },
+];
+let mockEnhanceImpl = async ({ prompt }) => ({ prompt: `expanded: ${prompt}` });
+let mockEnhanceError = null;
+let mockEnhanceCallCount = 0;
+
+vi.mock("@/hooks/usePromptTools", () => ({
+  usePromptModel: () => ({ visionModels: mockVisionModels, modelId: mockPromptModelId }),
+  useEnhancePrompt: () => ({
+    mutateAsync: (args) => {
+      mockEnhanceCallCount++;
+      if (mockEnhanceError) return Promise.reject(mockEnhanceError);
+      return mockEnhanceImpl(args);
+    },
+  }),
+}));
+
+vi.mock("@/components/imagegen/InspirationPanel", () => ({
+  default: () => <div data-testid="inspiration-panel" />,
 }));
 
 // Mock useFileDragDrop to expose real behavior for integration testing
@@ -87,6 +124,7 @@ const defaultProps = {
   onImageCountChange: vi.fn(),
   supportsImageToImage: true,
   onClearFiles: vi.fn(),
+  onSetInput: vi.fn(),
 };
 
 describe("InputArea", () => {
@@ -97,8 +135,20 @@ describe("InputArea", () => {
     mockImageCount = 1;
     mockPendingReference = null;
     mockClearPendingReference = vi.fn();
+    mockImageEnhance = false;
+    mockToggleImageEnhance = vi.fn();
+    mockSetEnhanceModelId = vi.fn();
+    mockPendingPrompt = null;
+    mockClearPendingPrompt = vi.fn();
     mockUploadFiles = vi.fn();
     capturedOnFileSelect = null;
+    mockPromptModelId = "gpt-4o";
+    mockVisionModels = [
+      { model_id: "gpt-4o", display_name: "GPT-4o" },
+      { model_id: "gemini-flash", display_name: "Gemini Flash" },
+    ];
+    mockEnhanceError = null;
+    mockEnhanceCallCount = 0;
   });
 
   test("renders the bordered wrapper with base classes", () => {
@@ -374,6 +424,149 @@ describe("InputArea", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "3" }));
       expect(defaultProps.onImageCountChange).toHaveBeenCalledWith(3);
+    });
+  });
+
+  describe("enhance toggle (image mode)", () => {
+    test("renders in image mode and is hidden in text mode", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+      expect(screen.getByRole("button", { name: "Enhance" })).toBeTruthy();
+
+      cleanup();
+      mockImageMode = false;
+      render(<InputArea {...defaultProps} />);
+      expect(screen.queryByRole("button", { name: "Enhance" })).toBeNull();
+    });
+
+    test("toggling persists the state to uiState", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Enhance" }));
+      expect(mockToggleImageEnhance).toHaveBeenCalled();
+    });
+
+    test("is disabled when no vision model is available", () => {
+      mockImageMode = true;
+      mockPromptModelId = null;
+      render(<InputArea {...defaultProps} />);
+
+      expect(screen.getByRole("button", { name: "Enhance" }).disabled).toBe(true);
+    });
+
+    test("selecting an enhancement model persists it", () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      render(<InputArea {...defaultProps} />);
+
+      fireEvent.change(screen.getByLabelText("Enhancement model"), {
+        target: { value: "gemini-flash" },
+      });
+      expect(mockSetEnhanceModelId).toHaveBeenCalledWith("gemini-flash");
+    });
+
+    test("submit with enhance on expands the prompt into the composer without generating, and the next submit generates", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      const view = render(<InputArea {...defaultProps} input="cyberpunk cat" />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(defaultProps.onImageSubmit).not.toHaveBeenCalled();
+      expect(defaultProps.onSetInput).toHaveBeenCalledWith("expanded: cyberpunk cat");
+
+      // The user confirms the expanded prompt with one more submit (same mounted instance)
+      view.rerender(<InputArea {...defaultProps} input="expanded: cyberpunk cat" />);
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      expect(defaultProps.onImageSubmit).toHaveBeenCalledWith("expanded: cyberpunk cat", []);
+    });
+
+    test("submit with enhance off goes straight to generation (regression)", async () => {
+      mockImageMode = true;
+      mockImageEnhance = false;
+      render(<InputArea {...defaultProps} input="cyberpunk cat" />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(defaultProps.onImageSubmit).toHaveBeenCalledWith("cyberpunk cat", []);
+    });
+
+    test("an enhancement failure keeps the input, toasts, and retries on the next submit", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      mockEnhanceError = new Error("Model is busy");
+      render(<InputArea {...defaultProps} input="cyberpunk cat" />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(toast.error).toHaveBeenCalledWith("Model is busy");
+      expect(defaultProps.onImageSubmit).not.toHaveBeenCalled();
+
+      mockEnhanceError = null;
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(defaultProps.onSetInput).toHaveBeenCalledWith("expanded: cyberpunk cat");
+    });
+
+    test("a second Enter while an enhancement is in flight does not fire another", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      mockEnhanceImpl = () => new Promise(() => {}); // never resolves
+      render(<InputArea {...defaultProps} input="cyberpunk cat" />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockEnhanceCallCount).toBe(1);
+      expect(defaultProps.onImageSubmit).not.toHaveBeenCalled();
+    });
+
+    test("reference files with no text skip enhancement and generate directly", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      const refs = [{ id: "file-1", name: "ref.png" }];
+      render(<InputArea {...defaultProps} input="" selectedFiles={refs} />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockEnhanceCallCount).toBe(0);
+      expect(defaultProps.onImageSubmit).toHaveBeenCalledWith("", refs);
+    });
+
+    test("a pending prompt inserts into the composer and clears itself", async () => {
+      mockImageMode = true;
+      mockPendingPrompt = "a red cube on a table";
+      mockClearPendingPrompt = vi.fn();
+      render(<InputArea {...defaultProps} input="" />);
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(mockClearPendingPrompt).toHaveBeenCalled();
+
+      const updater = defaultProps.onSetInput.mock.calls
+        .map((call) => call[0])
+        .find((arg) => typeof arg === "function");
+      expect(updater("existing text")).toBe("existing text a red cube on a table");
+    });
+
+    test("the lightbulb opens the inspiration panel in image mode only", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+      const bulb = screen.getByRole("button", { name: "Inspiration library" });
+
+      fireEvent.click(bulb);
+      expect(document.querySelector('[data-testid="inspiration-panel"]')).toBeTruthy();
+
+      cleanup();
+      mockImageMode = false;
+      render(<InputArea {...defaultProps} />);
+      expect(screen.queryByRole("button", { name: "Inspiration library" })).toBeNull();
     });
   });
 });

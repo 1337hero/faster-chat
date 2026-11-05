@@ -1,8 +1,13 @@
+import { useState } from "preact/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { Download, File, Sparkles } from "lucide-preact";
+import { Download, File, ScanText, Sparkles } from "lucide-preact";
 import { API_BASE, apiFetch } from "@/lib/api";
+import { useUiState } from "@/state/useUiState";
+import PromptToolsModal from "@/components/imagegen/PromptToolsModal";
 
 export default function MessageAttachment({ fileId }) {
+  const [showPromptTools, setShowPromptTools] = useState(false);
+  const setPendingPrompt = useUiState((state) => state.setPendingPrompt);
   const {
     data: fileMetadata,
     isLoading,
@@ -57,13 +62,30 @@ export default function MessageAttachment({ fileId }) {
               Generated
             </span>
           )}
-          <button
-            onClick={handleDownload}
-            className="ml-auto rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
-            title="Download image">
-            <Download size={16} />
-          </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowPromptTools(true)}
+              className="rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
+              title="Reverse prompt"
+              aria-label="Reverse prompt">
+              <ScanText size={16} />
+            </button>
+            <button
+              onClick={handleDownload}
+              className="rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
+              title="Download image">
+              <Download size={16} />
+            </button>
+          </div>
         </div>
+        {showPromptTools && (
+          <PromptToolsModal
+            fileId={fileId}
+            onInsert={setPendingPrompt}
+            onClose={() => setShowPromptTools(false)}
+          />
+        )}
       </div>
     );
   }
