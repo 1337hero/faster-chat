@@ -42,7 +42,9 @@ function buildExport(userId, chats, folders) {
     exportedAt: Date.now(),
     source: EXPORT_CONSTANTS.SOURCE,
     folders: folders.map(serializeFolder),
-    chats: chats.map((chat) => serializeChat(chat, userId)),
+    chats: chats
+      .filter((chat) => dbUtils.getMessageCountByChat(chat.id) > 0)
+      .map((chat) => serializeChat(chat, userId)),
   };
 }
 
@@ -52,10 +54,11 @@ export function exportChat(userId, chat) {
 }
 
 export function exportAllChats(userId) {
-  const chats = dbUtils
-    .getAllChatsByUserId(userId)
-    .filter((chat) => dbUtils.getMessageCountByChat(chat.id) > 0);
-  return buildExport(userId, chats, dbUtils.getFoldersByUserId(userId));
+  return buildExport(
+    userId,
+    dbUtils.getAllChatsByUserId(userId),
+    dbUtils.getFoldersByUserId(userId)
+  );
 }
 
 export function chatToMarkdown(userId, chat) {

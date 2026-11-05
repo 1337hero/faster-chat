@@ -124,6 +124,17 @@ describe("chat export", () => {
       dbUtils.softDeleteChatByUser(emoji.id, alice.id);
     });
 
+    test("exports no chat when it has no messages", async () => {
+      const empty = dbUtils.createChat("chat-empty-single", alice.id, "Draft");
+      const res = await makeRequest(app, "GET", `/api/chats/${empty.id}/export`, {
+        cookie: aliceCookie,
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.chats).toEqual([]);
+      dbUtils.softDeleteChatByUser(empty.id, alice.id);
+    });
+
     test("rejects unknown formats", async () => {
       const res = await makeRequest(app, "GET", `/api/chats/${chat.id}/export?format=csv`, {
         cookie: aliceCookie,
