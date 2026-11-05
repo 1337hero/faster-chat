@@ -27,13 +27,18 @@ export function usePromptModel() {
   return { visionModels, modelId };
 }
 
-export function useReversePrompt() {
-  return useMutation({
-    mutationFn: ({ fileId, length, modelId }) =>
+// Cached reverse-prompt lookup keyed by file, length and model — toggling
+// between lengths re-serves previous results instead of re-paying tokens.
+export function useReversePrompt({ fileId, length, modelId }) {
+  return useQuery({
+    queryKey: ["reverse-prompt", fileId, length, modelId],
+    queryFn: () =>
       apiFetch("/api/images/reverse-prompt", {
         method: "POST",
         body: JSON.stringify({ fileId, length, modelId }),
       }),
+    enabled: !!modelId,
+    staleTime: CACHE_DURATIONS.IMAGE_MODELS,
   });
 }
 

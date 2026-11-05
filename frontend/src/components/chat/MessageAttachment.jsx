@@ -62,20 +62,22 @@ export default function MessageAttachment({ fileId }) {
               Generated
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => setShowPromptTools(true)}
-            className="ml-auto rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
-            title="Reverse prompt"
-            aria-label="Reverse prompt">
-            <ScanText size={16} />
-          </button>
-          <button
-            onClick={handleDownload}
-            className="ml-auto rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
-            title="Download image">
-            <Download size={16} />
-          </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowPromptTools(true)}
+              className="rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
+              title="Reverse prompt"
+              aria-label="Reverse prompt">
+              <ScanText size={16} />
+            </button>
+            <button
+              onClick={handleDownload}
+              className="rounded-full bg-white/90 p-2 text-gray-800 shadow-md transition-transform hover:scale-110"
+              title="Download image">
+              <Download size={16} />
+            </button>
+          </div>
         </div>
         {showPromptTools && (
           <PromptToolsModal

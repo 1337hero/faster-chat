@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/preact";
 import InspirationPanel from "@/components/imagegen/InspirationPanel";
+import { INSPIRATION_PROMPTS } from "@faster-chat/shared";
 
 let mockFavorites = [];
 let mockToggleFavorite = null;
@@ -19,13 +20,15 @@ describe("InspirationPanel", () => {
     mockToggleFavorite = vi.fn();
   });
 
-  test("lists curated entries (100+) with style and category", () => {
+  test("lists the full catalog with style and category", () => {
     render(<InspirationPanel onInsert={vi.fn()} onClose={vi.fn()} />);
 
     expect(screen.getByText(/35mm film photograph of a weathered fisherman/)).toBeTruthy();
     expect(screen.getByText("cinematic photography · photorealistic")).toBeTruthy();
-    // 100 entries, each with a star toggle
-    expect(screen.getAllByRole("button", { name: /favorites/ })).toHaveLength(100);
+    // Every catalog entry gets a star toggle — count follows the data, not a literal
+    expect(screen.getAllByRole("button", { name: /favorites/ })).toHaveLength(
+      INSPIRATION_PROMPTS.length
+    );
   });
 
   test("search filters by prompt keyword; category chips filter by category", () => {
@@ -42,8 +45,11 @@ describe("InspirationPanel", () => {
 
     fireEvent.change(screen.getByLabelText("Search inspiration"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "isometric" }));
-    // Exactly the ten isometric-category entries remain
-    expect(screen.getAllByRole("button", { name: /favorites/ })).toHaveLength(10);
+    // Exactly the isometric-category entries remain — count follows the data
+    const isometricCount = INSPIRATION_PROMPTS.filter(
+      (entry) => entry.category === "isometric"
+    ).length;
+    expect(screen.getAllByRole("button", { name: /favorites/ })).toHaveLength(isometricCount);
   });
 
   test("clicking an entry inserts its prompt into the composer", () => {

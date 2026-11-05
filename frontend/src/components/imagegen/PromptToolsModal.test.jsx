@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/preact";
+import { render, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PromptToolsModal from "@/components/imagegen/PromptToolsModal";
 
@@ -72,7 +72,7 @@ describe("PromptToolsModal", () => {
     renderWithClient(<PromptToolsModal fileId="img-1" onInsert={vi.fn()} onClose={vi.fn()} />);
 
     await screen.findByText("Analyzing image...");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       fileId: "img-1",
       length: "standard",
@@ -84,10 +84,17 @@ describe("PromptToolsModal", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Detailed" }));
     await screen.findByText("Analyzing image...");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).length).toBe("detailed");
 
     resolveSecond();
     expect(await screen.findByText("detailed result")).toBeTruthy();
+
+    // Switching back to a previously fetched length serves the cached result
+    // without re-paying tokens for a third request
+    fireEvent.click(screen.getByRole("button", { name: "Standard" }));
+    expect(await screen.findByText("standard result")).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("marks the active length and defaults to standard", async () => {

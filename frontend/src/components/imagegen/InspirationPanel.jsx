@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import fuzzysort from "fuzzysort";
 import { Search, Star, X } from "lucide-preact";
 import { INSPIRATION_PROMPTS } from "@faster-chat/shared";
+import Chip from "@/components/ui/Chip";
 import { useUiState } from "@/state/useUiState";
 
 // Searchable, offline inspiration library: static data from the shared package,
@@ -68,30 +69,13 @@ export default function InspirationPanel({ onInsert, onClose }) {
       </div>
 
       <div className="border-theme-surface flex flex-wrap gap-1 border-b px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setCategory(null)}
-          aria-pressed={category === null}
-          className={`rounded-lg px-2 py-0.5 text-[11px] transition-colors ${
-            category === null
-              ? "bg-theme-pink text-white"
-              : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
-          }`}>
+        <Chip onClick={() => setCategory(null)} active={category === null} size="sm">
           All
-        </button>
+        </Chip>
         {categories.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => setCategory(name)}
-            aria-pressed={category === name}
-            className={`rounded-lg px-2 py-0.5 text-[11px] transition-colors ${
-              category === name
-                ? "bg-theme-pink text-white"
-                : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
-            }`}>
+          <Chip key={name} onClick={() => setCategory(name)} active={category === name} size="sm">
             {name}
-          </button>
+          </Chip>
         ))}
       </div>
 

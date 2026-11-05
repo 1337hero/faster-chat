@@ -69,8 +69,10 @@ function normalizeProviderError(error) {
 }
 
 // Resolves a chat model the same way chats.js does (enabled model + provider +
-// decrypted key) and gates on metadata.supports_vision, which both prompt tools
-// require. Returns the model instance or an error message for a 400.
+// decrypted key) and gates on metadata.supports_vision. Reverse-prompt needs
+// vision by definition; enhancement is text→text but shares this gate so both
+// tools expose one model picker and one rule in the UI. Returns the model
+// instance or an error message for a 400.
 function resolveVisionModel(modelId) {
   const modelRecord = dbUtils.getEnabledModelWithProvider(modelId);
   if (!modelRecord) {

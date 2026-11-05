@@ -145,7 +145,9 @@ const GalleryView = () => {
   };
 
   const handleInsertPrompt = (text) => {
-    // Hand the prompt to the composer and take the user to a chat to use it.
+    // A reverse-engineered prompt is a generation prompt — land the user in
+    // image mode with it in the composer.
+    setImageMode(true);
     setPendingPrompt(text);
     setReversePromptImage(null);
     navigate({ to: "/" });

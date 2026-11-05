@@ -21,12 +21,13 @@ vi.mock("@tanstack/react-router", () => ({
 
 let mockSetPendingReference = null;
 let mockSetPendingPrompt = null;
+let mockSetImageMode = null;
 vi.mock("@/state/useUiState", () => ({
   useUiState: (selector) =>
     selector({
       setPendingReference: (file) => mockSetPendingReference(file),
       setPendingPrompt: (text) => mockSetPendingPrompt(text),
-      setImageMode: vi.fn(),
+      setImageMode: (enabled) => mockSetImageMode(enabled),
     }),
 }));
 
@@ -91,6 +92,7 @@ describe("GalleryView", () => {
     capturedNavigate = null;
     mockSetPendingReference = vi.fn();
     mockSetPendingPrompt = vi.fn();
+    mockSetImageMode = vi.fn();
     fetchMock.mockImplementation(async (endpoint) => {
       if (endpoint === "/api/images/gallery") {
         return { images: galleryImages };
@@ -214,11 +216,16 @@ describe("GalleryView", () => {
 
     fireEvent.click(within(card).getByRole("button", { name: "Reverse prompt" }));
     expect(await screen.findByText("Analyzing image...")).toBeTruthy();
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/images/reverse-prompt", expect.anything())
+    );
 
     resolveReversePrompt();
     fireEvent.click(await screen.findByRole("button", { name: "Insert into composer" }));
 
     expect(mockSetPendingPrompt).toHaveBeenCalledWith("a red cube, studio light");
+    // Inserting a reverse-engineered prompt drops the user into image mode
+    expect(mockSetImageMode).toHaveBeenCalledWith(true);
     expect(capturedNavigate).toHaveBeenCalledWith({ to: "/" });
   });
 

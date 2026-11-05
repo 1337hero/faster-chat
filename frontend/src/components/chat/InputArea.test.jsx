@@ -60,11 +60,13 @@ let mockVisionModels = [
 ];
 let mockEnhanceImpl = async ({ prompt }) => ({ prompt: `expanded: ${prompt}` });
 let mockEnhanceError = null;
+let mockEnhanceCallCount = 0;
 
 vi.mock("@/hooks/usePromptTools", () => ({
   usePromptModel: () => ({ visionModels: mockVisionModels, modelId: mockPromptModelId }),
   useEnhancePrompt: () => ({
     mutateAsync: (args) => {
+      mockEnhanceCallCount++;
       if (mockEnhanceError) return Promise.reject(mockEnhanceError);
       return mockEnhanceImpl(args);
     },
@@ -146,6 +148,7 @@ describe("InputArea", () => {
       { model_id: "gemini-flash", display_name: "Gemini Flash" },
     ];
     mockEnhanceError = null;
+    mockEnhanceCallCount = 0;
   });
 
   test("renders the bordered wrapper with base classes", () => {
@@ -508,6 +511,33 @@ describe("InputArea", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(defaultProps.onSetInput).toHaveBeenCalledWith("expanded: cyberpunk cat");
+    });
+
+    test("a second Enter while an enhancement is in flight does not fire another", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      mockEnhanceImpl = () => new Promise(() => {}); // never resolves
+      render(<InputArea {...defaultProps} input="cyberpunk cat" />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockEnhanceCallCount).toBe(1);
+      expect(defaultProps.onImageSubmit).not.toHaveBeenCalled();
+    });
+
+    test("reference files with no text skip enhancement and generate directly", async () => {
+      mockImageMode = true;
+      mockImageEnhance = true;
+      const refs = [{ id: "file-1", name: "ref.png" }];
+      render(<InputArea {...defaultProps} input="" selectedFiles={refs} />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockEnhanceCallCount).toBe(0);
+      expect(defaultProps.onImageSubmit).toHaveBeenCalledWith("", refs);
     });
 
     test("a pending prompt inserts into the composer and clears itself", async () => {

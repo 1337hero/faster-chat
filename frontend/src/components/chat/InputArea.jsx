@@ -9,6 +9,7 @@ import { Paperclip, Image, Globe, Send, Mic, MicOff, WandSparkles, Lightbulb } f
 import { toast } from "sonner";
 import ChatMemoryButton from "./ChatMemoryButton";
 import InspirationPanel from "@/components/imagegen/InspirationPanel";
+import Chip from "@/components/ui/Chip";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
 import { usePromptModel, useEnhancePrompt } from "@/hooks/usePromptTools";
@@ -171,7 +172,7 @@ const InputArea = ({
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && hasContent) {
+      if (!disabled && hasContent && !isEnhancing) {
         handleFormSubmit(e);
       }
     }
@@ -186,8 +187,9 @@ const InputArea = ({
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
       // Transparent two-step: enhance first, put the expanded text in the
-      // composer, and let the user confirm it with one more submit.
-      if (imageEnhance && !justEnhanced && promptModelId) {
+      // composer, and let the user confirm it with one more submit. Reference
+      // files with no text skip enhancement — there is nothing to expand.
+      if (imageEnhance && !justEnhanced && promptModelId && input.trim()) {
         setIsEnhancing(true);
         try {
           const result = await enhancePrompt({ prompt: input.trim(), modelId: promptModelId });
@@ -291,53 +293,36 @@ const InputArea = ({
           <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2">
             <span className="text-theme-text-muted mr-1 text-xs">Aspect ratio</span>
             {aspectRatios.map((ratio) => (
-              <button
+              <Chip
                 key={ratio}
-                type="button"
                 onClick={() => onAspectRatioChange(ratio)}
-                aria-pressed={ratio === aspectRatio}
-                className={`rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 ${
-                  ratio === aspectRatio
-                    ? "bg-theme-pink text-white"
-                    : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
-                }`}>
+                active={ratio === aspectRatio}>
                 {ratio}
-              </button>
+              </Chip>
             ))}
             <span className="text-theme-text-muted mr-1 ml-3 text-xs">Count</span>
             {IMAGE_COUNTS.map((count) => (
-              <button
+              <Chip
                 key={count}
-                type="button"
                 onClick={() => onImageCountChange(count)}
-                aria-pressed={count === imageCount}
-                className={`rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 ${
-                  count === imageCount
-                    ? "bg-theme-pink text-white"
-                    : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
-                }`}>
+                active={count === imageCount}>
                 {count}
-              </button>
+              </Chip>
             ))}
             <span className="text-theme-text-muted mr-1 ml-3 text-xs">Prompt</span>
-            <button
-              type="button"
+            <Chip
               onClick={toggleImageEnhance}
-              aria-pressed={imageEnhance}
+              active={imageEnhance}
               disabled={disabled || !promptModelId}
               title={
                 !promptModelId
                   ? "No vision-capable chat model available"
                   : "Enhance your prompt before generating"
               }
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors duration-75 disabled:cursor-not-allowed disabled:opacity-50 ${
-                imageEnhance
-                  ? "bg-theme-pink text-white"
-                  : "bg-theme-surface-strong text-theme-text-muted hover:text-theme-text"
-              }`}>
+              className="flex items-center gap-1">
               <WandSparkles size={13} />
               Enhance
-            </button>
+            </Chip>
             {imageEnhance && visionModels.length > 0 && (
               <label className="flex items-center gap-1">
                 <span className="text-theme-text-muted text-xs">with</span>

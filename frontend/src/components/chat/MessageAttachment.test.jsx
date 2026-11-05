@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/preact";
+import { render, screen, fireEvent, waitFor } from "@testing-library/preact";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import MessageAttachment from "@/components/chat/MessageAttachment";
 
@@ -75,7 +75,9 @@ describe("MessageAttachment - reverse prompt", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Reverse prompt" }));
 
     expect(await screen.findByText("Analyzing image...")).toBeTruthy();
-
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/images/reverse-prompt", expect.anything())
+    );
     resolveReversePrompt();
     expect(await screen.findByText("a red cube on a table, studio light")).toBeTruthy();
   });
@@ -84,6 +86,9 @@ describe("MessageAttachment - reverse prompt", () => {
     renderWithClient(<MessageAttachment fileId="img-1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Reverse prompt" }));
     await screen.findByText("Analyzing image...");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/images/reverse-prompt", expect.anything())
+    );
     resolveReversePrompt();
 
     fireEvent.click(await screen.findByRole("button", { name: "Insert into composer" }));
@@ -97,6 +102,9 @@ describe("MessageAttachment - reverse prompt", () => {
     renderWithClient(<MessageAttachment fileId="img-1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Reverse prompt" }));
     await screen.findByText("Analyzing image...");
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/api/images/reverse-prompt", expect.anything())
+    );
     resolveReversePrompt();
 
     fireEvent.click(await screen.findByRole("button", { name: "Copy prompt" }));
