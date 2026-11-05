@@ -81,6 +81,18 @@ describe("admin routes", () => {
       expect(usernames).toContain("admin");
       expect(usernames).toContain("member");
     });
+
+    test("reports last_active for users who have logged in", async () => {
+      // member already has a session from seedMemberUser's login
+      const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      const member = data.users.find((u) => u.username === "member");
+      expect(member).toBeDefined();
+      expect(member.last_active).toBeDefined();
+      expect(typeof member.last_active).toBe("number");
+      expect(member.last_active).toBeGreaterThan(0);
+    });
   });
 
   describe("POST /api/admin/users", () => {
