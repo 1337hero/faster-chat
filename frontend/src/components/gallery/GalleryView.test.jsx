@@ -89,8 +89,7 @@ describe("GalleryView", () => {
   test("renders a grid of generated images with prompt and model captions", async () => {
     renderWithClient(<GalleryView />);
 
-    const prompts = await screen.findAllByText("a red cube on a table");
-    expect(prompts).toHaveLength(1);
+    expect(await screen.findByText("a red cube on a table")).toBeTruthy();
     expect(await screen.findByText("a blue sphere in space")).toBeTruthy();
     expect(screen.getByText("a green forest at dawn")).toBeTruthy();
     expect(screen.getAllByRole("img")).toHaveLength(3);
@@ -156,5 +155,36 @@ describe("GalleryView", () => {
         method: "POST",
       })
     );
+  });
+
+  test("a failed favorite toggle rolls back the optimistic update", async () => {
+    fetchMock.mockImplementation(async (endpoint) => {
+      if (endpoint === "/api/images/gallery") {
+        return { images: galleryImages };
+      }
+      if (endpoint === "/api/images/gallery/img-3/favorite") {
+        // Delay the failure so the optimistic flip renders before the rollback
+        return new Promise((_resolve, reject) => {
+          setTimeout(() => {
+            const error = new Error("Server error");
+            error.status = 500;
+            reject(error);
+          }, 50);
+        });
+      }
+      throw new Error(`Unexpected endpoint: ${endpoint}`);
+    });
+
+    renderWithClient(<GalleryView />);
+    const card = await screen
+      .findByText("a green forest at dawn")
+      .then((el) => el.closest(".group"));
+    const star = within(card).getByRole("button", { name: "Add to favorites" });
+
+    fireEvent.click(star);
+
+    await waitFor(() => within(card).getByRole("button", { name: "Remove from favorites" }));
+    // The failed request rolls the star back
+    await waitFor(() => within(card).getByRole("button", { name: "Add to favorites" }));
   });
 });

@@ -74,8 +74,11 @@ export function createFileUtils({ db }) {
     },
 
     toggleFileFavorite(fileId) {
-      db.prepare("UPDATE files SET is_favorite = 1 - is_favorite WHERE id = ?").run(fileId);
-      const row = db.prepare("SELECT is_favorite FROM files WHERE id = ?").get(fileId);
+      const row = db
+        .prepare(
+          "UPDATE files SET is_favorite = 1 - is_favorite WHERE id = ? RETURNING is_favorite"
+        )
+        .get(fileId);
       return !!row?.is_favorite;
     },
 

@@ -46,6 +46,5 @@ export function useImageGallery() {
     isLoading,
     error,
     toggleFavorite: favoriteMutation.mutate,
-    isToggling: favoriteMutation.isPending,
   };
 }

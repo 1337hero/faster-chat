@@ -17,10 +17,11 @@ function seedFile({
   chatId = null,
 }) {
   const id = `file-${Math.random().toString(36).slice(2)}`;
+  const ts = createdAt ?? Date.now();
   dbUtils.createFile(
     id,
     userId,
-    `gen_${Date.now()}.png`,
+    `gen_${ts}.png`,
     "uploads/generated/x.png",
     "server/data/uploads/generated/x.png",
     "image/png",
@@ -34,12 +35,12 @@ function seedFile({
           modelDisplayName: "FLUX",
           aspectRatio: "1:1",
           source: "replicate",
-          generatedAt: createdAt ?? Date.now(),
+          generatedAt: ts,
           chatId,
         }
       : { type: metaType, attachmentCategory: "image" }
   );
-  db.prepare("UPDATE files SET created_at = ? WHERE id = ?").run(createdAt ?? Date.now(), id);
+  db.prepare("UPDATE files SET created_at = ? WHERE id = ?").run(ts, id);
   return id;
 }
 

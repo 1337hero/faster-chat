@@ -7,9 +7,10 @@ import { API_BASE } from "@/lib/api";
 import { useImageGallery } from "@/hooks/useImageGallery";
 import { Copy, Download, ImageOff, MessageSquare, Search, Star } from "lucide-preact";
 
-const GalleryCard = ({ image, onToggleFavorite }) => {
-  const navigate = useNavigate();
+const ACTION_BUTTON =
+  "text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors";
 
+const GalleryCard = ({ image, onToggleFavorite, onOpenChat }) => {
   const handleCopyPrompt = async () => {
     if (!image.prompt) return;
     try {
@@ -53,28 +54,28 @@ const GalleryCard = ({ image, onToggleFavorite }) => {
           {image.size > 0 && <span> · {formatFileSize(image.size)}</span>}
         </p>
 
-        <div className="text-theme-text-muted hover:text-theme-text mt-auto flex items-center gap-1 pt-1">
+        <div className="mt-auto flex items-center gap-1 pt-1">
           <button
             type="button"
             onClick={handleCopyPrompt}
             disabled={!image.prompt}
             aria-label="Copy prompt"
-            className="hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors disabled:opacity-40">
+            className={`${ACTION_BUTTON} disabled:opacity-40`}>
             <Copy size={14} />
           </button>
           <a
             href={`${API_BASE}/api/files/${image.id}/content`}
             download={image.filename}
             aria-label="Download image"
-            className="hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors">
+            className={ACTION_BUTTON}>
             <Download size={14} />
           </a>
           {image.chatId && (
             <button
               type="button"
-              onClick={() => navigate({ to: `/chat/${image.chatId}` })}
+              onClick={() => onOpenChat(image.chatId)}
               aria-label="Open source chat"
-              className="hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors">
+              className={ACTION_BUTTON}>
               <MessageSquare size={14} />
             </button>
           )}
@@ -86,6 +87,7 @@ const GalleryCard = ({ image, onToggleFavorite }) => {
 
 const GalleryView = () => {
   const { images, isLoading, error, toggleFavorite } = useImageGallery();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
@@ -170,7 +172,12 @@ const GalleryView = () => {
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {visibleImages.map((image) => (
-              <GalleryCard key={image.id} image={image} onToggleFavorite={toggleFavorite} />
+              <GalleryCard
+                key={image.id}
+                image={image}
+                onToggleFavorite={toggleFavorite}
+                onOpenChat={(chatId) => navigate({ to: `/chat/${chatId}` })}
+              />
             ))}
           </div>
         )}
