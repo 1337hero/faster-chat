@@ -2,9 +2,10 @@
 
 - **Origin:** direct user task — "the Admin route for Users last seen does not seem to ever
   report a last log in; all users on an active install report 'Never'." Shape: investigation.
-- **Delivery:** branch `fix/last-active` (unpushed, no PR). Fix implemented + green. Key files:
-  `server/src/lib/db/migrations/007_add_last_active.js`, `server/src/lib/db/users.js`,
-  `server/src/routes/auth.js`, `server/src/test/admin.test.js`.
+- **Delivery:** branch `fix/last-active` → PR (opened this session). Key files:
+  `server/src/lib/db/migrations/007_add_last_active.js` (column + backfill),
+  `server/src/lib/db/users.js`, `server/src/routes/auth.js`, `server/src/test/admin.test.js`,
+  `server/src/test/last-active-backfill.test.js`, `server/src/test/helpers.js`.
 - **Intent changes:** none.
 - **Requirements satisfied:** root cause identified and reproduced. `GET /api/admin/users`
   never returns `last_active`; the `users` table has no such column (none of the 6 migrations
@@ -26,11 +27,11 @@
   "login sets last_active", "reports null last_active for users who have never logged in",
   "login refreshes last_active to the most recent login". All green, self-contained (each
   creates + logs in its own user except the register test, which asserts on the seeded first user).
-- **Open / next:** open the PR on `fix/last-active` once Mike confirms. Two reviewer
-  recommendations left as follow-ups (not in scope): (1) one-time backfill of `last_active`
-  from `audit_log` login entries so existing users don't read "Never" until their next login;
-  (2) `refetchInterval` on the admin users query so the relative-time column updates in an open
-  tab. Both surfaced to Mike as a steer.
+- **Open / next:** PR opened. Backfill (recommendation 1) implemented per Mike's go-ahead:
+  migration 007 now backfills `last_active` from each user's most recent `login` audit entry —
+  idempotent, NULL-only, ignores non-login actions, no-op on fresh installs. 5 dedicated tests in
+  `last-active-backfill.test.js`. Recommendation 2 (`refetchInterval` on the users query) skipped
+  per Mike. Full suite 463 pass / 0 fail.
 - **Review pass:** dhh-code-reviewer + react-masters-reviewer ran against the branch. Both
   approved the core fix (correct, minimal, at the source). dhh flagged the closeout gate's secret
   heuristic tripping on the test's 17-char fake credential → shortened `memberpassword123` to
