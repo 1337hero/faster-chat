@@ -14,9 +14,12 @@ let mockVisionModels = [
   { model_id: "gpt-4o", display_name: "GPT-4o", metadata: { supports_vision: true } },
 ];
 
+let mockModelsPromise = null;
+
 vi.mock("@/lib/providersClient", () => ({
   providersClient: {
-    getEnabledModelsByType: () => Promise.resolve({ models: mockVisionModels }),
+    getEnabledModelsByType: () =>
+      mockModelsPromise || Promise.resolve({ models: mockVisionModels }),
   },
 }));
 
@@ -49,6 +52,7 @@ describe("PromptToolsModal", () => {
       { model_id: "gpt-4o", display_name: "GPT-4o", metadata: { supports_vision: true } },
     ];
     mockSetPendingPrompt = vi.fn();
+    mockModelsPromise = null;
   });
 
   test("auto-runs with standard length and re-runs when the length selection changes", async () => {
@@ -117,6 +121,20 @@ describe("PromptToolsModal", () => {
     renderWithClient(<PromptToolsModal fileId="img-1" onInsert={vi.fn()} onClose={vi.fn()} />);
 
     expect(await screen.findByText("Rate limit exceeded. Please try again later.")).toBeTruthy();
+  });
+
+  test("shows neither the warning nor the spinner while the model list is still loading", async () => {
+    mockModelsPromise = new Promise(() => {});
+    fetchMock.mockImplementation(() => {
+      throw new Error("should not be called");
+    });
+
+    renderWithClient(<PromptToolsModal fileId="img-1" onInsert={vi.fn()} onClose={vi.fn()} />);
+
+    await screen.findByRole("button", { name: "Standard" });
+    expect(screen.queryByText(/No vision-capable chat model/)).toBeNull();
+    expect(screen.queryByText("Analyzing image...")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   test("warns when no vision-capable model is available and never calls the API", async () => {

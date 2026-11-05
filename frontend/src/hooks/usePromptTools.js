@@ -24,7 +24,7 @@ export function usePromptModel() {
     visionModels[0]?.model_id ||
     null;
 
-  return { visionModels, modelId };
+  return { visionModels, modelId, modelsLoaded: data !== undefined };
 }
 
 // Cached reverse-prompt lookup keyed by file, length and model — toggling

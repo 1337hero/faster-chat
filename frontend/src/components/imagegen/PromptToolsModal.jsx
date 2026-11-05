@@ -7,7 +7,7 @@ import Chip from "@/components/ui/Chip";
 import { useReversePrompt, usePromptModel } from "@/hooks/usePromptTools";
 
 export default function PromptToolsModal({ fileId, onInsert, onClose }) {
-  const { modelId } = usePromptModel();
+  const { modelId, modelsLoaded } = usePromptModel();
   const [length, setLength] = useState("standard");
   const { data, error, isFetching } = useReversePrompt({ fileId, length, modelId });
 
@@ -54,7 +54,7 @@ export default function PromptToolsModal({ fileId, onInsert, onClose }) {
           </div>
         )}
 
-        {!modelId && (
+        {modelsLoaded && !modelId && (
           <div className="bg-theme-yellow/10 text-theme-yellow rounded-lg px-3 py-2 text-sm">
             No vision-capable chat model available. Add one under Settings to use reverse prompt.
           </div>
