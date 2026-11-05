@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { randomUUID } from "crypto";
-import { writeFile, unlink } from "fs/promises";
+import { mkdir, rename, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { FILE_CATEGORIES, formatFileSize } from "@faster-chat/shared";
@@ -10,7 +10,6 @@ import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { HTTP_STATUS } from "../lib/httpStatus.js";
 import { ENDPOINT_RATE_LIMITS } from "../lib/constants.js";
 import {
-  createStoredFilename,
   validateFile,
   calculateFileHash,
   deleteFileFromDisk,
@@ -55,10 +54,8 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
   }
   const classification = validation.classification;
 
-  // Generate file ID and create stored filename
+  // Generate file ID
   const fileId = randomUUID();
-  const storedFilename = createStoredFilename(fileId, file.name);
-  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
 
   // Read file contents
   const arrayBuffer = await file.arrayBuffer();
@@ -77,14 +74,34 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
     }
   }
 
-  // Calculate file hash (for future deduplication)
+  // Calculate file hash — it is the storage identity: identical bytes share one object on disk
   const fileHash = calculateFileHash(buffer);
+
+  const existing = dbUtils.getFileByUserIdAndHash(user.id, fileHash);
+  if (existing) {
+    return c.json({
+      id: existing.id,
+      filename: existing.filename,
+      size: existing.size,
+      sizeFormatted: formatFileSize(existing.size),
+      mimeType: existing.mime_type,
+      category: existing.meta?.attachmentCategory ?? null,
+      hash: existing.hash,
+      createdAt: existing.created_at,
+    });
+  }
 
   // Ensure upload directory exists
   await ensureUploadDirectory();
 
-  // Save file to disk
-  await writeFile(filePath, buffer);
+  // Store content-addressed: uploads/<hash[0:2]>/<hash>
+  const storedFilename = `${fileHash.slice(0, 2)}/${fileHash}`;
+  const filePath = path.join(FILE_CONFIG.UPLOAD_DIR, storedFilename);
+  const objectDir = path.dirname(filePath);
+  await mkdir(objectDir, { recursive: true });
+  const tmpPath = `${filePath}.tmp-${fileId}`;
+  await writeFile(tmpPath, buffer);
+  await rename(tmpPath, filePath);
 
   // Save file metadata to database
   const relativePath = path.join("server/data/uploads", storedFilename);
@@ -108,7 +125,9 @@ filesRouter.post("/", createRateLimiter(ENDPOINT_RATE_LIMITS.FILE_UPLOAD), async
       }
     );
   } catch (err) {
-    await deleteFileFromDisk(filePath);
+    if (dbUtils.getFileCountByPath(relativePath) === 0) {
+      await deleteFileFromDisk(filePath);
+    }
     throw err;
   }
 
@@ -211,13 +230,15 @@ filesRouter.delete("/:id", async (c) => {
     return c.json({ error: "File not found" }, HTTP_STATUS.NOT_FOUND);
   }
 
-  // Delete from disk - use the path field which includes subdirectories
-  const filePath = path.join(PROJECT_ROOT, file.path);
-  try {
-    await unlink(filePath);
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      console.error("Failed to delete file from disk:", error);
+  // Delete from disk only when no other row references the same object
+  const diskPath = path.join(PROJECT_ROOT, file.path);
+  if (dbUtils.getFileCountByPath(file.path) === 0) {
+    try {
+      await unlink(diskPath);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        console.error("Failed to delete file from disk:", error);
+      }
     }
   }
 
