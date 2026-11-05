@@ -78,12 +78,6 @@ export function createFileUtils({ db }) {
       return result.changes > 0;
     },
 
-    deleteFilesByUserId(userId) {
-      const stmt = db.prepare("DELETE FROM files WHERE user_id = ?");
-      const result = stmt.run(userId);
-      return result.changes;
-    },
-
     getFileCountByUserId(userId) {
       const stmt = db.prepare("SELECT COUNT(*) as count FROM files WHERE user_id = ?");
       const result = stmt.get(userId);
