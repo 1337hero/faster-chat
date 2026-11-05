@@ -5,6 +5,7 @@ import { migration as backfillMessageFilesId } from "./004_backfill_message_file
 import { migration as messageFilesCompositePk } from "./005_message_files_composite_pk.js";
 import { migration as invites } from "./006_invites.js";
 import { migration as addLastActive } from "./007_add_last_active.js";
+import { migration as addFileFavorites } from "./008_add_file_favorites.js";
 
 export const migrations = [
   initialSchema,
@@ -14,4 +15,5 @@ export const migrations = [
   messageFilesCompositePk,
   invites,
   addLastActive,
+  addFileFavorites,
 ];

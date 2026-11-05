@@ -20,6 +20,11 @@ export const folderKeys = {
   chats: (userId, folderId) => [...folderKeys.detail(userId, folderId), "chats"],
 };
 
+export const galleryKeys = {
+  all: (userId) => ["gallery", userId],
+  list: (userId) => [...galleryKeys.all(userId), "list"],
+};
+
 export const memoryKeys = {
   all: (userId) => ["memory", userId],
   status: (userId) => [...memoryKeys.all(userId), "status"],

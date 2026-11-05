@@ -1,7 +1,7 @@
 import { useAuthState } from "@/state/useAuthState";
 import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/react";
 import { useNavigate } from "@tanstack/react-router";
-import { Download, LogOut, Settings, Shield, User } from "lucide-preact";
+import { Download, Images, LogOut, Settings, Shield, User } from "lucide-preact";
 
 export const UserMenu = () => {
   const { user, logout, isLoading } = useAuthState();
@@ -59,6 +59,13 @@ export const UserMenu = () => {
             className="text-theme-text-muted hover:text-theme-text data-[focus]:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
             <Download size={16} />
             <span>Import Chats</span>
+          </MenuItem>
+          <MenuItem
+            as="button"
+            onClick={() => navigate({ to: "/gallery" })}
+            className="text-theme-text-muted hover:text-theme-text data-[focus]:bg-theme-surface-strong/50 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors">
+            <Images size={16} />
+            <span>Image Gallery</span>
           </MenuItem>
           <MenuItem
             as="button"
