@@ -5,6 +5,7 @@ import {
   seedAdminUser,
   seedMemberUser,
   makeRequest,
+  getAuthCookie,
 } from "./helpers.js";
 
 describe("admin routes", () => {
@@ -80,6 +81,62 @@ describe("admin routes", () => {
       const usernames = data.users.map((u) => u.username);
       expect(usernames).toContain("admin");
       expect(usernames).toContain("member");
+    });
+
+    test("registration sets last_active", async () => {
+      // admin was created via register (seedAdminUser), which opens a session
+      const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+      const data = await res.json();
+      const admin = data.users.find((u) => u.username === "admin");
+      expect(admin).toBeDefined();
+      expect(typeof admin.last_active).toBe("number");
+      expect(admin.last_active).toBeGreaterThan(0);
+    });
+
+    test("login sets last_active", async () => {
+      await makeRequest(app, "POST", "/api/admin/users", {
+        body: { username: "loginuser", password: "login123", role: "member" },
+        cookie: adminCookie,
+      });
+      await getAuthCookie(app, { username: "loginuser", password: "login123" });
+      const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+      const data = await res.json();
+      const user = data.users.find((u) => u.username === "loginuser");
+      expect(typeof user.last_active).toBe("number");
+      expect(user.last_active).toBeGreaterThan(0);
+    });
+
+    test("reports null last_active for users who have never logged in", async () => {
+      await makeRequest(app, "POST", "/api/admin/users", {
+        body: { username: "neverlogged", password: "never123", role: "member" },
+        cookie: adminCookie,
+      });
+      const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+      const data = await res.json();
+      const user = data.users.find((u) => u.username === "neverlogged");
+      expect(user).toBeDefined();
+      expect(user.last_active).toBeNull();
+    });
+
+    test("login refreshes last_active to the most recent login", async () => {
+      await makeRequest(app, "POST", "/api/admin/users", {
+        body: { username: "refreshuser", password: "refresh123", role: "member" },
+        cookie: adminCookie,
+      });
+      const login = () => getAuthCookie(app, { username: "refreshuser", password: "refresh123" });
+      const readLastActive = async () => {
+        const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+        const data = await res.json();
+        return data.users.find((u) => u.username === "refreshuser").last_active;
+      };
+
+      await login();
+      const first = await readLastActive();
+      await new Promise((r) => setTimeout(r, 10));
+      await login();
+      const second = await readLastActive();
+
+      expect(second).toBeGreaterThan(first);
     });
   });
 
