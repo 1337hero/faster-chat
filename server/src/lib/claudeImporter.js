@@ -57,7 +57,14 @@ export function parseClaudeExport(data) {
 }
 
 function parseConversation(conv) {
-  const messages = conv.chat_messages.map(extractMessage).filter(Boolean);
+  let previousCreatedAt = isoToMs(conv.created_at);
+  const messages = conv.chat_messages
+    .map((message) => {
+      previousCreatedAt = parseIsoMs(message.created_at) ?? previousCreatedAt;
+      return extractMessage(message, previousCreatedAt);
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.createdAt - b.createdAt);
 
   return {
     originalId: conv.uuid,
@@ -68,7 +75,7 @@ function parseConversation(conv) {
   };
 }
 
-function extractMessage(message) {
+function extractMessage(message, createdAt) {
   const role = SENDER_ROLES[message.sender] || IMPORT_DEFAULT_ROLE;
   const text = extractText(message);
 
@@ -79,7 +86,7 @@ function extractMessage(message) {
   return {
     role,
     content: text,
-    createdAt: isoToMs(message.created_at),
+    createdAt,
     model: null,
   };
 }
@@ -110,7 +117,11 @@ function blockToText(block) {
   return `[Unsupported content: ${block?.type || "unknown"}]`;
 }
 
-function isoToMs(value) {
+function parseIsoMs(value) {
   const ms = Date.parse(value);
-  return Number.isNaN(ms) ? Date.now() : ms;
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function isoToMs(value) {
+  return parseIsoMs(value) ?? Date.now();
 }

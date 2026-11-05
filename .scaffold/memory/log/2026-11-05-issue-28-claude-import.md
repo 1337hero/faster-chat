@@ -12,11 +12,11 @@ passphrase for the signed commit). Key files: `server/src/lib/claudeImporter.js`
 `frontend/src/pages/authenticated/Import.jsx` (endpoint chosen by detected format; copy covers
 Claude), `server/src/test/claudeImport.test.js` + `server/src/test/fixtures/claude-export.json`.
 
-**Intent changes:** none yet (no PR review).
+**Intent changes:** Mike (via operator, 2026-11-05) asked for deterministic chronological order with a tiebreak and a test before the PR; done in the second commit.
 
 **Requirements satisfied (from #28 acceptance):**
 - Multi-conversation Claude export imports with correct titles, order, and roles (fixture with
-  two conversations + one empty; roles human→user, assistant→assistant; array order kept, no re-sort).
+  two conversations + one empty; roles human→user, assistant→assistant; stable chronological sort; a missing created_at inherits its predecessor, ties keep array order; message reads tie-break on rowid).
 - Unsupported blocks (`tool_use`, `tool_result`) become `[Unsupported content: <type>]`
   placeholders and the message still imports; attachments become
   `[Attachment not imported: <name>]`.

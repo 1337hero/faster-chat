@@ -166,6 +166,52 @@ describe("import routes (Claude)", () => {
     ]);
   });
 
+  test("out-of-order, tied, and untimestamped messages read back in stable chronological order", async () => {
+    const msg = (uuid, sender, text, created_at) => ({
+      uuid,
+      sender,
+      text,
+      created_at,
+      content: [{ type: "text", text }],
+    });
+    const res = await makeRequest(app, "POST", "/api/import/claude", {
+      body: {
+        data: [
+          {
+            uuid: "order",
+            name: "Order",
+            created_at: "2025-01-01T00:00:00.000Z",
+            chat_messages: [
+              msg("2", "assistant", "second", "2025-01-01T00:00:02.000Z"),
+              msg("1", "human", "first", "2025-01-01T00:00:01.000Z"),
+              msg("3", "human", "third (ties with second)", "2025-01-01T00:00:02.000Z"),
+              msg("4", "assistant", "fourth (no timestamp)", undefined),
+              msg("5", "human", "fifth", "2025-01-01T00:00:03.000Z"),
+            ],
+          },
+        ],
+      },
+      cookie: memberCookie,
+    });
+    expect(res.status).toBe(201);
+    const { chatIds } = await res.json();
+
+    const messagesRes = await makeRequest(app, "GET", `/api/chats/${chatIds[0]}/messages`, {
+      cookie: memberCookie,
+    });
+    const { messages } = await messagesRes.json();
+    expect(messages.map((m) => m.content)).toEqual([
+      "first",
+      "second",
+      "third (ties with second)",
+      "fourth (no timestamp)",
+      "fifth",
+    ]);
+    const times = messages.map((m) => m.createdAt ?? m.created_at);
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
+    expect(new Set(times).size).toBe(times.length);
+  });
+
   test("malformed file is rejected before any DB write", async () => {
     const res = await makeRequest(app, "POST", "/api/import/claude", {
       body: { data: [{ uuid: "broken", name: "no messages" }] },
