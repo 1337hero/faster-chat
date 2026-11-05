@@ -79,8 +79,9 @@ authRouter.post("/register", async (c) => {
   // Hash password
   const passwordHash = await hashPassword(password);
 
-  // Create user
+  // Create user; registration opens a session, so it counts as activity
   const userId = dbUtils.createUser(username, passwordHash, role, invite?.created_by ?? null);
+  dbUtils.updateLastActive(userId);
 
   if (invite) {
     dbUtils.markInviteUsed(invite.id, userId);
@@ -161,7 +162,7 @@ authRouter.post("/login", async (c) => {
 
   dbUtils.createAuditLog(user.id, "login", "user", String(user.id), null, ip);
 
-  // Create session
+  dbUtils.updateLastActive(user.id);
   const { sessionId, expiresAt } = dbUtils.createSession(user.id);
 
   // Set cookie

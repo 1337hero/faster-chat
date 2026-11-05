@@ -72,9 +72,14 @@ export function createUserUtils({ db }) {
 
     getAllUsers() {
       const stmt = db.prepare(
-        "SELECT id, username, role, created_at FROM users ORDER BY created_at DESC"
+        "SELECT id, username, role, created_at, last_active FROM users ORDER BY created_at DESC"
       );
       return stmt.all();
+    },
+
+    updateLastActive(userId) {
+      const stmt = db.prepare("UPDATE users SET last_active = ? WHERE id = ?");
+      stmt.run(Date.now(), userId);
     },
 
     updateUserRole(userId, role) {

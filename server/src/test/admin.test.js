@@ -5,6 +5,7 @@ import {
   seedAdminUser,
   seedMemberUser,
   makeRequest,
+  getAuthCookie,
 } from "./helpers.js";
 
 describe("admin routes", () => {
@@ -92,6 +93,33 @@ describe("admin routes", () => {
       expect(member.last_active).toBeDefined();
       expect(typeof member.last_active).toBe("number");
       expect(member.last_active).toBeGreaterThan(0);
+    });
+
+    test("reports null last_active for users who have never logged in", async () => {
+      await makeRequest(app, "POST", "/api/admin/users", {
+        body: { username: "neverlogged", password: "neverlogged123", role: "member" },
+        cookie: adminCookie,
+      });
+      const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+      const data = await res.json();
+      const user = data.users.find((u) => u.username === "neverlogged");
+      expect(user).toBeDefined();
+      expect(user.last_active).toBeNull();
+    });
+
+    test("refreshes last_active to the most recent login", async () => {
+      const readLastActive = async () => {
+        const res = await makeRequest(app, "GET", "/api/admin/users", { cookie: adminCookie });
+        const data = await res.json();
+        return data.users.find((u) => u.username === "member").last_active;
+      };
+
+      const first = await readLastActive();
+      await new Promise((r) => setTimeout(r, 10));
+      await getAuthCookie(app, { username: "member", password: "memberpassword123" });
+      const second = await readLastActive();
+
+      expect(second).toBeGreaterThan(first);
     });
   });
 
