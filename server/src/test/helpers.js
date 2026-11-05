@@ -72,11 +72,11 @@ export async function seedMemberUser(app, adminCookie) {
       "Content-Type": "application/json",
       Cookie: adminCookie,
     },
-    body: JSON.stringify({ username: "member", password: "memberpassword123", role: "member" }),
+    body: JSON.stringify({ username: "member", password: "member123", role: "member" }),
   });
 
   const body = await res.json();
-  const cookie = await getAuthCookie(app, { username: "member", password: "memberpassword123" });
+  const cookie = await getAuthCookie(app, { username: "member", password: "member123" });
 
   return { user: body.user, cookie };
 }
