@@ -42,6 +42,7 @@ vi.mock("@/hooks/useChat", () => ({
     inputFiles: [],
     appendFiles: vi.fn(),
     removeFile: vi.fn(),
+    clearFiles: vi.fn(),
     handleInputChange: vi.fn(),
     handleSubmit: vi.fn(),
     submitMessage: vi.fn(),
@@ -132,9 +133,9 @@ describe("ChatInterface image generation", () => {
     mockGenerate.lastOnSuccess = null;
   });
 
-  const submitImage = async (prompt = "a cube") => {
+  const submitImage = async (prompt = "a cube", referenceFiles = undefined) => {
     render(<ChatInterface chatId="chat-1" />);
-    inputAreaProps.onImageSubmit(prompt);
+    inputAreaProps.onImageSubmit(prompt, referenceFiles);
     await waitFor(() => expect(mockGenerate).toHaveBeenCalled());
   };
 
@@ -198,5 +199,22 @@ describe("ChatInterface image generation", () => {
     imageGenHookOptions.onError(error);
 
     expect(toast.error).toHaveBeenCalledWith("Invalid API key");
+  });
+
+  test("sends referenceFileIds and tags the user message as an edit when references exist", async () => {
+    await submitImage("make it a watercolor", [{ id: "ref-1" }, { id: "ref-2" }]);
+
+    expect(mockGenerate.lastVars.referenceFileIds).toEqual(["ref-1", "ref-2"]);
+    const userCall = mockCreateMessage.mock.calls[0][0];
+    expect(userCall.message.content).toBe("[Image Edit] make it a watercolor");
+    expect(typeof inputAreaProps.onClearFiles).toBe("function");
+  });
+
+  test("omits referenceFileIds and tags the user message as generation when there are none", async () => {
+    await submitImage("a cube");
+
+    expect(mockGenerate.lastVars.referenceFileIds).toBeUndefined();
+    const userCall = mockCreateMessage.mock.calls[0][0];
+    expect(userCall.message.content).toBe("[Image Generation] a cube");
   });
 });

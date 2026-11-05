@@ -155,6 +155,37 @@ describe("model routes", () => {
       });
       expect(res.status).toBe(404);
     });
+
+    test("toggles supportsImageToImage and preserves other metadata", async () => {
+      const res = await makeRequest(app, "PUT", `/api/admin/models/${enabledModelId}`, {
+        body: { supportsImageToImage: true },
+        cookie: adminCookie,
+      });
+      expect(res.status).toBe(200);
+
+      const detailRes = await makeRequest(app, "GET", `/api/admin/models/${enabledModelId}`, {
+        cookie: adminCookie,
+      });
+      const detail = (await detailRes.json()).model.metadata;
+      expect(detail.supports_image_to_image).toBe(1);
+      expect(detail.context_window).toBe(128000);
+      expect(detail.supports_vision).toBe(true);
+    });
+
+    test("toggling off clears the bit to 0 and leaves neighbors intact", async () => {
+      await makeRequest(app, "PUT", `/api/admin/models/${enabledModelId}`, {
+        body: { supportsImageToImage: false },
+        cookie: adminCookie,
+      });
+
+      const detailRes = await makeRequest(app, "GET", `/api/admin/models/${enabledModelId}`, {
+        cookie: adminCookie,
+      });
+      const detail = (await detailRes.json()).model.metadata;
+      expect(detail.supports_image_to_image).toBe(0);
+      expect(detail.context_window).toBe(128000);
+      expect(detail.supports_vision).toBe(true);
+    });
   });
 
   describe("PUT /api/admin/models/:id/default", () => {

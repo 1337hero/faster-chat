@@ -1,18 +1,27 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/preact";
+import { toast } from "sonner";
 import InputArea from "@/components/chat/InputArea";
+
+let mockUploadFiles = null;
 
 // Mock useFileUploader
 vi.mock("@/hooks/useFileUploader", () => ({
   useFileUploader: () => ({
-    uploadFiles: vi.fn(),
+    uploadFiles: (files) => mockUploadFiles(files),
     uploading: false,
     currentFile: null,
   }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: { warning: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+
 let mockImageMode = false;
 let mockImageCount = 1;
+let mockPendingReference = null;
+let mockClearPendingReference = null;
 
 // Mock useUiState
 vi.mock("@/state/useUiState", () => ({
@@ -24,6 +33,8 @@ vi.mock("@/state/useUiState", () => ({
       setWebSearchEnabled: vi.fn(),
       imageCount: mockImageCount,
       setImageCount: vi.fn(),
+      pendingReference: mockPendingReference,
+      clearPendingReference: mockClearPendingReference,
     };
     return selector(state);
   },
@@ -74,6 +85,8 @@ const defaultProps = {
   onAspectRatioChange: vi.fn(),
   imageCount: 1,
   onImageCountChange: vi.fn(),
+  supportsImageToImage: true,
+  onClearFiles: vi.fn(),
 };
 
 describe("InputArea", () => {
@@ -82,6 +95,9 @@ describe("InputArea", () => {
     mockDragActive = false;
     mockImageMode = false;
     mockImageCount = 1;
+    mockPendingReference = null;
+    mockClearPendingReference = vi.fn();
+    mockUploadFiles = vi.fn();
     capturedOnFileSelect = null;
   });
 
@@ -209,6 +225,101 @@ describe("InputArea", () => {
     const fileInput = document.getElementById("chat-input-file-upload");
     expect(fileInput).toBeTruthy();
     expect(fileInput.multiple).toBe(true);
+  });
+
+  describe("image-to-image reference attach", () => {
+    test("image mode accepts image files only when the model supports editing", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.accept).toBe("image/*");
+    });
+
+    test("text mode keeps the general attachment accept filter", () => {
+      mockImageMode = false;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.accept).not.toBe("image/*");
+    });
+
+    test("hides the attach control in image mode when the model cannot edit", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={false} />);
+      expect(screen.queryByLabelText("Add attachment")).toBeNull();
+    });
+
+    test("shows the attach control in image mode when the model can edit", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      expect(screen.getByLabelText("Add attachment")).toBeTruthy();
+    });
+
+    test("disables attach in image mode once three references are attached", () => {
+      mockImageMode = true;
+      render(
+        <InputArea
+          {...defaultProps}
+          selectedFiles={[
+            { id: "a", filename: "a.png" },
+            { id: "b", filename: "b.png" },
+            { id: "c", filename: "c.png" },
+          ]}
+        />
+      );
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.disabled).toBe(true);
+    });
+
+    test("clears the reference files after an image submit so they don't leak into the next message", () => {
+      mockImageMode = true;
+      const refs = [
+        { id: "a", filename: "a.png" },
+        { id: "b", filename: "b.png" },
+      ];
+      render(<InputArea {...defaultProps} input="make it a watercolor" selectedFiles={refs} />);
+
+      fireEvent.keyDown(screen.getByLabelText("Message input"), { key: "Enter" });
+
+      expect(defaultProps.onImageSubmit).toHaveBeenCalledWith("make it a watercolor", refs);
+      expect(defaultProps.onClearFiles).toHaveBeenCalled();
+    });
+
+    test("enforces the reference cap on drag-and-drop, not just the file input", () => {
+      mockImageMode = true;
+      render(
+        <InputArea
+          {...defaultProps}
+          selectedFiles={[
+            { id: "a", filename: "a.png" },
+            { id: "b", filename: "b.png" },
+          ]}
+        />
+      );
+
+      capturedOnFileSelect([
+        { name: "c.png", type: "image/png" },
+        { name: "d.png", type: "image/png" },
+      ]);
+
+      // Only one slot remains, so the second dropped file is dropped with a notice
+      expect(mockUploadFiles).toHaveBeenCalledTimes(1);
+      expect(mockUploadFiles.mock.calls[0][0]).toHaveLength(1);
+      expect(toast.warning).toHaveBeenCalled();
+    });
+
+    test("filters out non-image files on drag-and-drop and tells the user", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} />);
+
+      capturedOnFileSelect([
+        { name: "a.png", type: "image/png" },
+        { name: "notes.pdf", type: "application/pdf" },
+      ]);
+
+      expect(mockUploadFiles).toHaveBeenCalledTimes(1);
+      expect(mockUploadFiles.mock.calls[0][0]).toHaveLength(1);
+      expect(toast.warning).toHaveBeenCalledWith("Only image files can be attached as references");
+    });
   });
 
   describe("aspect ratio chips", () => {

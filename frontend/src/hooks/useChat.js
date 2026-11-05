@@ -64,6 +64,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
 
   const appendFiles = (files) => setInputFiles((prev) => [...prev, ...files]);
   const removeFile = (fileId) => setInputFiles((prev) => prev.filter((f) => f.id !== fileId));
+  const clearFiles = () => setInputFiles([]);
 
   return {
     messages: stream.messages,
@@ -72,6 +73,7 @@ export function useChat({ id: chatId, model, webSearchEnabled, memoryEnabled }) 
     inputFiles,
     appendFiles,
     removeFile,
+    clearFiles,
     handleInputChange,
     handleSubmit,
     submitMessage,

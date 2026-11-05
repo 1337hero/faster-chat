@@ -6,6 +6,7 @@ import { migration as messageFilesCompositePk } from "./005_message_files_compos
 import { migration as invites } from "./006_invites.js";
 import { migration as addLastActive } from "./007_add_last_active.js";
 import { migration as addFileFavorites } from "./008_add_file_favorites.js";
+import { migration as addModelImageToImage } from "./009_add_model_image_to_image.js";
 
 export const migrations = [
   initialSchema,
@@ -16,4 +17,5 @@ export const migrations = [
   invites,
   addLastActive,
   addFileFavorites,
+  addModelImageToImage,
 ];

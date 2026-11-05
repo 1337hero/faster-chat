@@ -19,6 +19,15 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => (options) => capturedNavigate(options),
 }));
 
+let mockSetPendingReference = null;
+vi.mock("@/state/useUiState", () => ({
+  useUiState: (selector) =>
+    selector({
+      setPendingReference: (file) => mockSetPendingReference(file),
+      setImageMode: vi.fn(),
+    }),
+}));
+
 const galleryImages = [
   {
     id: "img-1",
@@ -78,6 +87,7 @@ describe("GalleryView", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     capturedNavigate = null;
+    mockSetPendingReference = vi.fn();
     fetchMock.mockImplementation(async (endpoint) => {
       if (endpoint === "/api/images/gallery") {
         return { images: galleryImages };
@@ -155,6 +165,21 @@ describe("GalleryView", () => {
         method: "POST",
       })
     );
+  });
+
+  test("use as reference sets the pending reference and navigates to a chat", async () => {
+    capturedNavigate = vi.fn();
+    renderWithClient(<GalleryView />);
+    const card = await screen
+      .findByText("a red cube on a table")
+      .then((el) => el.closest(".group"));
+
+    fireEvent.click(within(card).getByRole("button", { name: "Use as reference" }));
+
+    expect(mockSetPendingReference).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "img-1", filename: "gen_1.png", mimeType: "image/png" })
+    );
+    expect(capturedNavigate).toHaveBeenCalledWith({ to: "/" });
   });
 
   test("a failed favorite toggle rolls back the optimistic update", async () => {

@@ -6,6 +6,7 @@ import {
   ATTACHMENT_TITLE_TEXT,
 } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
+import { toast } from "sonner";
 import ChatMemoryButton from "./ChatMemoryButton";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
@@ -36,16 +37,50 @@ const InputArea = ({
   onAspectRatioChange,
   imageCount,
   onImageCountChange,
+  supportsImageToImage = false,
+  onClearFiles,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
     onFilesUploaded,
   });
-  const { dragActive, handleDrag, handleDrop } = useFileDragDrop((files) => uploadFiles(files));
+  const pendingReference = useUiState((state) => state.pendingReference);
+  const clearPendingReference = useUiState((state) => state.clearPendingReference);
   const imageMode = useUiState((state) => state.imageMode);
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
   const setImageMode = useUiState((state) => state.setImageMode);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+
+  const atReferenceCap = imageMode && selectedFiles.length >= IMAGE_GENERATION.MAX_REFERENCE_IMAGES;
+  const fileInputDisabled = disabled || uploading || atReferenceCap;
+  const fileAccept = imageMode ? "image/*" : ATTACHMENT_INPUT_ACCEPT;
+
+  const handleFiles = (files) => {
+    const list = Array.from(files || []);
+    if (!imageMode) {
+      uploadFiles(list);
+      return;
+    }
+
+    const images = list.filter((file) => file.type.startsWith("image/"));
+    if (images.length < list.length) {
+      toast.warning("Only image files can be attached as references");
+    }
+
+    const room = IMAGE_GENERATION.MAX_REFERENCE_IMAGES - selectedFiles.length;
+    const accepted = images.slice(0, Math.max(0, room));
+    if (accepted.length < images.length) {
+      toast.warning(
+        `You can attach up to ${IMAGE_GENERATION.MAX_REFERENCE_IMAGES} reference images`
+      );
+    }
+
+    if (accepted.length > 0) {
+      uploadFiles(accepted);
+    }
+  };
+
+  const { dragActive, handleDrag, handleDrop } = useFileDragDrop(handleFiles);
 
   // Window-level drop guard: prevent browser from opening files dropped outside the input
   useEffect(() => {
@@ -61,6 +96,23 @@ const InputArea = ({
       window.removeEventListener("drop", preventFileDrop);
     };
   }, []);
+
+  // Consume a reference handed off from the gallery ("Use as reference")
+  useEffect(() => {
+    if (!pendingReference || !imageMode) return;
+    if (selectedFiles.length >= IMAGE_GENERATION.MAX_REFERENCE_IMAGES) {
+      toast.warning(
+        `You can attach up to ${IMAGE_GENERATION.MAX_REFERENCE_IMAGES} reference images`
+      );
+      clearPendingReference();
+      return;
+    }
+    onFilesUploaded([pendingReference]);
+    clearPendingReference();
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [pendingReference, imageMode, selectedFiles.length, onFilesUploaded, clearPendingReference]);
 
   const handleToggleImageMode = () => {
     if (webSearchEnabled) {
@@ -105,7 +157,8 @@ const InputArea = ({
 
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
-      onImageSubmit(input.trim());
+      onImageSubmit(input.trim(), selectedFiles);
+      onClearFiles?.(); // references are consumed; don't leak them into the next message
       setImageMode(false); // Auto-reset after send
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -122,7 +175,7 @@ const InputArea = ({
   };
 
   const handleFileChange = (e) => {
-    uploadFiles(e.target.files);
+    handleFiles(e.target.files);
     e.target.value = "";
   };
 
@@ -156,16 +209,16 @@ const InputArea = ({
           type="file"
           multiple
           onChange={handleFileChange}
-          disabled={disabled || uploading}
+          disabled={fileInputDisabled}
           className="sr-only"
-          accept={ATTACHMENT_INPUT_ACCEPT}
+          accept={fileAccept}
         />
 
         {uploading && currentFile && (
           <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
         )}
 
-        {!imageMode && <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />}
+        <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />
 
         {/* Textarea - Top */}
         <textarea
@@ -219,17 +272,19 @@ const InputArea = ({
         <div className="flex items-center justify-between px-2 pb-1">
           {/* Tool Buttons - Left */}
           <div className="flex items-center gap-1">
-            <label
-              htmlFor={FILE_INPUT_ID}
-              className={`rounded-lg p-2 transition-colors ${
-                disabled || uploading
-                  ? "text-theme-muted/40 cursor-not-allowed opacity-50"
-                  : "text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 cursor-pointer"
-              }`}
-              title={ATTACHMENT_TITLE_TEXT}
-              aria-label="Add attachment">
-              <Paperclip size={18} />
-            </label>
+            {(!imageMode || supportsImageToImage) && (
+              <label
+                htmlFor={FILE_INPUT_ID}
+                className={`rounded-lg p-2 transition-colors ${
+                  fileInputDisabled
+                    ? "text-theme-muted/40 cursor-not-allowed opacity-50"
+                    : "text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 cursor-pointer"
+                }`}
+                title={ATTACHMENT_TITLE_TEXT}
+                aria-label="Add attachment">
+                <Paperclip size={18} />
+              </label>
+            )}
             <button
               type="button"
               onClick={handleToggleImageMode}

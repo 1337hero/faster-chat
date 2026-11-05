@@ -2,15 +2,27 @@ import { useState } from "preact/hooks";
 import { useNavigate } from "@tanstack/react-router";
 import fuzzysort from "fuzzysort";
 import { toast } from "sonner";
-import { formatFileSize } from "@faster-chat/shared";
+import { FILE_CATEGORIES, formatFileSize } from "@faster-chat/shared";
 import { API_BASE } from "@/lib/api";
 import { useImageGallery } from "@/hooks/useImageGallery";
-import { Copy, Download, ImageOff, MessageSquare, Search, Star } from "lucide-preact";
+import { useUiState } from "@/state/useUiState";
+import { Copy, Download, ImageOff, MessageSquare, PenTool, Search, Star } from "lucide-preact";
 
 const ACTION_BUTTON =
   "text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors";
 
-const GalleryCard = ({ image, onToggleFavorite, onOpenChat }) => {
+// Maps a gallery image to the attachment file shape the composer expects (same
+// fields POST /api/files returns), so a generated image can be reused as a reference.
+const toReferenceFile = (image) => ({
+  id: image.id,
+  filename: image.filename,
+  size: image.size,
+  sizeFormatted: formatFileSize(image.size),
+  mimeType: image.mimeType,
+  category: FILE_CATEGORIES.IMAGE,
+});
+
+const GalleryCard = ({ image, onToggleFavorite, onOpenChat, onUseAsReference }) => {
   const handleCopyPrompt = async () => {
     if (!image.prompt) return;
     try {
@@ -79,6 +91,13 @@ const GalleryCard = ({ image, onToggleFavorite, onOpenChat }) => {
               <MessageSquare size={14} />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => onUseAsReference(toReferenceFile(image))}
+            aria-label="Use as reference"
+            className={ACTION_BUTTON}>
+            <PenTool size={14} />
+          </button>
         </div>
       </div>
     </div>
@@ -88,8 +107,17 @@ const GalleryCard = ({ image, onToggleFavorite, onOpenChat }) => {
 const GalleryView = () => {
   const { images, isLoading, error, toggleFavorite } = useImageGallery();
   const navigate = useNavigate();
+  const setPendingReference = useUiState((state) => state.setPendingReference);
+  const setImageMode = useUiState((state) => state.setImageMode);
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+  const handleUseAsReference = (file) => {
+    // Entering image mode is what makes the composer accept the pending reference.
+    setImageMode(true);
+    setPendingReference(file);
+    navigate({ to: "/" });
+  };
 
   const searchResults = search
     ? fuzzysort.go(search, images, { key: "prompt", threshold: -10000 }).map((result) => result.obj)
@@ -177,6 +205,7 @@ const GalleryView = () => {
                 image={image}
                 onToggleFavorite={toggleFavorite}
                 onOpenChat={(chatId) => navigate({ to: `/chat/${chatId}` })}
+                onUseAsReference={handleUseAsReference}
               />
             ))}
           </div>

@@ -95,7 +95,8 @@ export function createModelUtils({ db, buildUpdateFields }) {
         md.output_price_per_1m,
         md.supports_streaming,
         md.supports_vision,
-        md.supports_tools
+        md.supports_tools,
+        md.supports_image_to_image
       FROM models m
       JOIN providers p ON m.provider_id = p.id
       LEFT JOIN model_metadata md ON m.id = md.model_id
@@ -175,8 +176,8 @@ export function createModelUtils({ db, buildUpdateFields }) {
       INSERT INTO model_metadata (
         model_id, context_window, max_output_tokens,
         input_price_per_1m, output_price_per_1m,
-        supports_streaming, supports_vision, supports_tools
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        supports_streaming, supports_vision, supports_tools, supports_image_to_image
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(model_id) DO UPDATE SET
         context_window = excluded.context_window,
         max_output_tokens = excluded.max_output_tokens,
@@ -184,7 +185,8 @@ export function createModelUtils({ db, buildUpdateFields }) {
         output_price_per_1m = excluded.output_price_per_1m,
         supports_streaming = excluded.supports_streaming,
         supports_vision = excluded.supports_vision,
-        supports_tools = excluded.supports_tools
+        supports_tools = excluded.supports_tools,
+        supports_image_to_image = excluded.supports_image_to_image
     `);
 
       stmt.run(
@@ -195,8 +197,19 @@ export function createModelUtils({ db, buildUpdateFields }) {
         metadata.output_price_per_1m ?? metadata.outputPrice ?? null,
         (metadata.supports_streaming ?? metadata.supportsStreaming) ? 1 : 0,
         (metadata.supports_vision ?? metadata.supportsVision) ? 1 : 0,
-        (metadata.supports_tools ?? metadata.supportsTools) ? 1 : 0
+        (metadata.supports_tools ?? metadata.supportsTools) ? 1 : 0,
+        metadata.supports_image_to_image ?? metadata.supportsImageToImage ?? null
       );
+    },
+
+    // Flips only the image-to-image bit so the other metadata columns are left untouched.
+    setModelImageToImage(modelId, enabled) {
+      const stmt = db.prepare(`
+      INSERT INTO model_metadata (model_id, supports_image_to_image)
+      VALUES (?, ?)
+      ON CONFLICT(model_id) DO UPDATE SET supports_image_to_image = excluded.supports_image_to_image
+    `);
+      stmt.run(modelId, enabled ? 1 : 0);
     },
 
     getModelMetadata(modelId) {
@@ -216,7 +229,8 @@ export function createModelUtils({ db, buildUpdateFields }) {
         md.output_price_per_1m,
         md.supports_streaming,
         md.supports_vision,
-        md.supports_tools
+        md.supports_tools,
+        md.supports_image_to_image
       FROM models m
       JOIN providers p ON m.provider_id = p.id
       LEFT JOIN model_metadata md ON m.id = md.model_id
