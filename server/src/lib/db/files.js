@@ -52,6 +52,13 @@ export function createFileUtils({ db }) {
       return parseFileMeta(stmt.get(fileId, userId));
     },
 
+    getFileByUserIdAndHash(userId, hash) {
+      const stmt = db.prepare(
+        "SELECT * FROM files WHERE user_id = ? AND hash = ? ORDER BY created_at ASC LIMIT 1"
+      );
+      return parseFileMeta(stmt.get(userId, hash));
+    },
+
     getFilesByUserId(userId) {
       const stmt = db.prepare("SELECT * FROM files WHERE user_id = ? ORDER BY created_at DESC");
       return stmt.all(userId).map(parseFileMeta);
@@ -64,6 +71,11 @@ export function createFileUtils({ db }) {
       const placeholders = fileIds.map(() => "?").join(",");
       const stmt = db.prepare(`SELECT * FROM files WHERE id IN (${placeholders}) AND user_id = ?`);
       return stmt.all(...fileIds, userId).map(parseFileMeta);
+    },
+
+    getFileCountByPath(filePath) {
+      const stmt = db.prepare("SELECT COUNT(*) as count FROM files WHERE path = ?");
+      return stmt.get(filePath).count;
     },
 
     updateFileMetadata(fileId, meta) {
