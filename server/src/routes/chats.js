@@ -201,6 +201,10 @@ chatsRouter.get("/:chatId/export", async (c) => {
   const chat = c.get("chat");
   const format = c.req.query("format") || EXPORT_CONSTANTS.FORMATS.JSON;
 
+  if (dbUtils.getMessageCountByChat(chat.id) === 0) {
+    return c.json({ error: "Chat has no messages" }, HTTP_STATUS.NOT_FOUND);
+  }
+
   if (format === EXPORT_CONSTANTS.FORMATS.MARKDOWN) {
     return c.body(chatToMarkdown(user.id, chat), HTTP_STATUS.OK, {
       "Content-Type": "text/markdown; charset=utf-8",

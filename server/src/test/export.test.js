@@ -103,6 +103,7 @@ describe("chat export", () => {
 
     test("keeps a non-latin title in the filename* parameter", async () => {
       const jp = dbUtils.createChat("chat-jp", alice.id, "日本語");
+      dbUtils.createMessage("m-jp", jp.id, alice.id, "user", "こんにちは");
       const res = await makeRequest(app, "GET", `/api/chats/${jp.id}/export`, {
         cookie: aliceCookie,
       });
@@ -114,6 +115,7 @@ describe("chat export", () => {
 
     test("truncates the filename* title by code point, not UTF-16 unit", async () => {
       const emoji = dbUtils.createChat("chat-emoji", alice.id, "a".repeat(59) + "😀 tail");
+      dbUtils.createMessage("m-emoji", emoji.id, alice.id, "user", "hi");
       const res = await makeRequest(app, "GET", `/api/chats/${emoji.id}/export?format=markdown`, {
         cookie: aliceCookie,
       });
@@ -124,14 +126,17 @@ describe("chat export", () => {
       dbUtils.softDeleteChatByUser(emoji.id, alice.id);
     });
 
-    test("exports no chat when it has no messages", async () => {
+    test("a chat with no messages is 404 in both formats", async () => {
       const empty = dbUtils.createChat("chat-empty-single", alice.id, "Draft");
-      const res = await makeRequest(app, "GET", `/api/chats/${empty.id}/export`, {
+      const json = await makeRequest(app, "GET", `/api/chats/${empty.id}/export`, {
         cookie: aliceCookie,
       });
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.chats).toEqual([]);
+      expect(json.status).toBe(404);
+      expect((await json.json()).error).toBe("Chat has no messages");
+      const md = await makeRequest(app, "GET", `/api/chats/${empty.id}/export?format=markdown`, {
+        cookie: aliceCookie,
+      });
+      expect(md.status).toBe(404);
       dbUtils.softDeleteChatByUser(empty.id, alice.id);
     });
 
