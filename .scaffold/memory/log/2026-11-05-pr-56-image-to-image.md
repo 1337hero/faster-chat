@@ -10,7 +10,14 @@
   `frontend/src/components/chat/ChatInterface.jsx`, `frontend/src/hooks/useImageGeneration.js`,
   `frontend/src/state/useUiState.js` (pendingReference), `frontend/src/components/gallery/GalleryView.jsx`,
   `frontend/src/components/admin/ModelsTab.jsx`.
-- **Intent changes:** none yet (PR freshly opened, no review comments).
+- **Intent changes:** Mike's review (PR #56) accepted and shipped in the same branch:
+  - Critical: reference files leaked into the next message (image submit never cleared `inputFiles`). Fixed with an `onClearFiles` prop wired to a new `useChat.clearFiles`, called in the image submit branch.
+  - Critical: the 3-reference cap was cosmetic (file input only). Now enforced in `handleFiles` (covers picker + drag-drop) and in the gallery-handoff effect, with a toast when files are dropped at the cap or non-images are filtered.
+  - Dead ternary `imageMode ? selectedFiles : []` removed (already inside the image branch).
+  - Gallery's hand-built upload-response shape centralized in a `toReferenceFile(image)` helper with a comment tying it to the `POST /api/files` contract.
+  - `setPendingReference` no longer has a hidden second effect; it sets only the file, and GalleryView calls `setImageMode(true)` explicitly with a why-comment.
+  - `GET /api/admin/models/:id` now passes `supports_image_to_image` through raw (null = inherit default) instead of collapsing to `false`, matching the list endpoint.
+  - The capability toggle uses a targeted single-column upsert (`setModelImageToImage`) instead of a full-row spread + upsert, so it can't coerce the neighboring `supports_*` nulls to 0.
 - **Requirements satisfied:**
   - US-1: 1–3 reference images attachable in image mode (attach control re-shown, `image/*` only, cap 3).
   - US-2: capability derived from model metadata with per-provider defaults; composer hides the attach
@@ -25,8 +32,8 @@
 - **Remaining scope:** inpainting masks, `reference_strength` tuning, >3 references — all explicitly
   out of scope in the spec.
 - **Verification ledger:**
-  - `bun run test` (server): 502 pass, 0 fail.
-  - `cd frontend && bun run test`: 76 pass, 0 fail.
+  - `bun run test` (server): 503 pass, 0 fail.
+  - `cd frontend && bun run test`: 79 pass, 0 fail.
   - `bun run build` + `bun run format`: clean.
   - TDD: vertical red→green cycles per the spec's 14-cycle plan (shared capability, route validation
     1–4, factory branches 5–9, meta 10, frontend 11–14).
@@ -37,9 +44,11 @@
 - **Proof:** `server/src/test/imageToImage.test.js` (capability fn), `server/src/test/images.test.js`
   "reference image validation" (cycles 1–4, 10), `server/src/test/imageProviderFactory.test.js`
   "image-to-image edit branches" (cycles 5–9), `server/src/test/models.test.js` (capability toggle),
-  `frontend/src/components/chat/InputArea.test.jsx` "image-to-image reference attach" (11, 13),
-  `frontend/src/components/chat/ChatInterface.test.jsx` (12), `frontend/src/components/gallery/
-  GalleryView.test.jsx` (14).
+  `frontend/src/components/chat/InputArea.test.jsx` "image-to-image reference attach" (11, 13 +
+  review fixes: file-clear on submit, drag-drop cap, non-image toast),
+  `frontend/src/components/chat/ChatInterface.test.jsx` (12 + onClearFiles wiring),
+  `frontend/src/components/gallery/GalleryView.test.jsx` (14), `server/src/test/models.test.js`
+  (capability toggle on/off preserves neighbors).
 - **Open / next:** PR #56 open for review. On merge, the gallery→composer loop (US-4) is fully live;
   no follow-up branch needed.
 - **Derived decisions:**

@@ -96,6 +96,7 @@ const ChatInterface = ({ chatId }) => {
     inputFiles,
     appendFiles,
     removeFile,
+    clearFiles,
     handleInputChange,
     handleSubmit,
     submitMessage,
@@ -276,6 +277,7 @@ const ChatInterface = ({ chatId }) => {
               imageCount={imageCount}
               onImageCountChange={setImageCount}
               supportsImageToImage={imageModelSupportsEditing}
+              onClearFiles={clearFiles}
             />
           </div>
         </div>

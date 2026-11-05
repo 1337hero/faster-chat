@@ -11,6 +11,17 @@ import { Copy, Download, ImageOff, MessageSquare, PenTool, Search, Star } from "
 const ACTION_BUTTON =
   "text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-strong/50 rounded-md p-1.5 transition-colors";
 
+// Maps a gallery image to the attachment file shape the composer expects (same
+// fields POST /api/files returns), so a generated image can be reused as a reference.
+const toReferenceFile = (image) => ({
+  id: image.id,
+  filename: image.filename,
+  size: image.size,
+  sizeFormatted: formatFileSize(image.size),
+  mimeType: image.mimeType,
+  category: FILE_CATEGORIES.IMAGE,
+});
+
 const GalleryCard = ({ image, onToggleFavorite, onOpenChat, onUseAsReference }) => {
   const handleCopyPrompt = async () => {
     if (!image.prompt) return;
@@ -82,16 +93,7 @@ const GalleryCard = ({ image, onToggleFavorite, onOpenChat, onUseAsReference }) 
           )}
           <button
             type="button"
-            onClick={() =>
-              onUseAsReference({
-                id: image.id,
-                filename: image.filename,
-                size: image.size,
-                sizeFormatted: formatFileSize(image.size),
-                mimeType: image.mimeType,
-                category: FILE_CATEGORIES.IMAGE,
-              })
-            }
+            onClick={() => onUseAsReference(toReferenceFile(image))}
             aria-label="Use as reference"
             className={ACTION_BUTTON}>
             <PenTool size={14} />
@@ -106,10 +108,13 @@ const GalleryView = () => {
   const { images, isLoading, error, toggleFavorite } = useImageGallery();
   const navigate = useNavigate();
   const setPendingReference = useUiState((state) => state.setPendingReference);
+  const setImageMode = useUiState((state) => state.setImageMode);
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   const handleUseAsReference = (file) => {
+    // Entering image mode is what makes the composer accept the pending reference.
+    setImageMode(true);
     setPendingReference(file);
     navigate({ to: "/" });
   };

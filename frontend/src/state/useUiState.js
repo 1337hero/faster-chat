@@ -31,7 +31,7 @@ export const useUiState = create(
       toggleImageMode: () => set((state) => ({ imageMode: !state.imageMode })),
       setWebSearchEnabled: (v) => set({ webSearchEnabled: v }),
       toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
-      setPendingReference: (file) => set({ pendingReference: file, imageMode: true }),
+      setPendingReference: (file) => set({ pendingReference: file }),
       clearPendingReference: () => set({ pendingReference: null }),
     }),
     {

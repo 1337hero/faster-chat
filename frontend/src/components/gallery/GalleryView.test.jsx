@@ -24,6 +24,7 @@ vi.mock("@/state/useUiState", () => ({
   useUiState: (selector) =>
     selector({
       setPendingReference: (file) => mockSetPendingReference(file),
+      setImageMode: vi.fn(),
     }),
 }));
 

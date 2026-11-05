@@ -42,6 +42,7 @@ vi.mock("@/hooks/useChat", () => ({
     inputFiles: [],
     appendFiles: vi.fn(),
     removeFile: vi.fn(),
+    clearFiles: vi.fn(),
     handleInputChange: vi.fn(),
     handleSubmit: vi.fn(),
     submitMessage: vi.fn(),
@@ -206,6 +207,7 @@ describe("ChatInterface image generation", () => {
     expect(mockGenerate.lastVars.referenceFileIds).toEqual(["ref-1", "ref-2"]);
     const userCall = mockCreateMessage.mock.calls[0][0];
     expect(userCall.message.content).toBe("[Image Edit] make it a watercolor");
+    expect(typeof inputAreaProps.onClearFiles).toBe("function");
   });
 
   test("omits referenceFileIds and tags the user message as generation when there are none", async () => {

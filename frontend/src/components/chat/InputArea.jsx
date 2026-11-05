@@ -6,6 +6,7 @@ import {
   ATTACHMENT_TITLE_TEXT,
 } from "@faster-chat/shared";
 import { Paperclip, Image, Globe, Send, Mic, MicOff } from "lucide-preact";
+import { toast } from "sonner";
 import ChatMemoryButton from "./ChatMemoryButton";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useFileDragDrop } from "@/hooks/useFileDragDrop";
@@ -37,6 +38,7 @@ const InputArea = ({
   imageCount,
   onImageCountChange,
   supportsImageToImage = false,
+  onClearFiles,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
@@ -55,7 +57,27 @@ const InputArea = ({
 
   const handleFiles = (files) => {
     const list = Array.from(files || []);
-    uploadFiles(imageMode ? list.filter((file) => file.type.startsWith("image/")) : list);
+    if (!imageMode) {
+      uploadFiles(list);
+      return;
+    }
+
+    const images = list.filter((file) => file.type.startsWith("image/"));
+    if (images.length < list.length) {
+      toast.warning("Only image files can be attached as references");
+    }
+
+    const room = IMAGE_GENERATION.MAX_REFERENCE_IMAGES - selectedFiles.length;
+    const accepted = images.slice(0, Math.max(0, room));
+    if (accepted.length < images.length) {
+      toast.warning(
+        `You can attach up to ${IMAGE_GENERATION.MAX_REFERENCE_IMAGES} reference images`
+      );
+    }
+
+    if (accepted.length > 0) {
+      uploadFiles(accepted);
+    }
   };
 
   const { dragActive, handleDrag, handleDrop } = useFileDragDrop(handleFiles);
@@ -78,12 +100,19 @@ const InputArea = ({
   // Consume a reference handed off from the gallery ("Use as reference")
   useEffect(() => {
     if (!pendingReference || !imageMode) return;
+    if (selectedFiles.length >= IMAGE_GENERATION.MAX_REFERENCE_IMAGES) {
+      toast.warning(
+        `You can attach up to ${IMAGE_GENERATION.MAX_REFERENCE_IMAGES} reference images`
+      );
+      clearPendingReference();
+      return;
+    }
     onFilesUploaded([pendingReference]);
     clearPendingReference();
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [pendingReference, imageMode, onFilesUploaded, clearPendingReference]);
+  }, [pendingReference, imageMode, selectedFiles.length, onFilesUploaded, clearPendingReference]);
 
   const handleToggleImageMode = () => {
     if (webSearchEnabled) {
@@ -128,7 +157,8 @@ const InputArea = ({
 
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
-      onImageSubmit(input.trim(), imageMode ? selectedFiles : []);
+      onImageSubmit(input.trim(), selectedFiles);
+      onClearFiles?.(); // references are consumed; don't leak them into the next message
       setImageMode(false); // Auto-reset after send
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";

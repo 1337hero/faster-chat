@@ -202,6 +202,16 @@ export function createModelUtils({ db, buildUpdateFields }) {
       );
     },
 
+    // Flips only the image-to-image bit so the other metadata columns are left untouched.
+    setModelImageToImage(modelId, enabled) {
+      const stmt = db.prepare(`
+      INSERT INTO model_metadata (model_id, supports_image_to_image)
+      VALUES (?, ?)
+      ON CONFLICT(model_id) DO UPDATE SET supports_image_to_image = excluded.supports_image_to_image
+    `);
+      stmt.run(modelId, enabled ? 1 : 0);
+    },
+
     getModelMetadata(modelId) {
       const stmt = db.prepare("SELECT * FROM model_metadata WHERE model_id = ?");
       return stmt.get(modelId);

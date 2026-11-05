@@ -134,7 +134,7 @@ adminModelsRouter.get("/:id", async (c) => {
         supports_streaming: model.supports_streaming === 1,
         supports_vision: model.supports_vision === 1,
         supports_tools: model.supports_tools === 1,
-        supports_image_to_image: model.supports_image_to_image === 1,
+        supports_image_to_image: model.supports_image_to_image,
       },
     },
   });
@@ -153,11 +153,7 @@ adminModelsRouter.put("/:id", async (c) => {
   dbUtils.updateModel(modelId, updates);
 
   if (updates.supportsImageToImage !== undefined) {
-    const existing = dbUtils.getModelMetadata(modelId) || {};
-    dbUtils.setModelMetadata(modelId, {
-      ...existing,
-      supports_image_to_image: updates.supportsImageToImage ? 1 : 0,
-    });
+    dbUtils.setModelImageToImage(modelId, updates.supportsImageToImage);
   }
 
   return c.json({ success: true });
