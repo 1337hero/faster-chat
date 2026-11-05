@@ -40,13 +40,19 @@ export async function fetchReplicateImageModels(apiKey) {
  * @returns {Promise<string[]>} Array of image URLs
  */
 export async function generateImage(client, options) {
-  const { prompt, model, aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO } = options;
+  const {
+    prompt,
+    model,
+    aspectRatio = IMAGE_GENERATION.DEFAULT_ASPECT_RATIO,
+    extraInput = {},
+  } = options;
 
   const output = await client.run(model, {
     input: {
       prompt,
       aspect_ratio: aspectRatio,
       output_format: "webp",
+      ...extraInput,
     },
   });
 

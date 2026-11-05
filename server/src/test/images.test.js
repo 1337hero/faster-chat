@@ -1,4 +1,11 @@
 import { describe, test, expect, beforeEach, afterAll, mock } from "bun:test";
+import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(__dirname, "../../..");
 
 let generateImageForProviderImpl = async () => ({
   buffer: Buffer.from("image"),
@@ -9,7 +16,7 @@ mock.module("../lib/imageProviderFactory.js", () => ({
   generateImageForProvider: (...args) => generateImageForProviderImpl(...args),
 }));
 
-const { createTestApp, resetDatabase, seedAdminUser, makeRequest, db } =
+const { createTestApp, resetDatabase, seedAdminUser, createTestUser, makeRequest, db } =
   await import("./helpers.js");
 const { dbUtils } = await import("../lib/db.js");
 
@@ -283,5 +290,150 @@ describe("batch generation", () => {
       expect(meta.chatId).toBe("chat-1");
       expect(meta.type).toBe("generated");
     }
+  });
+});
+
+describe("reference image validation", () => {
+  let app, adminCookie, adminId, factoryCalls;
+
+  async function seedReferenceFile({
+    userId,
+    mimeType = "image/png",
+    content = "reference-bytes",
+  } = {}) {
+    const fileId = randomUUID();
+    const hash = randomUUID().replace(/-/g, "");
+    const relativePath = path.join("server/data/uploads", "test-refs", hash);
+    const diskPath = path.join(PROJECT_ROOT, relativePath);
+    await mkdir(path.dirname(diskPath), { recursive: true });
+    await writeFile(diskPath, content);
+    dbUtils.createFile(
+      fileId,
+      userId,
+      `ref-${hash}.png`,
+      hash,
+      relativePath,
+      mimeType,
+      content.length,
+      hash,
+      { attachmentCategory: "image" }
+    );
+    return fileId;
+  }
+
+  beforeEach(async () => {
+    resetDatabase();
+    process.env.REPLICATE_API_KEY = "test-key";
+    factoryCalls = [];
+    generateImageForProviderImpl = async (...args) => {
+      factoryCalls.push(args);
+      return { buffer: Buffer.from("image"), mimeType: "image/png" };
+    };
+
+    app = createTestApp();
+    const admin = await seedAdminUser(app);
+    adminCookie = admin.cookie;
+    adminId = admin.user.id;
+  });
+
+  const generate = (body) =>
+    makeRequest(app, "POST", "/api/images/generate", { body, cookie: adminCookie });
+
+  test("rejects a reference the user does not own and never calls the factory", async () => {
+    const other = await createTestUser();
+    const foreignId = await seedReferenceFile({ userId: other.id });
+
+    const res = await generate({ prompt: "a cube", referenceFileIds: [foreignId] });
+
+    expect(res.status).toBe(404);
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  test("rejects a non-image reference with 400", async () => {
+    const pdfId = await seedReferenceFile({
+      userId: adminId,
+      mimeType: "application/pdf",
+      content: "%pdf",
+    });
+
+    const res = await generate({ prompt: "a cube", referenceFileIds: [pdfId] });
+
+    expect(res.status).toBe(400);
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  test("rejects more than three references with 400", async () => {
+    const [a, b, c, d] = await Promise.all(
+      [0, 1, 2, 3].map(() => seedReferenceFile({ userId: adminId }))
+    );
+
+    const res = await generate({ prompt: "a cube", referenceFileIds: [a, b, c, d] });
+
+    expect(res.status).toBe(400);
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  test("rejects references on a model without image-to-image, naming the model", async () => {
+    const providerId = dbUtils.createProvider(
+      "replicate",
+      "Replicate",
+      "replicate",
+      null,
+      null,
+      null,
+      null
+    );
+    const modelId = dbUtils.createModel(providerId, "flux-1.1", "Flux 1.1", true, "image");
+    dbUtils.setModelMetadata(modelId, { supports_image_to_image: false });
+    const refId = await seedReferenceFile({ userId: adminId });
+
+    const res = await generate({
+      prompt: "a cube",
+      modelId: "flux-1.1",
+      referenceFileIds: [refId],
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toContain("flux-1.1");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
+  test("forwards owned image references to the factory as buffers", async () => {
+    const providerId = dbUtils.createProvider("google", "Google", "google", null, null, null, null);
+    dbUtils.createModel(providerId, "gemini-image", "Gemini Image", true, "image");
+    const refId = await seedReferenceFile({ userId: adminId, content: "ref-bytes" });
+
+    const res = await generate({
+      prompt: "a cube",
+      modelId: "gemini-image",
+      referenceFileIds: [refId],
+    });
+
+    expect(res.status).toBe(200);
+    expect(factoryCalls).toHaveLength(1);
+    const [providerName, , options] = factoryCalls[0];
+    expect(providerName).toBe("google");
+    expect(options.references).toEqual([{ buffer: expect.any(Buffer), mimeType: "image/png" }]);
+    expect(options.references[0].buffer.toString()).toBe("ref-bytes");
+  });
+
+  test("records the reference ids and prompt in the generated file meta", async () => {
+    const providerId = dbUtils.createProvider("google", "Google", "google", null, null, null, null);
+    dbUtils.createModel(providerId, "gemini-image", "Gemini Image", true, "image");
+    const refId = await seedReferenceFile({ userId: adminId });
+
+    const res = await generate({
+      prompt: "make it a watercolor",
+      modelId: "gemini-image",
+      referenceFileIds: [refId],
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const row = db.prepare("SELECT meta FROM files WHERE id = ?").get(body.images[0].id);
+    const meta = JSON.parse(row.meta);
+    expect(meta.references).toEqual([refId]);
+    expect(meta.prompt).toBe("make it a watercolor");
   });
 });

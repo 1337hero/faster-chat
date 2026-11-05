@@ -13,6 +13,8 @@ vi.mock("@/hooks/useFileUploader", () => ({
 
 let mockImageMode = false;
 let mockImageCount = 1;
+let mockPendingReference = null;
+let mockClearPendingReference = null;
 
 // Mock useUiState
 vi.mock("@/state/useUiState", () => ({
@@ -24,6 +26,8 @@ vi.mock("@/state/useUiState", () => ({
       setWebSearchEnabled: vi.fn(),
       imageCount: mockImageCount,
       setImageCount: vi.fn(),
+      pendingReference: mockPendingReference,
+      clearPendingReference: mockClearPendingReference,
     };
     return selector(state);
   },
@@ -74,6 +78,7 @@ const defaultProps = {
   onAspectRatioChange: vi.fn(),
   imageCount: 1,
   onImageCountChange: vi.fn(),
+  supportsImageToImage: true,
 };
 
 describe("InputArea", () => {
@@ -82,6 +87,8 @@ describe("InputArea", () => {
     mockDragActive = false;
     mockImageMode = false;
     mockImageCount = 1;
+    mockPendingReference = null;
+    mockClearPendingReference = vi.fn();
     capturedOnFileSelect = null;
   });
 
@@ -209,6 +216,50 @@ describe("InputArea", () => {
     const fileInput = document.getElementById("chat-input-file-upload");
     expect(fileInput).toBeTruthy();
     expect(fileInput.multiple).toBe(true);
+  });
+
+  describe("image-to-image reference attach", () => {
+    test("image mode accepts image files only when the model supports editing", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.accept).toBe("image/*");
+    });
+
+    test("text mode keeps the general attachment accept filter", () => {
+      mockImageMode = false;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.accept).not.toBe("image/*");
+    });
+
+    test("hides the attach control in image mode when the model cannot edit", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={false} />);
+      expect(screen.queryByLabelText("Add attachment")).toBeNull();
+    });
+
+    test("shows the attach control in image mode when the model can edit", () => {
+      mockImageMode = true;
+      render(<InputArea {...defaultProps} supportsImageToImage={true} />);
+      expect(screen.getByLabelText("Add attachment")).toBeTruthy();
+    });
+
+    test("disables attach in image mode once three references are attached", () => {
+      mockImageMode = true;
+      render(
+        <InputArea
+          {...defaultProps}
+          selectedFiles={[
+            { id: "a", filename: "a.png" },
+            { id: "b", filename: "b.png" },
+            { id: "c", filename: "c.png" },
+          ]}
+        />
+      );
+      const fileInput = document.getElementById("chat-input-file-upload");
+      expect(fileInput.disabled).toBe(true);
+    });
   });
 
   describe("aspect ratio chips", () => {

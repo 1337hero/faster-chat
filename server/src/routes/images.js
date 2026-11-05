@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { randomUUID } from "crypto";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { IMAGE_GENERATION, IMAGE_MODELS } from "@faster-chat/shared";
+import { IMAGE_GENERATION, IMAGE_MODELS, supportsImageToImage } from "@faster-chat/shared";
 import { dbUtils } from "../lib/db.js";
 import { ensureSession } from "../middleware/auth.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
@@ -67,6 +67,7 @@ async function saveGeneratedImage({
   aspectRatio,
   source,
   chatId,
+  referenceIds,
 }) {
   const fileId = randomUUID();
   const extension = mimeType === "image/webp" ? "webp" : mimeType.split("/")[1] || "png";
@@ -101,6 +102,7 @@ async function saveGeneratedImage({
       source,
       generatedAt: Date.now(),
       chatId: chatId || null,
+      references: referenceIds && referenceIds.length > 0 ? referenceIds : null,
     }
   );
 
@@ -129,6 +131,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     chatId,
     modelId,
     numImages = IMAGE_GENERATION.DEFAULT_NUM_IMAGES,
+    referenceFileIds,
   } = body;
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
@@ -154,9 +157,10 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
   let modelIdentifier = IMAGE_MODELS.DEFAULT;
   let modelDisplayName = IMAGE_MODELS.DISPLAY_NAME;
   let baseUrl = null;
+  let model = null;
 
   if (modelId) {
-    const model = dbUtils.getEnabledModelWithProvider(modelId);
+    model = dbUtils.getEnabledModelWithProvider(modelId);
     if (model) {
       providerName = model.provider_name;
       modelIdentifier = model.model_id;
@@ -179,6 +183,51 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
     );
   }
 
+  let references = null;
+  if (referenceFileIds) {
+    if (
+      !Array.isArray(referenceFileIds) ||
+      referenceFileIds.length === 0 ||
+      referenceFileIds.length > IMAGE_GENERATION.MAX_REFERENCE_IMAGES
+    ) {
+      return c.json(
+        {
+          error: `referenceFileIds must be an array of 1 to ${IMAGE_GENERATION.MAX_REFERENCE_IMAGES} file ids`,
+        },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const referenceFiles = dbUtils.getFilesByIdsForUser(referenceFileIds, user.id);
+    if (referenceFiles.length !== referenceFileIds.length) {
+      return c.json({ error: "A reference file was not found" }, HTTP_STATUS.NOT_FOUND);
+    }
+
+    const nonImage = referenceFiles.find((file) => !file.mime_type?.startsWith("image/"));
+    if (nonImage) {
+      return c.json(
+        { error: `Reference file ${nonImage.filename} is not an image` },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const modelMetadata = model ? { supports_image_to_image: model.supports_image_to_image } : null;
+    if (!supportsImageToImage(providerName, modelMetadata, modelIdentifier)) {
+      return c.json(
+        {
+          error: `Model ${modelIdentifier} does not support image-to-image editing. Remove the reference images or choose a model that does.`,
+        },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    references = [];
+    for (const file of referenceFiles) {
+      const buffer = await readFile(path.join(PROJECT_ROOT, file.path));
+      references.push({ buffer, mimeType: file.mime_type });
+    }
+  }
+
   const trimmedPrompt = prompt.trim();
   const tasks = Array.from({ length: numImages }, (_, index) => async () => {
     try {
@@ -189,6 +238,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
           aspectRatio,
           model: modelIdentifier,
           baseUrl,
+          references,
         }),
       };
     } catch (error) {
@@ -217,6 +267,7 @@ imagesRouter.post("/generate", createRateLimiter(ENDPOINT_RATE_LIMITS.IMAGE_GEN)
       aspectRatio,
       source: providerName,
       chatId,
+      referenceIds: referenceFileIds,
     });
 
     if (!record) {

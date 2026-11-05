@@ -112,6 +112,15 @@ const ModelsTab = () => {
     },
   });
 
+  // Toggle image-to-image capability for a model
+  const toggleImageToImageMutation = useMutation({
+    mutationFn: ({ modelId, supportsImageToImage }) =>
+      providersClient.updateModel(modelId, { supportsImageToImage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "models"] });
+    },
+  });
+
   // Focus input when editing starts
   useEffect(() => {
     if (editingModelId && inputRef.current) {
@@ -439,6 +448,26 @@ const ModelsTab = () => {
                                 className="text-theme-blue hover:bg-theme-blue/10 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">
                                 Set Default
                               </button>
+                            )}
+
+                            {model.model_type === "image" && (
+                              <label
+                                className="text-theme-text-muted flex items-center gap-1.5 text-xs"
+                                title="Allow this model to accept reference images for editing">
+                                <input
+                                  type="checkbox"
+                                  checked={!!model.metadata?.supports_image_to_image}
+                                  onChange={(e) =>
+                                    toggleImageToImageMutation.mutate({
+                                      modelId: model.id,
+                                      supportsImageToImage: e.target.checked,
+                                    })
+                                  }
+                                  disabled={toggleImageToImageMutation.isPending}
+                                  className="h-3.5 w-3.5 accent-blue-500"
+                                />
+                                Edit
+                              </label>
                             )}
 
                             <Switch

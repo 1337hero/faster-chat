@@ -11,7 +11,7 @@ import { useCreateChatMutation, useCreateMessageMutation } from "@/hooks/useChat
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useUiState } from "@/state/useUiState";
 import { providersClient } from "@/lib/providersClient";
-import { CACHE_DURATIONS, supportedAspectRatios } from "@faster-chat/shared";
+import { CACHE_DURATIONS, supportedAspectRatios, supportsImageToImage } from "@faster-chat/shared";
 import { useQuery } from "@tanstack/react-query";
 
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
@@ -64,6 +64,11 @@ const ChatInterface = ({ chatId }) => {
   const aspectRatio = aspectRatios.includes(storedAspectRatio)
     ? storedAspectRatio
     : aspectRatios[0];
+  const imageModelSupportsEditing = supportsImageToImage(
+    imageModel?.provider,
+    imageModel?.metadata,
+    imageModel?.model_id
+  );
 
   const handleModelChange = (modelId) => {
     setPreferredModel(modelId);
@@ -123,8 +128,13 @@ const ChatInterface = ({ chatId }) => {
     },
   });
 
-  async function handleImageSubmit(prompt) {
+  async function handleImageSubmit(prompt, referenceFiles) {
     if (!prompt || !chatId) return;
+
+    const referenceFileIds =
+      referenceFiles && referenceFiles.length > 0
+        ? referenceFiles.map((file) => file.id)
+        : undefined;
 
     const userMessageId = crypto.randomUUID();
     const userCreatedAt = Date.now();
@@ -133,7 +143,7 @@ const ChatInterface = ({ chatId }) => {
       message: {
         id: userMessageId,
         role: "user",
-        content: `[Image Generation] ${prompt}`,
+        content: referenceFileIds ? `[Image Edit] ${prompt}` : `[Image Generation] ${prompt}`,
         createdAt: userCreatedAt,
       },
     });
@@ -141,7 +151,14 @@ const ChatInterface = ({ chatId }) => {
     setInput("");
 
     generateImage(
-      { prompt, chatId, model: preferredImageModel, aspectRatio, numImages: imageCount },
+      {
+        prompt,
+        chatId,
+        model: preferredImageModel,
+        aspectRatio,
+        numImages: imageCount,
+        referenceFileIds,
+      },
       {
         onSuccess: async (data) => {
           const images = data.images || [];
@@ -258,6 +275,7 @@ const ChatInterface = ({ chatId }) => {
               onAspectRatioChange={setImageAspectRatio}
               imageCount={imageCount}
               onImageCountChange={setImageCount}
+              supportsImageToImage={imageModelSupportsEditing}
             />
           </div>
         </div>

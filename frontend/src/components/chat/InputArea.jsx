@@ -36,16 +36,29 @@ const InputArea = ({
   onAspectRatioChange,
   imageCount,
   onImageCountChange,
+  supportsImageToImage = false,
 }) => {
   const textareaRef = useRef(null);
   const { uploadFiles, uploading, currentFile } = useFileUploader({
     onFilesUploaded,
   });
-  const { dragActive, handleDrag, handleDrop } = useFileDragDrop((files) => uploadFiles(files));
+  const pendingReference = useUiState((state) => state.pendingReference);
+  const clearPendingReference = useUiState((state) => state.clearPendingReference);
   const imageMode = useUiState((state) => state.imageMode);
   const toggleImageMode = useUiState((state) => state.toggleImageMode);
   const setImageMode = useUiState((state) => state.setImageMode);
   const setWebSearchEnabled = useUiState((state) => state.setWebSearchEnabled);
+
+  const atReferenceCap = imageMode && selectedFiles.length >= IMAGE_GENERATION.MAX_REFERENCE_IMAGES;
+  const fileInputDisabled = disabled || uploading || atReferenceCap;
+  const fileAccept = imageMode ? "image/*" : ATTACHMENT_INPUT_ACCEPT;
+
+  const handleFiles = (files) => {
+    const list = Array.from(files || []);
+    uploadFiles(imageMode ? list.filter((file) => file.type.startsWith("image/")) : list);
+  };
+
+  const { dragActive, handleDrag, handleDrop } = useFileDragDrop(handleFiles);
 
   // Window-level drop guard: prevent browser from opening files dropped outside the input
   useEffect(() => {
@@ -61,6 +74,16 @@ const InputArea = ({
       window.removeEventListener("drop", preventFileDrop);
     };
   }, []);
+
+  // Consume a reference handed off from the gallery ("Use as reference")
+  useEffect(() => {
+    if (!pendingReference || !imageMode) return;
+    onFilesUploaded([pendingReference]);
+    clearPendingReference();
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [pendingReference, imageMode, onFilesUploaded, clearPendingReference]);
 
   const handleToggleImageMode = () => {
     if (webSearchEnabled) {
@@ -105,7 +128,7 @@ const InputArea = ({
 
     // Image mode: call onImageSubmit instead of normal handleSubmit
     if (imageMode && onImageSubmit) {
-      onImageSubmit(input.trim());
+      onImageSubmit(input.trim(), imageMode ? selectedFiles : []);
       setImageMode(false); // Auto-reset after send
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -122,7 +145,7 @@ const InputArea = ({
   };
 
   const handleFileChange = (e) => {
-    uploadFiles(e.target.files);
+    handleFiles(e.target.files);
     e.target.value = "";
   };
 
@@ -156,16 +179,16 @@ const InputArea = ({
           type="file"
           multiple
           onChange={handleFileChange}
-          disabled={disabled || uploading}
+          disabled={fileInputDisabled}
           className="sr-only"
-          accept={ATTACHMENT_INPUT_ACCEPT}
+          accept={fileAccept}
         />
 
         {uploading && currentFile && (
           <div className="text-theme-text-muted mb-2 text-xs">Uploading {currentFile}...</div>
         )}
 
-        {!imageMode && <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />}
+        <FilePreviewList files={selectedFiles} onRemove={onRemoveFile} />
 
         {/* Textarea - Top */}
         <textarea
@@ -219,17 +242,19 @@ const InputArea = ({
         <div className="flex items-center justify-between px-2 pb-1">
           {/* Tool Buttons - Left */}
           <div className="flex items-center gap-1">
-            <label
-              htmlFor={FILE_INPUT_ID}
-              className={`rounded-lg p-2 transition-colors ${
-                disabled || uploading
-                  ? "text-theme-muted/40 cursor-not-allowed opacity-50"
-                  : "text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 cursor-pointer"
-              }`}
-              title={ATTACHMENT_TITLE_TEXT}
-              aria-label="Add attachment">
-              <Paperclip size={18} />
-            </label>
+            {(!imageMode || supportsImageToImage) && (
+              <label
+                htmlFor={FILE_INPUT_ID}
+                className={`rounded-lg p-2 transition-colors ${
+                  fileInputDisabled
+                    ? "text-theme-muted/40 cursor-not-allowed opacity-50"
+                    : "text-theme-muted hover:text-theme-text hover:bg-theme-surface-strong/50 cursor-pointer"
+                }`}
+                title={ATTACHMENT_TITLE_TEXT}
+                aria-label="Add attachment">
+                <Paperclip size={18} />
+              </label>
+            )}
             <button
               type="button"
               onClick={handleToggleImageMode}

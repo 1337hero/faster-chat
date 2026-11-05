@@ -5,39 +5,63 @@ import {
   downloadImage,
 } from "./imageGeneration.js";
 
+function toDataUrl(reference) {
+  return `data:${reference.mimeType};base64,${reference.buffer.toString("base64")}`;
+}
+
 export async function generateImageForProvider(providerName, apiKey, options) {
-  const { prompt, aspectRatio, model, baseUrl } = options;
+  const { prompt, aspectRatio, model, baseUrl, references } = options;
 
   switch (providerName) {
     case "replicate":
-      return generateWithReplicate(apiKey, { prompt, aspectRatio, model });
+      return generateWithReplicate(apiKey, { prompt, aspectRatio, model, references });
 
     case "openrouter":
-      return generateWithOpenRouter(apiKey, { prompt, aspectRatio, model });
+      return generateWithOpenRouter(apiKey, { prompt, aspectRatio, model, references });
 
     case "openai":
-      return generateWithOpenAI(apiKey, { prompt, aspectRatio, model });
+      return generateWithOpenAI(apiKey, { prompt, aspectRatio, model, references });
 
     case "google":
-      return generateWithGoogle(apiKey, { prompt, aspectRatio, model });
+      return generateWithGoogle(apiKey, { prompt, aspectRatio, model, references });
 
     default:
       if (baseUrl) {
-        return generateWithOpenAICompatible(apiKey, { prompt, aspectRatio, model, baseUrl });
+        return generateWithOpenAICompatible(apiKey, {
+          prompt,
+          aspectRatio,
+          model,
+          baseUrl,
+          references,
+        });
       }
       throw new Error(`Image generation not supported for provider: ${providerName}`);
   }
 }
 
 async function generateWithReplicate(apiKey, options) {
+  const { prompt, aspectRatio, model, references } = options;
   const client = createReplicateClient(apiKey);
-  const urls = await replicateGenerate(client, options);
+  const extraInput = {};
+  if (references) {
+    const dataUrls = references.map(toDataUrl);
+    extraInput.image = dataUrls.length === 1 ? dataUrls[0] : dataUrls;
+  }
+  const urls = await replicateGenerate(client, { prompt, aspectRatio, model, extraInput });
   const { buffer, mimeType } = await downloadImage(urls[0]);
   return { buffer, mimeType, sourceUrl: urls[0] };
 }
 
 async function generateWithOpenRouter(apiKey, options) {
-  const { prompt, aspectRatio, model } = options;
+  const { prompt, aspectRatio, model, references } = options;
+
+  const body = { model, prompt, aspect_ratio: aspectRatio };
+  if (references) {
+    body.input_references = references.map((reference) => ({
+      type: "image_url",
+      image_url: { url: toDataUrl(reference) },
+    }));
+  }
 
   const response = await fetch("https://openrouter.ai/api/v1/images", {
     method: "POST",
@@ -45,7 +69,7 @@ async function generateWithOpenRouter(apiKey, options) {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, prompt, aspect_ratio: aspectRatio }),
+    body: JSON.stringify(body),
   });
 
   const data = await response.json();
@@ -65,27 +89,47 @@ async function generateWithOpenRouter(apiKey, options) {
 }
 
 async function generateWithOpenAI(apiKey, options) {
-  const { prompt, aspectRatio, model = "dall-e-3" } = options;
+  const { prompt, aspectRatio, model = "dall-e-3", references } = options;
 
   const size = openAiSizeTable(model)[aspectRatio];
   if (!size) {
     throw new Error(`Aspect ratio ${aspectRatio} not supported by ${model}`);
   }
 
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      prompt,
-      n: 1,
-      size,
-      ...(model.startsWith("dall-e") && { response_format: "b64_json" }),
-    }),
-  });
+  let response;
+  if (references) {
+    const form = new FormData();
+    form.append("model", model);
+    form.append("prompt", prompt);
+    form.append("size", size);
+    for (const reference of references) {
+      form.append(
+        "image[]",
+        new Blob([reference.buffer], { type: reference.mimeType }),
+        `reference.${reference.mimeType.split("/")[1] || "png"}`
+      );
+    }
+    response = await fetch("https://api.openai.com/v1/images/edits", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+  } else {
+    response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        n: 1,
+        size,
+        ...(model.startsWith("dall-e") && { response_format: "b64_json" }),
+      }),
+    });
+  }
 
   const data = await response.json();
   if (!response.ok) {
@@ -102,16 +146,37 @@ async function generateWithOpenAI(apiKey, options) {
 }
 
 async function generateWithOpenAICompatible(apiKey, options) {
-  const { prompt, aspectRatio, model, baseUrl } = options;
+  const { prompt, aspectRatio, model, baseUrl, references } = options;
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/images/generations`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey || "local"}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model, prompt, n: 1, size: ASPECT_RATIO_SIZES[aspectRatio] }),
-  });
+  const base = baseUrl.replace(/\/$/, "");
+  let response;
+  if (references) {
+    const form = new FormData();
+    form.append("model", model);
+    form.append("prompt", prompt);
+    form.append("size", ASPECT_RATIO_SIZES[aspectRatio]);
+    for (const reference of references) {
+      form.append(
+        "image[]",
+        new Blob([reference.buffer], { type: reference.mimeType }),
+        `reference.${reference.mimeType.split("/")[1] || "png"}`
+      );
+    }
+    response = await fetch(`${base}/images/edits`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey || "local"}` },
+      body: form,
+    });
+  } else {
+    response = await fetch(`${base}/images/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey || "local"}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model, prompt, n: 1, size: ASPECT_RATIO_SIZES[aspectRatio] }),
+    });
+  }
 
   const data = await response.json();
   if (!response.ok) {
@@ -130,7 +195,17 @@ async function generateWithOpenAICompatible(apiKey, options) {
 }
 
 async function generateWithGoogle(apiKey, options) {
-  const { prompt, aspectRatio, model } = options;
+  const { prompt, aspectRatio, model, references } = options;
+
+  const parts = [];
+  if (references) {
+    for (const reference of references) {
+      parts.push({
+        inlineData: { data: reference.buffer.toString("base64"), mimeType: reference.mimeType },
+      });
+    }
+  }
+  parts.push({ text: prompt });
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -138,7 +213,7 @@ async function generateWithGoogle(apiKey, options) {
       method: "POST",
       headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts }],
         generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio } },
       }),
     }

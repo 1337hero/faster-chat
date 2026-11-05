@@ -8,10 +8,18 @@ async function generateImage({
   chatId,
   model,
   numImages = IMAGE_GENERATION.DEFAULT_NUM_IMAGES,
+  referenceFileIds,
 }) {
   return apiFetch("/api/images/generate", {
     method: "POST",
-    body: JSON.stringify({ prompt, aspectRatio, chatId, modelId: model, numImages }),
+    body: JSON.stringify({
+      prompt,
+      aspectRatio,
+      chatId,
+      modelId: model,
+      numImages,
+      ...(referenceFileIds && { referenceFileIds }),
+    }),
   });
 }
 

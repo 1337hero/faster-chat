@@ -3,6 +3,7 @@ export const IMAGE_GENERATION = {
   DEFAULT_ASPECT_RATIO: "1:1",
   MAX_IMAGES: 4,
   DEFAULT_NUM_IMAGES: 1,
+  MAX_REFERENCE_IMAGES: 3,
   DOWNLOAD_TIMEOUT_MS: 30000,
   GENERATED_DIR: "generated",
   SAFETY_TOLERANCE: 5,
@@ -31,6 +32,24 @@ export function supportedAspectRatios(provider, modelId) {
   return provider === "openai"
     ? Object.keys(openAiSizeTable(modelId))
     : IMAGE_GENERATION.ASPECT_RATIOS;
+}
+
+export const IMAGE_TO_IMAGE_DEFAULTS = {
+  google: true,
+  openai: true,
+  openrouter: true,
+  replicate: false,
+  default: false,
+};
+
+export function supportsImageToImage(provider, metadata, modelId) {
+  if (metadata?.supports_image_to_image != null) {
+    return !!metadata.supports_image_to_image;
+  }
+  if (provider === "openai" && modelId?.startsWith("dall-e")) {
+    return false;
+  }
+  return provider ? IMAGE_TO_IMAGE_DEFAULTS[provider] ?? IMAGE_TO_IMAGE_DEFAULTS.default : false;
 }
 
 // Phase 1: Single hardcoded model

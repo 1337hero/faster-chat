@@ -15,6 +15,7 @@ export const useUiState = create(
       autoScroll: true,
       imageMode: false,
       webSearchEnabled: false,
+      pendingReference: null,
 
       setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -30,6 +31,8 @@ export const useUiState = create(
       toggleImageMode: () => set((state) => ({ imageMode: !state.imageMode })),
       setWebSearchEnabled: (v) => set({ webSearchEnabled: v }),
       toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
+      setPendingReference: (file) => set({ pendingReference: file, imageMode: true }),
+      clearPendingReference: () => set({ pendingReference: null }),
     }),
     {
       name: "ui-state",
