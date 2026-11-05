@@ -5,8 +5,9 @@ import { FontSelector } from "@/components/settings/FontSelector";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 import { useThemeStore } from "@/state/useThemeStore";
 import { Switch } from "@/components/ui/Switch";
-import { KEYBOARD_SHORTCUTS } from "@faster-chat/shared";
-import { LayoutGrid, Keyboard } from "lucide-preact";
+import { KEYBOARD_SHORTCUTS, EXPORT_CONSTANTS } from "@faster-chat/shared";
+import { LayoutGrid, Keyboard, Download } from "lucide-preact";
+import { downloadUrl } from "@/lib/download";
 
 const MemorySection = lazy(() => import("@/components/settings/MemorySection"));
 
@@ -139,6 +140,32 @@ const Settings = () => {
               {KEYBOARD_SHORTCUTS.map((shortcut) => (
                 <KeyboardShortcut key={shortcut.id} keys={shortcut.keys} label={shortcut.label} />
               ))}
+            </div>
+          </div>
+
+          {/* Data */}
+          <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
+            <h2 className="text-theme-text text-lg font-semibold">Data</h2>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <div>
+                <label className="text-theme-text block text-sm font-medium">
+                  Export all chats
+                </label>
+                <p className="text-theme-text-muted mt-0.5 text-sm">
+                  Download every chat, folder, and attachment reference as a JSON file
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  downloadUrl(
+                    `${EXPORT_CONSTANTS.ENDPOINTS.ALL}?format=${EXPORT_CONSTANTS.FORMATS.JSON}`
+                  )
+                }
+                className="bg-theme-primary hover:bg-theme-primary/90 ease-snappy flex flex-shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors duration-75">
+                <Download size={16} />
+                Export
+              </button>
             </div>
           </div>
 

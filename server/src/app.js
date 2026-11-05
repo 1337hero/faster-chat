@@ -14,6 +14,7 @@ import { settingsRouter } from "./routes/settings.js";
 import { versionRouter } from "./routes/version.js";
 import { imagesRouter } from "./routes/images.js";
 import { importRouter } from "./routes/import.js";
+import { exportRouter } from "./routes/export.js";
 import { foldersRouter } from "./routes/folders.js";
 import { memoryRouter } from "./routes/memory.js";
 
@@ -69,6 +70,7 @@ export function createApp({ enableLogger = false } = {}) {
   app.route("/api/version", versionRouter);
   app.route("/api/images", imagesRouter);
   app.route("/api/import", importRouter);
+  app.route("/api/export", exportRouter);
   app.route("/api/folders", foldersRouter);
   app.route("/api/memory", memoryRouter);
 
