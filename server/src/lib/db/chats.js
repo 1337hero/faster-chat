@@ -168,9 +168,10 @@ export function createChatUtils({ db }) {
       content,
       model = null,
       fileIds = null,
-      metadata = null
+      metadata = null,
+      createdAt = Date.now()
     ) {
-      const now = Date.now();
+      const now = createdAt;
       const metadataJson = metadata ? JSON.stringify(metadata) : null;
 
       // Start transaction for atomicity

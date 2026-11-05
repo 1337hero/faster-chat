@@ -15,12 +15,14 @@ export const IMPORT_CONSTANTS = {
   // Import Sources
   SOURCES: {
     CHATGPT: 'chatgpt',
+    CLAUDE: 'claude',
   },
 
   // API Endpoints
   ENDPOINTS: {
     VALIDATE: '/api/import/validate',
     CHATGPT: '/api/import/chatgpt',
+    CLAUDE: '/api/import/claude',
   },
 
   // Preview Settings
