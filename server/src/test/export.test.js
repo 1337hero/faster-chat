@@ -204,6 +204,7 @@ describe("chat export", () => {
 
   describe("all chats", () => {
     test("returns only the caller's live chats, including archived and foldered", async () => {
+      dbUtils.createChat("chat-empty", alice.id, null);
       const res = await makeRequest(app, "GET", "/api/export?format=json", {
         cookie: aliceCookie,
       });

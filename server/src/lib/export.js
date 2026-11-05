@@ -52,11 +52,10 @@ export function exportChat(userId, chat) {
 }
 
 export function exportAllChats(userId) {
-  return buildExport(
-    userId,
-    dbUtils.getAllChatsByUserId(userId),
-    dbUtils.getFoldersByUserId(userId)
-  );
+  const chats = dbUtils
+    .getAllChatsByUserId(userId)
+    .filter((chat) => dbUtils.getMessageCountByChat(chat.id) > 0);
+  return buildExport(userId, chats, dbUtils.getFoldersByUserId(userId));
 }
 
 export function chatToMarkdown(userId, chat) {
