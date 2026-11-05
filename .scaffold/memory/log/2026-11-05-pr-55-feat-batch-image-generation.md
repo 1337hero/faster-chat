@@ -1,11 +1,16 @@
 # 2026-11-05 — PR #55: batch image generation
 
 - **Origin:** Mike's direct task (2026-11-04), specced in `specs/batch-image-generation.md`. Shape: feature.
-- **Delivery:** PR #55 (`feat/batch-image-generation`). Key files: `server/src/routes/images.js`,
+- **Delivery:** PR #55 (`feat/batch-image-generation`), merged to `main` as `40747c7` (Mike merged manually on 2026-11-05 after his review; the no-self-merge rail was explicitly overridden by Mike for this PR). Key files: `server/src/routes/images.js`,
   `server/src/lib/concurrency.js` (new), `server/src/lib/httpStatus.js` (502),
   `frontend/src/components/chat/InputArea.jsx`, `frontend/src/components/chat/ChatInterface.jsx`,
   `frontend/src/state/useUiState.js`, `frontend/src/hooks/useImageGeneration.js`.
-- **Intent changes:** none.
+- **Intent changes:** Mike's review (PR #55) accepted and shipped in the same branch: total-failure
+  toasts must surface the provider reason (`error.body.failures[0].error` via `apiFetch` attaching the
+  parsed body); dead `results.sort` deleted; raw cap passed to `runWithConcurrency`; generated-dir mkdir
+  hoisted out of the per-image save; `IMAGE_COUNTS` module-level; the unreachable `images.length === 0`
+  silent return deleted. Noted, not changed: implementation-coupled ChatInterface tests (wiring tests by
+  design, Preact mocking reality) and the pre-existing fragile string-matching in `normalizeProviderError`.
 - **Requirements satisfied:**
   - US-1: count chips 1–4 in image mode, persisted in `useUiState.imageCount`.
   - US-2: N images attach to one assistant message, in order (fileIds array).
@@ -28,7 +33,7 @@
   `server/src/test/images.test.js` "batch generation" describe (cycles 1–6) + updated failure
   contract tests, `frontend/src/components/chat/InputArea.test.jsx` "image count chips"
   (cycle 8), `frontend/src/components/chat/ChatInterface.test.jsx` (cycles 9–10).
-- **Open / next:** review + merge; then the image-to-image spec builds on this response shape.
+- **Open / next:** merged; the image-to-image spec builds on this response shape.
 - **Derived decisions:**
   - Total failure (including single-image) is 502 with a `failures` array, replacing the old
     401/429/500 single-image contract — per the spec's breaking-change note. The 502 body carries a
