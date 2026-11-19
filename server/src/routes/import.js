@@ -8,6 +8,26 @@ import {
   validateChatGPTExport,
   getImportStats,
 } from "../lib/chatgptImporter.js";
+import { isClaudeExport, parseClaudeExport, validateClaudeExport } from "../lib/claudeImporter.js";
+
+const FORMATS = {
+  [IMPORT_CONSTANTS.SOURCES.CHATGPT]: {
+    name: "ChatGPT",
+    validate: validateChatGPTExport,
+    parse: parseChatGPTExport,
+    endpoint: IMPORT_CONSTANTS.ENDPOINTS.CHATGPT,
+  },
+  [IMPORT_CONSTANTS.SOURCES.CLAUDE]: {
+    name: "Claude",
+    validate: validateClaudeExport,
+    parse: parseClaudeExport,
+    endpoint: IMPORT_CONSTANTS.ENDPOINTS.CLAUDE,
+  },
+};
+
+function detectFormat(data) {
+  return isClaudeExport(data) ? IMPORT_CONSTANTS.SOURCES.CLAUDE : IMPORT_CONSTANTS.SOURCES.CHATGPT;
+}
 
 export const importRouter = new Hono();
 
@@ -24,8 +44,8 @@ function validateRequestBody(body) {
   return { valid: true };
 }
 
-function validateAndParseExport(data) {
-  const validation = validateChatGPTExport(data);
+function validateAndParseExport(data, format) {
+  const validation = FORMATS[format].validate(data);
   if (!validation.valid) {
     return {
       success: false,
@@ -33,7 +53,7 @@ function validateAndParseExport(data) {
     };
   }
 
-  const conversations = parseChatGPTExport(data);
+  const conversations = FORMATS[format].parse(data);
   if (conversations.length === 0) {
     return {
       success: false,
@@ -59,8 +79,10 @@ function importConversation(conversation, userId) {
   );
 
   let messageCount = 0;
+  let lastCreatedAt = 0;
   for (const message of conversation.messages) {
     const messageId = crypto.randomUUID();
+    lastCreatedAt = Math.max(message.createdAt || Date.now(), lastCreatedAt + 1);
     dbUtils.createMessage(
       messageId,
       chatId,
@@ -68,7 +90,9 @@ function importConversation(conversation, userId) {
       message.role,
       message.content,
       message.model,
-      null // No file attachments from ChatGPT imports
+      null,
+      null,
+      lastCreatedAt
     );
     messageCount++;
   }
@@ -96,48 +120,62 @@ function buildPreview(conversations) {
 // Routes
 // ============================================================================
 
-importRouter.post("/chatgpt", requireRole("admin", "member"), async (c) => {
-  const user = c.get("user");
-  const body = await c.req.json();
+function importHandler(format) {
+  return async (c) => {
+    const user = c.get("user");
+    const body = await c.req.json();
 
-  const bodyValidation = validateRequestBody(body);
-  if (!bodyValidation.valid) {
-    return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
-  }
-
-  const parseResult = validateAndParseExport(body.data);
-  if (!parseResult.success) {
-    return c.json(
-      { error: "Invalid ChatGPT export format", details: parseResult.errors },
-      HTTP_STATUS.BAD_REQUEST
-    );
-  }
-
-  const importedChatIds = [];
-  let totalMessages = 0;
-
-  const importAll = db.transaction(() => {
-    for (const conversation of parseResult.conversations) {
-      const { chatId, messageCount } = importConversation(conversation, user.id);
-      importedChatIds.push(chatId);
-      totalMessages += messageCount;
+    const bodyValidation = validateRequestBody(body);
+    if (!bodyValidation.valid) {
+      return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
     }
-  });
-  importAll();
 
-  return c.json(
-    {
-      success: true,
-      imported: {
-        conversations: importedChatIds.length,
-        messages: totalMessages,
+    const parseResult = validateAndParseExport(body.data, format);
+    if (!parseResult.success) {
+      return c.json(
+        { error: `Invalid ${FORMATS[format].name} export format`, details: parseResult.errors },
+        HTTP_STATUS.BAD_REQUEST
+      );
+    }
+
+    const importedChatIds = [];
+    let totalMessages = 0;
+
+    const importAll = db.transaction(() => {
+      for (const conversation of parseResult.conversations) {
+        const { chatId, messageCount } = importConversation(conversation, user.id);
+        importedChatIds.push(chatId);
+        totalMessages += messageCount;
+      }
+    });
+    importAll();
+
+    return c.json(
+      {
+        success: true,
+        imported: {
+          conversations: importedChatIds.length,
+          messages: totalMessages,
+        },
+        stats: getImportStats(parseResult.conversations),
+        chatIds: importedChatIds,
       },
-      stats: getImportStats(parseResult.conversations),
-      chatIds: importedChatIds,
-    },
-    HTTP_STATUS.CREATED
-  );
-});
+      HTTP_STATUS.CREATED
+    );
+  };
+}
+
+importRouter.post(
+  "/chatgpt",
+  requireRole("admin", "member"),
+  importHandler(IMPORT_CONSTANTS.SOURCES.CHATGPT)
+);
+
+importRouter.post(
+  "/claude",
+  requireRole("admin", "member"),
+  importHandler(IMPORT_CONSTANTS.SOURCES.CLAUDE)
+);
 
 importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
   const body = await c.req.json();
@@ -147,13 +185,15 @@ importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
     return c.json({ error: bodyValidation.error }, HTTP_STATUS.BAD_REQUEST);
   }
 
-  const parseResult = validateAndParseExport(body.data);
+  const format = detectFormat(body.data);
+  const parseResult = validateAndParseExport(body.data, format);
   if (!parseResult.success) {
     return c.json({ valid: false, errors: parseResult.errors }, HTTP_STATUS.OK);
   }
 
   return c.json({
     valid: true,
+    format,
     conversationCount: parseResult.conversationCount,
     stats: getImportStats(parseResult.conversations),
     preview: buildPreview(parseResult.conversations),
@@ -162,14 +202,12 @@ importRouter.post("/validate", requireRole("admin", "member"), async (c) => {
 
 importRouter.get("/formats", async (c) => {
   return c.json({
-    formats: [
-      {
-        id: IMPORT_CONSTANTS.SOURCES.CHATGPT,
-        name: "ChatGPT",
-        description: "Import conversations from ChatGPT export (JSON)",
-        fileType: IMPORT_CONSTANTS.SUPPORTED_EXTENSION,
-        endpoint: IMPORT_CONSTANTS.ENDPOINTS.CHATGPT,
-      },
-    ],
+    formats: Object.entries(FORMATS).map(([id, format]) => ({
+      id,
+      name: format.name,
+      description: `Import conversations from ${format.name} export (JSON)`,
+      fileType: IMPORT_CONSTANTS.SUPPORTED_EXTENSION,
+      endpoint: format.endpoint,
+    })),
   });
 });

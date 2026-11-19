@@ -1,0 +1,107 @@
+[
+  {
+    "uuid": "9c1e3a2b-0001-4c1a-9a1b-000000000001",
+    "name": "Planning a trip to Lisbon",
+    "created_at": "2025-03-10T14:02:11.512345Z",
+    "updated_at": "2025-03-10T14:09:48.001234Z",
+    "account": { "uuid": "acc-0001" },
+    "chat_messages": [
+      {
+        "uuid": "m-0001",
+        "text": "Help me plan three days in Lisbon in April.",
+        "sender": "human",
+        "created_at": "2025-03-10T14:02:11.512345Z",
+        "updated_at": "2025-03-10T14:02:11.512345Z",
+        "content": [{ "type": "text", "text": "Help me plan three days in Lisbon in April." }],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "m-0002",
+        "text": "Day 1: Alfama and the castle.\n\n```text\nTram 28 -> Castelo -> Miradouro\n```",
+        "sender": "assistant",
+        "created_at": "2025-03-10T14:02:30.100000Z",
+        "updated_at": "2025-03-10T14:02:30.100000Z",
+        "content": [
+          {
+            "type": "text",
+            "text": "Day 1: Alfama and the castle.\n\n```text\nTram 28 -> Castelo -> Miradouro\n```"
+          }
+        ],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "m-0003",
+        "text": "What's the weather like then?",
+        "sender": "human",
+        "created_at": "2025-03-10T14:08:00.000000Z",
+        "updated_at": "2025-03-10T14:08:00.000000Z",
+        "content": [{ "type": "text", "text": "What's the weather like then?" }],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "m-0004",
+        "text": "",
+        "sender": "assistant",
+        "created_at": "2025-03-10T14:09:48.001234Z",
+        "updated_at": "2025-03-10T14:09:48.001234Z",
+        "content": [
+          {
+            "type": "tool_use",
+            "name": "web_search",
+            "input": { "query": "Lisbon April weather" }
+          },
+          { "type": "tool_result", "name": "web_search", "content": [] },
+          { "type": "text", "text": "Mild: around 18°C by day, with some rain." }
+        ],
+        "attachments": [],
+        "files": []
+      }
+    ]
+  },
+  {
+    "uuid": "9c1e3a2b-0002-4c1a-9a1b-000000000002",
+    "name": "",
+    "created_at": "2025-01-05T09:00:00.000000Z",
+    "updated_at": "2025-01-05T09:01:00.000000Z",
+    "account": { "uuid": "acc-0001" },
+    "chat_messages": [
+      {
+        "uuid": "m-0101",
+        "text": "Summarize the attached report.",
+        "sender": "human",
+        "created_at": "2025-01-05T09:00:00.000000Z",
+        "updated_at": "2025-01-05T09:00:00.000000Z",
+        "content": [{ "type": "text", "text": "Summarize the attached report." }],
+        "attachments": [
+          {
+            "file_name": "q4-report.pdf",
+            "file_type": "application/pdf",
+            "extracted_content": "..."
+          }
+        ],
+        "files": []
+      },
+      {
+        "uuid": "m-0102",
+        "text": "The report covers Q4 results.",
+        "sender": "assistant",
+        "created_at": "2025-01-05T09:01:00.000000Z",
+        "updated_at": "2025-01-05T09:01:00.000000Z",
+        "content": [{ "type": "text", "text": "The report covers Q4 results." }],
+        "attachments": [],
+        "files": []
+      }
+    ]
+  },
+  {
+    "uuid": "9c1e3a2b-0003-4c1a-9a1b-000000000003",
+    "name": "Empty conversation",
+    "created_at": "2025-02-01T00:00:00.000000Z",
+    "updated_at": "2025-02-01T00:00:00.000000Z",
+    "account": { "uuid": "acc-0001" },
+    "chat_messages": []
+  }
+]

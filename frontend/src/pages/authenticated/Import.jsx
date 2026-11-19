@@ -6,7 +6,7 @@ import { useFileDragDrop } from "@/hooks/useFileDragDrop";
 import { chatKeys } from "@/hooks/useChatsQuery";
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, LayoutGrid } from "lucide-preact";
 import { toast } from "sonner";
-import { validateImportFile, importChatGPTConversations } from "@/utils/importConversation";
+import { validateImportFile, importConversations } from "@/utils/importConversation";
 import { IMPORT_CONSTANTS } from "@faster-chat/shared";
 
 // Sub-component: Drop zone content based on current state
@@ -47,7 +47,9 @@ const DropZoneContent = ({ file, validating, validation, onChooseDifferent, onOp
     <div className="flex flex-col items-center gap-4">
       <Upload className="text-theme-text-muted h-16 w-16" />
       <div>
-        <p className="text-theme-text text-base font-medium">Drop your ChatGPT export file here</p>
+        <p className="text-theme-text text-base font-medium">
+          Drop your ChatGPT or Claude export file here
+        </p>
         <p className="text-theme-text-muted mt-2 text-sm">
           or{" "}
           <button
@@ -58,7 +60,7 @@ const DropZoneContent = ({ file, validating, validation, onChooseDifferent, onOp
         </p>
       </div>
       <p className="text-theme-text-muted mt-2 text-xs">
-        Supports ChatGPT JSON export files (up to {IMPORT_CONSTANTS.MAX_FILE_SIZE_MB}MB)
+        Supports ChatGPT and Claude JSON export files (up to {IMPORT_CONSTANTS.MAX_FILE_SIZE_MB}MB)
       </p>
     </div>
   );
@@ -90,22 +92,44 @@ const ImportInstructions = () => (
   <div className="border-theme-surface bg-theme-canvas-alt rounded-lg border p-6">
     <h2 className="text-theme-text mb-4 flex items-center gap-2 text-lg font-semibold">
       <FileText size={20} />
-      How to export from ChatGPT
+      How to export your conversations
     </h2>
-    <ol className="text-theme-text-muted space-y-3 text-sm">
+    <div className="grid gap-6 sm:grid-cols-2">
       {[
-        "Go to ChatGPT Settings → Data Controls",
-        'Click "Export data"',
-        "Wait for the export email (usually within 24 hours)",
-        "Download and extract the ZIP file",
-        "Upload the conversations.json file here",
-      ].map((step, i) => (
-        <li key={i} className="flex gap-3">
-          <span className="text-theme-primary font-bold">{i + 1}.</span>
-          <span>{step}</span>
-        </li>
+        {
+          source: "ChatGPT",
+          steps: [
+            "Go to ChatGPT Settings → Data Controls",
+            'Click "Export data"',
+            "Wait for the export email (usually within 24 hours)",
+            "Download and extract the ZIP file",
+            "Upload the conversations.json file here",
+          ],
+        },
+        {
+          source: "Claude",
+          steps: [
+            "Go to Claude Settings → Privacy",
+            'Click "Export data"',
+            "Wait for the export email",
+            "Download and extract the ZIP file",
+            "Upload the conversations.json file here",
+          ],
+        },
+      ].map(({ source, steps }) => (
+        <div key={source}>
+          <h3 className="text-theme-text mb-2 text-sm font-semibold">{source}</h3>
+          <ol className="text-theme-text-muted space-y-3 text-sm">
+            {steps.map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="text-theme-primary font-bold">{i + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
       ))}
-    </ol>
+    </div>
   </div>
 );
 
@@ -131,7 +155,7 @@ const Import = () => {
 
   // Import mutation
   const importMutation = useMutation({
-    mutationFn: importChatGPTConversations,
+    mutationFn: importConversations,
     onSuccess: (result) => {
       toast.success(
         `Imported ${result.imported.conversations} conversations with ${result.imported.messages} messages`
@@ -166,9 +190,9 @@ const Import = () => {
 
   // Start import
   const handleImport = () => {
-    const data = validationMutation.data?.data;
+    const { data, format } = validationMutation.data ?? {};
     if (data) {
-      importMutation.mutate(data);
+      importMutation.mutate({ data, format });
     }
   };
 

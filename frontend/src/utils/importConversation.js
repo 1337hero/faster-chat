@@ -60,6 +60,7 @@ export async function validateImportFile(file) {
     return {
       valid: true,
       data,
+      format: result.format,
       preview: result.preview,
       stats: result.stats,
     };
@@ -71,11 +72,16 @@ export async function validateImportFile(file) {
   }
 }
 
+const IMPORT_ENDPOINTS = {
+  [IMPORT_CONSTANTS.SOURCES.CHATGPT]: IMPORT_CONSTANTS.ENDPOINTS.CHATGPT,
+  [IMPORT_CONSTANTS.SOURCES.CLAUDE]: IMPORT_CONSTANTS.ENDPOINTS.CLAUDE,
+};
+
 /**
- * Import ChatGPT conversations via backend
+ * Import conversations via backend, using the endpoint for the detected format
  */
-export async function importChatGPTConversations(data) {
-  const response = await fetch(IMPORT_CONSTANTS.ENDPOINTS.CHATGPT, {
+export async function importConversations({ data, format }) {
+  const response = await fetch(IMPORT_ENDPOINTS[format] || IMPORT_CONSTANTS.ENDPOINTS.CHATGPT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
