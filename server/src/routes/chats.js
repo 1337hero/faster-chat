@@ -10,6 +10,7 @@ import {
   getSystemPrompt,
   COMPLETION_CONSTANTS,
   WEB_SEARCH_CONSTANTS,
+  EXPORT_CONSTANTS,
 } from "@faster-chat/shared";
 import { createWebSearchTool } from "../lib/tools/webSearch.js";
 import { createFetchUrlTool } from "../lib/tools/fetchUrl.js";
@@ -30,6 +31,7 @@ import {
   convertToModelMessages,
   mapAttachmentError,
 } from "../lib/completion.js";
+import { chatToMarkdown, contentDisposition, exportChat, exportFilename } from "../lib/export.js";
 
 export const chatsRouter = new Hono();
 
@@ -193,6 +195,33 @@ chatsRouter.delete(
   "/:chatId/archive",
   chatStateHandler(dbUtils.unarchiveChat, "Chat unarchived successfully")
 );
+
+chatsRouter.get("/:chatId/export", async (c) => {
+  const user = c.get("user");
+  const chat = c.get("chat");
+  const format = c.req.query("format") || EXPORT_CONSTANTS.FORMATS.JSON;
+
+  if (dbUtils.getMessageCountByChat(chat.id) === 0) {
+    return c.json({ error: "Chat has no messages" }, HTTP_STATUS.NOT_FOUND);
+  }
+
+  if (format === EXPORT_CONSTANTS.FORMATS.MARKDOWN) {
+    return c.body(chatToMarkdown(user.id, chat), HTTP_STATUS.OK, {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Content-Disposition": contentDisposition(exportFilename(chat.title, "md"), chat.title),
+    });
+  }
+
+  if (format === EXPORT_CONSTANTS.FORMATS.JSON) {
+    c.header(
+      "Content-Disposition",
+      contentDisposition(exportFilename(chat.title, "json"), chat.title)
+    );
+    return c.json(exportChat(user.id, chat));
+  }
+
+  return c.json({ error: "Unsupported format" }, HTTP_STATUS.BAD_REQUEST);
+});
 
 chatsRouter.get("/:chatId/messages", async (c) => {
   const user = c.get("user");

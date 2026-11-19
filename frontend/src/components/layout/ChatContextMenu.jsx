@@ -1,5 +1,17 @@
 import { useEffect, useRef } from "preact/hooks";
-import { Pin, PinOff, Archive, Trash2, ExternalLink, TextCursor, FolderInput } from "lucide-preact";
+import {
+  Pin,
+  PinOff,
+  Archive,
+  Trash2,
+  ExternalLink,
+  TextCursor,
+  FolderInput,
+  FileDown,
+  FileText,
+} from "lucide-preact";
+import { EXPORT_CONSTANTS } from "@faster-chat/shared";
+import { downloadUrl } from "@/lib/download";
 
 const ChatContextMenu = ({
   chat,
@@ -86,6 +98,26 @@ const ChatContextMenu = ({
       label: "Open in New Tab",
       onClick: () => {
         window.open(`/chat/${chat.id}`, "_blank");
+        onClose();
+      },
+    },
+    {
+      icon: FileDown,
+      label: "Export as JSON",
+      onClick: () => {
+        downloadUrl(
+          `${EXPORT_CONSTANTS.ENDPOINTS.chat(chat.id)}?format=${EXPORT_CONSTANTS.FORMATS.JSON}`
+        );
+        onClose();
+      },
+    },
+    {
+      icon: FileText,
+      label: "Export as Markdown",
+      onClick: () => {
+        downloadUrl(
+          `${EXPORT_CONSTANTS.ENDPOINTS.chat(chat.id)}?format=${EXPORT_CONSTANTS.FORMATS.MARKDOWN}`
+        );
         onClose();
       },
     },

@@ -76,6 +76,15 @@ export function createChatUtils({ db }) {
       return stmt.get(chatId, userId);
     },
 
+    getAllChatsByUserId(userId) {
+      const stmt = db.prepare(`
+      SELECT * FROM chats
+      WHERE user_id = ? AND deleted_at IS NULL
+      ORDER BY created_at ASC
+    `);
+      return stmt.all(userId);
+    },
+
     getArchivedChatsByUserId(userId) {
       const stmt = db.prepare(`
       SELECT * FROM chats
@@ -246,6 +255,19 @@ export function createChatUtils({ db }) {
       LIMIT ? OFFSET ?
     `);
       const messages = stmt.all(chatId, userId, limit, offset);
+      for (const msg of messages) {
+        parseMessageMetadata(msg);
+      }
+      return attachFileIds(messages);
+    },
+
+    getAllMessagesByChatAndUser(chatId, userId) {
+      const stmt = db.prepare(`
+      SELECT * FROM messages
+      WHERE chat_id = ? AND user_id = ?
+      ORDER BY created_at ASC, rowid ASC
+    `);
+      const messages = stmt.all(chatId, userId);
       for (const msg of messages) {
         parseMessageMetadata(msg);
       }
